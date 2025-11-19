@@ -1,0 +1,115 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Panel de Control{% endblock %}
+{% block page_subtitle %}Métricas clave y auditorías recientes{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-5">
+    
+    <div class="col-md-4">
+        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase small fw-bold mb-1">Auditorías Totales</h6>
+                <h2 class="fw-bold mb-0">{{ total_proyectos }}</h2>
+            </div>
+            <div class="rounded-circle bg-soft-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="bi bi-folder-fill fs-4" style="color: var(--primary-brand);"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase small fw-bold mb-1">En Ejecución</h6>
+                <h2 class="fw-bold mb-0">{{ proyectos_activos }}</h2>
+            </div>
+            <div class="rounded-circle bg-soft-warning d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="bi bi-activity fs-4 text-warning"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase small fw-bold mb-1">CO2 Reducido (Est.)</h6>
+                <h2 class="fw-bold mb-0">0 <span class="fs-6 text-muted fw-normal">Ton</span></h2>
+            </div>
+            <div class="rounded-circle bg-soft-success d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="bi bi-tree-fill fs-4 text-success"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-modern p-0 overflow-hidden">
+    <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h5 class="mb-0 fw-bold">Auditorías Recientes</h5>
+        <button class="btn btn-sm btn-primary rounded-pill px-3">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo Proyecto
+        </button>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th class="ps-4">Proyecto / Empresa</th>
+                    <th>Centro PEVI</th>
+                    <th>Fecha Inicio</th>
+                    <th>Estado</th>
+                    <th class="text-end pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in lista_proyectos %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded p-2 me-3 text-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-building text-secondary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">{{ p.nombre_proyecto }}</div>
+                                <div class="small text-muted">{{ p.empresa.razon_social }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="fw-medium">{{ p.centro.nombre }}</span>
+                    </td>
+                    <td class="text-muted text-nowrap">
+                        <i class="bi bi-calendar3 me-1"></i> {{ p.fecha_inicio|date:"d M, Y" }}
+                    </td>
+                    <td>
+                        {% if p.estado == 'EJECUCION' %}
+                            <span class="badge badge-soft bg-soft-primary">En Ejecución</span>
+                        {% elif p.estado == 'FINALIZADO' %}
+                            <span class="badge badge-soft bg-soft-success">Finalizado</span>
+                        {% elif p.estado == 'REVISION' %}
+                            <span class="badge badge-soft bg-soft-warning">Revisión</span>
+                        {% else %}
+                            <span class="badge badge-soft bg-secondary">Borrador</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-light btn-sm text-muted border hover-shadow">
+                            Detalles
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <p class="mb-0">No se encontraron proyectos registrados.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
