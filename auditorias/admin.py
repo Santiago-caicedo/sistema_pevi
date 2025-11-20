@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import Empresa, ProyectoAuditoria, DocumentoProyecto
-from .models import Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
+from .models import (
+    Empresa, ProyectoAuditoria, DocumentoProyecto,
+    Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
+)
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
@@ -11,22 +13,26 @@ class EmpresaAdmin(admin.ModelAdmin):
 class ProyectoAdmin(admin.ModelAdmin):
     list_display = ('nombre_proyecto', 'empresa', 'centro', 'estado', 'fecha_inicio')
     list_filter = ('estado', 'centro')
-    filter_horizontal = ('equipo',) # Widget bonito para seleccionar usuarios multiples
+    filter_horizontal = ('equipo',)
 
 admin.site.register(DocumentoProyecto)
 
+# --- ADMINS PARA LOS ENERGÉTICOS (Actualizado a la Bitácora Manual) ---
 
-# Un admin personalizado para ver los cálculos automáticos
-class EnergeticoAdmin(admin.ModelAdmin):
-    list_display = ('proyecto', 'consumo_total_anual', 'costo_total_anual', 'calcular_emisiones_show')
-    
-    def calcular_emisiones_show(self, obj):
-        return f"{obj.calcular_emisiones_ton_co2():.2f} TonCO2"
-    calcular_emisiones_show.short_description = "Emisiones Calculadas"
+@admin.register(Electricidad)
+class ElectricidadAdmin(admin.ModelAdmin):
+    # Electricidad usa 'consumo_anual'
+    list_display = ('proyecto', 'consumo_anual', 'costo_total_anual', 'emisiones_totales')
+    list_filter = ('proyecto__centro',)
 
-admin.site.register(Electricidad, EnergeticoAdmin)
-admin.site.register(GasNatural, EnergeticoAdmin)
-admin.site.register(CarbonMineral, EnergeticoAdmin)
-admin.site.register(FuelOil, EnergeticoAdmin)
-admin.site.register(Biomasa, EnergeticoAdmin)
-admin.site.register(GasPropano, EnergeticoAdmin)
+class CombustibleAdmin(admin.ModelAdmin):
+    # Los combustibles usan 'consumo_anual_orig' (Unidad Original)
+    list_display = ('proyecto', 'consumo_anual_orig', 'costo_total_anual', 'emisiones_totales')
+    list_filter = ('proyecto__centro',)
+
+# Registramos los combustibles usando la clase CombustibleAdmin
+admin.site.register(GasNatural, CombustibleAdmin)
+admin.site.register(CarbonMineral, CombustibleAdmin)
+admin.site.register(FuelOil, CombustibleAdmin)
+admin.site.register(Biomasa, CombustibleAdmin)
+admin.site.register(GasPropano, CombustibleAdmin)

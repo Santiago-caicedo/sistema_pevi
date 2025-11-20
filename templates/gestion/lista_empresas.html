@@ -1,0 +1,68 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Empresas{% endblock %}
+{% block page_title %}Directorio de Empresas{% endblock %}
+{% block page_subtitle %}Gestión de clientes y plantas industriales{% endblock %}
+
+{% block content %}
+<div class="card-modern p-0 overflow-hidden">
+    
+    <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control bg-light border-start-0" placeholder="Buscar empresa...">
+            </div>
+        </div>
+        <a href="{% url 'crear_empresa' %}" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Registrar Empresa
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table-modern table-hover">
+            <thead>
+                <tr>
+                    <th class="ps-4">Razón Social / NIT</th>
+                    <th>Sector Productivo</th>
+                    <th>Ubicación</th>
+                    <th>Contacto</th>
+                    <th class="text-end pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in empresas %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-bold text-dark">{{ emp.razon_social }}</div>
+                        <div class="small text-muted font-monospace">{{ emp.nit }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ emp.sector_productivo }}</span>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center text-secondary">
+                            <i class="bi bi-geo-alt me-1"></i> {{ emp.ciudad }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">{{ emp.contacto_nombre }}</div>
+                        <div class="small text-muted">{{ emp.contacto_email }}</div>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-light btn-sm border text-muted"><i class="bi bi-pencil"></i></button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-building fs-1 mb-3 d-block opacity-50"></i>
+                        No hay empresas registradas aún.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

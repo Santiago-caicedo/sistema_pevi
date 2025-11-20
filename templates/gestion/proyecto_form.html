@@ -1,0 +1,101 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Nuevo Proyecto{% endblock %}
+{% block page_title %}Iniciar Auditoría{% endblock %}
+{% block page_subtitle %}Formulario de registro de proyecto energético{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        
+        <div class="card-modern border-0 shadow-lg">
+            <div class="card-header bg-white p-4 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-soft-primary p-2 me-3 text-primary">
+                        <i class="bi bi-file-earmark-plus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">Detalles del Proyecto</h5>
+                        <p class="mb-0 small text-muted">Asigna la empresa, el equipo y el cronograma inicial.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-5">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger rounded-3 mb-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <h6 class="text-uppercase text-primary fw-bold mb-4 text-xs tracking-wide">
+                        <i class="bi bi-1-circle me-2"></i> Definición del Proyecto
+                    </h6>
+                    
+                    <div class="row g-4 mb-5">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small">Nombre de la Auditoría <span class="text-danger">*</span></label>
+                            {{ form.nombre_proyecto }}
+                            <div class="form-text">Ej: "Evaluación Energética Planta 2 - 2025"</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Empresa Cliente <span class="text-danger">*</span></label>
+                            {{ form.empresa }}
+                            <div class="form-text">
+                                ¿No encuentras la empresa? 
+                                <a href="{% url 'crear_empresa' %}" class="text-decoration-none fw-bold">Regístrala aquí</a>.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Líder del Proyecto</label>
+                            {{ form.lider_proyecto }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase text-primary fw-bold mb-4 text-xs tracking-wide border-top pt-4">
+                        <i class="bi bi-calendar-week me-2"></i> Cronograma Estimado
+                    </h6>
+
+                    <div class="row g-4 mb-5">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Fecha de Inicio</label>
+                            {{ form.fecha_inicio }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Fecha Estimada de Cierre</label>
+                            {{ form.fecha_cierre_estimada }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase text-primary fw-bold mb-4 text-xs tracking-wide border-top pt-4">
+                        <i class="bi bi-people me-2"></i> Asignación de Equipo
+                    </h6>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark small">Ingenieros / Estudiantes Asignados</label>
+                        <div class="bg-light p-3 rounded border">
+                            {{ form.equipo }}
+                        </div>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle me-1"></i> Mantén presionada la tecla <strong>Ctrl</strong> (Windows) o <strong>Cmd</strong> (Mac) para seleccionar varias personas.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-5 pt-3 border-top">
+                        <a href="{% url 'lista_proyectos' %}" class="btn btn-light border px-4 fw-medium">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-5 py-2 shadow-sm fw-bold hover-lift">
+                            <i class="bi bi-check-lg me-2"></i> Crear Proyecto
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

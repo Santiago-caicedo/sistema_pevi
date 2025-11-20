@@ -1,0 +1,452 @@
+{% extends 'layouts/base.html' %}
+{% load humanize %} {% block title %}Panel: {{ proyecto.nombre_proyecto }}{% endblock %}
+{% block page_title %}{{ proyecto.nombre_proyecto }}{% endblock %}
+{% block page_subtitle %}
+    <span class="text-muted">Cliente:</span> <strong>{{ proyecto.empresa.razon_social }}</strong> | 
+    <span class="text-muted">Centro:</span> {{ proyecto.centro.nombre }}
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border">
+    <div class="d-flex align-items-center gap-3">
+        {% if proyecto.estado == 'EJECUCION' %}
+            <span class="badge rounded-pill bg-soft-primary text-primary border border-primary px-3 py-2">
+                <i class="bi bi-activity me-1"></i> En Ejecución
+            </span>
+        {% elif proyecto.estado == 'FINALIZADO' %}
+            <span class="badge rounded-pill bg-soft-success text-success border border-success px-3 py-2">
+                <i class="bi bi-check-circle me-1"></i> Finalizado
+            </span>
+        {% else %}
+            <span class="badge rounded-pill bg-soft-secondary text-secondary border px-3 py-2">
+                {{ proyecto.get_estado_display }}
+            </span>
+        {% endif %}
+        
+        <div class="vr text-muted"></div>
+        
+        <small class="text-muted">
+            <i class="bi bi-calendar3 me-1"></i> Inicio: <strong>{{ proyecto.fecha_inicio|date:"d M, Y" }}</strong>
+        </small>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm fw-medium">
+            <i class="bi bi-pencil-square me-1"></i> Editar Proyecto
+        </button>
+        <button class="btn btn-primary btn-sm fw-medium shadow-sm">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Informe
+        </button>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card-modern p-4 border-start border-4 border-primary h-100 bg-white shadow-sm">
+            <div class="d-flex justify-content-between mb-2">
+                <small class="text-uppercase fw-bold text-secondary tracking-wide">Consumo Energético</small>
+                <i class="bi bi-lightning-charge text-primary"></i>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">{{ kpi_energia|intcomma }}</h3>
+            <span class="text-muted small">kWh Equivalentes / año</span>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card-modern p-4 border-start border-4 border-success h-100 bg-white shadow-sm">
+            <div class="d-flex justify-content-between mb-2">
+                <small class="text-uppercase fw-bold text-secondary tracking-wide">Huella de Carbono</small>
+                <i class="bi bi-globe-americas text-success"></i>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">{{ kpi_emisiones|intcomma }}</h3>
+            <span class="text-muted small">Toneladas CO2eq / año</span>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card-modern p-4 border-start border-4 border-warning h-100 bg-white shadow-sm">
+            <div class="d-flex justify-content-between mb-2">
+                <small class="text-uppercase fw-bold text-secondary tracking-wide">Costo Operativo</small>
+                <i class="bi bi-currency-dollar text-warning"></i>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">$ {{ kpi_costo|intcomma }}</h3>
+            <span class="text-muted small">COP / año</span>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="fw-bold text-dark mb-0">Bitácora de Información</h5>
+    <span class="text-muted small">Gestiona los datos de producción y energéticos</span>
+</div>
+
+<div class="row g-4 pb-5">
+    
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift border border-secondary border-opacity-25 bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1 text-dark">Producción / Actividad</h6>
+                    <span class="badge bg-light text-dark border border-dark-subtle text-uppercase" style="font-size: 0.65rem;">Contexto</span>
+                </div>
+                <div class="icon-box bg-dark text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-boxes fs-5"></i>
+                </div>
+            </div>
+
+            {% if proyecto.produccion_total > 0 %}
+                <div class="mb-4 border-start border-2 border-dark ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Cantidad:</span>
+                        <span class="fw-bold small">{{ produccion_display|intcomma }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Unidad:</span>
+                        <span class="fw-bold small">{{ proyecto.unidad_produccion }}</span>
+                    </div>
+                    <div class="mt-2 pt-2 border-top border-dashed">
+                        <span class="text-muted small" style="font-size: 0.75rem;">
+                            Indicador IDES: <strong>{{ kpi_ides }} kWh/{{ proyecto.unidad_produccion }}</strong>
+                        </span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'registrar_produccion' proyecto.id %}" class="btn btn-light btn-sm border text-secondary fw-medium">
+                        <i class="bi bi-pencil me-1"></i> Editar
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No definido</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_produccion' proyecto.id %}" class="btn btn-outline-dark btn-sm border-dashed fw-medium">
+                        <i class="bi bi-plus-lg"></i> Definir Producción
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Electricidad</h6>
+                    <span class="badge bg-soft-warning text-warning border border-warning-subtle text-uppercase" style="font-size: 0.65rem;">Red</span>
+                </div>
+                <div class="icon-box bg-soft-warning text-warning rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-plug-fill fs-5"></i>
+                </div>
+            </div>
+
+            {% if electricidad %}
+                <div class="mb-4 border-start border-2 border-warning ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Consumo:</span>
+                        <span class="fw-bold small">{{ electricidad.consumo_anual|intcomma }} kWh</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Costo:</span>
+                        <span class="fw-bold small">$ {{ electricidad.costo_total_anual|intcomma }}</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'electricidad' %}" class="btn btn-outline-warning btn-sm border-dashed fw-medium text-dark">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Gas Natural</h6>
+                    <span class="badge bg-soft-primary text-primary border border-primary-subtle text-uppercase" style="font-size: 0.65rem;">Combustible</span>
+                </div>
+                <div class="icon-box bg-soft-primary text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-fire fs-5"></i>
+                </div>
+            </div>
+
+            {% if gas_natural %}
+                <div class="mb-4 border-start border-2 border-primary ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Volumen:</span>
+                        <span class="fw-bold small">{{ gas_natural.consumo_anual_orig|intcomma }} m³</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Energía:</span>
+                        <span class="fw-bold small">{{ gas_natural.consumo_anual_kwh|intcomma }} kWh</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_natural' %}" class="btn btn-outline-primary btn-sm border-dashed fw-medium">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Carbón Mineral</h6>
+                    <span class="badge bg-dark text-white border border-dark-subtle text-uppercase" style="font-size: 0.65rem;">Sólido</span>
+                </div>
+                <div class="icon-box bg-dark text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-box-seam-fill fs-5"></i>
+                </div>
+            </div>
+
+            {% if carbon_mineral %}
+                <div class="mb-4 border-start border-2 border-dark ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Masa:</span>
+                        <span class="fw-bold small">{{ carbon_mineral.consumo_anual_orig|intcomma }} Ton</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Emisiones:</span>
+                        <span class="fw-bold small text-danger">{{ carbon_mineral.emisiones_totales|intcomma }} TonCO2</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'carbon' %}" class="btn btn-outline-secondary btn-sm border-dashed fw-medium">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Fuel Oil / Diesel</h6>
+                    <span class="badge bg-soft-danger text-danger border border-danger-subtle text-uppercase" style="font-size: 0.65rem;">Líquido</span>
+                </div>
+                <div class="icon-box bg-soft-danger text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-droplet-fill fs-5"></i>
+                </div>
+            </div>
+
+            {% if fuel_oil %}
+                <div class="mb-4 border-start border-2 border-danger ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Volumen:</span>
+                        <span class="fw-bold small">{{ fuel_oil.consumo_anual_orig|intcomma }} Gal</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Energía:</span>
+                        <span class="fw-bold small">{{ fuel_oil.consumo_anual_kwh|intcomma }} kWh</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'fuel_oil' %}" class="btn btn-outline-danger btn-sm border-dashed fw-medium text-dark">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Biomasa / Bagazo</h6>
+                    <span class="badge bg-soft-success text-success border border-success-subtle text-uppercase" style="font-size: 0.65rem;">Renovable</span>
+                </div>
+                <div class="icon-box bg-soft-success text-success rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-recycle fs-5"></i>
+                </div>
+            </div>
+
+            {% if biomasa %}
+                <div class="mb-4 border-start border-2 border-success ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Tipo:</span>
+                        <span class="fw-bold small">{{ biomasa.tipo }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Masa:</span>
+                        <span class="fw-bold small">{{ biomasa.consumo_anual_orig|intcomma }} Ton</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'biomasa' %}" class="btn btn-outline-success btn-sm border-dashed fw-medium text-dark">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card-modern h-100 p-4 position-relative hover-lift bg-white">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="fw-bold mb-1">Gas Propano (GLP)</h6>
+                    <span class="badge bg-soft-info text-info border border-info-subtle text-uppercase" style="font-size: 0.65rem;">Gas Licuado</span>
+                </div>
+                <div class="icon-box bg-soft-info text-info rounded-circle p-2 d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                    <i class="bi bi-cloud-fog2-fill fs-5"></i>
+                </div>
+            </div>
+
+            {% if gas_propano %}
+                <div class="mb-4 border-start border-2 border-info ps-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Masa:</span>
+                        <span class="fw-bold small">{{ gas_propano.consumo_anual_orig|intcomma }} kg</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted small">Energía:</span>
+                        <span class="fw-bold small">{{ gas_propano.consumo_anual_kwh|intcomma }} kWh</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                </div>
+            {% else %}
+                <div class="text-center py-2 text-muted mb-3">
+                    <small>No registrado</small>
+                </div>
+                <div class="d-grid">
+                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_propano' %}" class="btn btn-outline-info btn-sm border-dashed fw-medium text-dark">
+                        <i class="bi bi-plus-lg"></i> Registrar Consumo
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card-modern p-0 overflow-hidden bg-white shadow-sm">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-light">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-paperclip me-2"></i>Documentos y Evidencias</h6>
+                    <small class="text-muted">Facturas, informes parciales y soportes técnicos</small>
+                </div>
+                <button type="button" class="btn btn-white border shadow-sm text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-cloud-upload me-2"></i> Subir Archivo
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Nombre del Archivo</th>
+                            <th>Fecha Subida</th>
+                            <th>Tamaño</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in proyecto.documentos.all %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-text fs-4 text-secondary me-3"></i>
+                                    <span class="fw-medium text-dark">{{ doc.descripcion }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted small">{{ doc.fecha_subida|date:"d M Y, H:i" }}</td>
+                            <td class="text-muted small">{{ doc.archivo.size|filesizeformat }}</td>
+                            <td class="text-end pe-4">
+                                <a href="{{ doc.archivo.url }}" target="_blank" class="btn btn-sm btn-light border text-primary">
+                                    <i class="bi bi-download"></i> Descargar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                <i class="bi bi-folder-x fs-3 d-block mb-2 opacity-50"></i>
+                                No hay documentos cargados en este repositorio.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-cloud-upload me-2"></i>Cargar Documento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'subir_documento' proyecto.id %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small text-uppercase">Descripción del Archivo</label>
+                        <input type="text" name="descripcion" class="form-control" placeholder="Ej: Factura Enero 2025" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small text-uppercase">Seleccionar Archivo</label>
+                        <input type="file" name="archivo" class="form-control" required>
+                        <div class="form-text small">PDF, Excel, Imágenes (Max 10MB)</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Subir Archivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

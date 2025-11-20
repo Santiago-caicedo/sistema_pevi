@@ -58,8 +58,18 @@ class ProyectoAuditoria(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADOS, default='BORRADOR')
     
     # Contexto Productivo (Para calcular indicadores de intensidad energética después)
-    produccion_total = models.FloatField(help_text="Producción total en el periodo evaluado", default=0)
-    unidad_produccion = models.CharField(max_length=50, help_text="Ej: Toneladas, Unidades, m2")
+    produccion_total = models.FloatField(
+        help_text="Producción total en el periodo evaluado", 
+        default=0, 
+        null=True,  # <--- IMPORTANTE
+        blank=True  # <--- IMPORTANTE
+    )
+    unidad_produccion = models.CharField(
+        max_length=50, 
+        help_text="Ej: Toneladas, Unidades, m2", 
+        null=True,  # <--- IMPORTANTE
+        blank=True  # <--- IMPORTANTE
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -85,128 +95,88 @@ class DocumentoProyecto(models.Model):
 
 
 # ==========================================
-#  CORE DE ENERGÉTICOS: POLIMORFISMO
+#  CORE DE REGISTRO MANUAL (BITÁCORA)
 # ==========================================
 
 class FuenteEnergiaBase(models.Model):
     """
-    Clase Abstracta que define lo que TODAS las energías tienen en común.
-    No crea una tabla en la BD, sirve de plantilla.
+    Plantilla base para datos comunes (Costos y Emisiones Finales).
+    Ahora TODO es editable.
     """
     proyecto = models.ForeignKey(ProyectoAuditoria, on_delete=models.CASCADE, related_name="%(class)s_related")
     
-    # Datos Económicos y de Consumo (Inputs del Usuario)
-    consumo_promedio_mensual = models.FloatField(verbose_name="Consumo Mensual Promedio")
-    consumo_total_anual = models.FloatField(verbose_name="Consumo Total Anual")
-    
-    costo_unitario = models.FloatField(verbose_name="Costo Unitario Promedio ($/Unidad)")
-    costo_total_anual = models.FloatField(verbose_name="Costo Total Anual ($)")
-    
-    # Datos Ambientales (Input del Usuario o Sugerido)
-    factor_emision = models.FloatField(help_text="Factor de Emisión (kgCO2/Unidad)", verbose_name="FE")
+    # --- 1. DATOS ECONÓMICOS (Manuales) ---
+    costo_unitario = models.FloatField(verbose_name="Costo Unitario Promedio", help_text="COP/Unidad")
+    costo_mensual_promedio = models.FloatField(verbose_name="Costo Mensual Promedio (COP)")
+    costo_total_anual = models.FloatField(verbose_name="Costo Total Anual (COP)")
+
+    # --- 2. DATOS AMBIENTALES (Manuales) ---
+    factor_emision = models.FloatField(verbose_name="Factor de Emisión (FE)", help_text="kgCO2/Unidad")
+    emisiones_totales = models.FloatField(verbose_name="Emisiones Totales (TonCO2/año)")
 
     class Meta:
         abstract = True
-
-    def calcular_emisiones_ton_co2(self):
-        """Calcula Toneladas de CO2 al año: (Consumo * FE) / 1000"""
-        return (self.consumo_total_anual * self.factor_emision) / 1000
-
-    def save(self, *args, **kwargs):
-        # Pequeña validación de integridad: Si no ponen el total anual, lo estimamos
-        if not self.consumo_total_anual and self.consumo_promedio_mensual:
-            self.consumo_total_anual = self.consumo_promedio_mensual * 12
-        if not self.costo_total_anual and self.consumo_total_anual and self.costo_unitario:
-            self.costo_total_anual = self.consumo_total_anual * self.costo_unitario
-        super().save(*args, **kwargs)
-
 
 class Electricidad(FuenteEnergiaBase):
-    """
-    La electricidad es única: ya viene en kWh y no tiene Poder Calorífico.
-    Unidad: kWh
-    """
-    # No necesita campos extra, usa los de la base.
+    """ Campos específicos del Excel para Electricidad """
+    consumo_mensual = models.FloatField(verbose_name="Consumo Mensual (kWh/mes)")
+    consumo_anual = models.FloatField(verbose_name="Consumo Anual (kWh/año)")
+    
+    # La electricidad no tiene conversión de unidades ni PC complejo
     
     def get_kwh_equivalente(self):
-        return self.consumo_total_anual
+        return self.consumo_anual # Ya viene en kWh
+
+    def calcular_emisiones_ton_co2(self):
+        return self.emisiones_totales # Retornamos el valor manual
 
     class Meta:
-        verbose_name = "Electricidad"
-        verbose_name_plural = "Electricidad"
-
-    def __str__(self):
-        return f"Elec - {self.consumo_total_anual} kWh"
-
+        verbose_name = "Registro Electricidad"
 
 class CombustibleBase(FuenteEnergiaBase):
+    """ 
+    Plantilla para Gas, Carbón, Diesel, etc.
+    Incluye las columnas de conversión energética que están en el Excel.
     """
-    Clase Abstracta para todo lo que se quema (Gas, Carbón, Diesel).
-    Estos SÍ requieren Poder Calorífico (PC) para convertirse a energía útil.
-    """
-    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)", help_text="Energía por unidad de masa/volumen")
-    unidad_pc = models.CharField(max_length=20, help_text="Ej: MJ/kg, kJ/m3, kWh/gal")
+    # Consumo en unidad ORIGINAL (m3, Ton, Gal)
+    consumo_mensual_orig = models.FloatField(verbose_name="Consumo Mensual (Ud. Original)")
+    consumo_anual_orig = models.FloatField(verbose_name="Consumo Anual (Ud. Original)")
+    
+    # Datos Técnicos
+    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)")
+    unidad_pc = models.CharField(max_length=20, verbose_name="Unidad del PC", help_text="Ej: kJ/m3, MJ/kg")
+    
+    # Consumo Convertido (Las columnas 'Consumo kWh.GN/mes' del Excel)
+    consumo_mensual_kwh = models.FloatField(verbose_name="Consumo Eq. Mensual (kWh)")
+    consumo_anual_kwh = models.FloatField(verbose_name="Consumo Eq. Anual (kWh)")
+    
+    # Indicador económico normalizado ($COP/kWh)
+    costo_kwh_equivalente = models.FloatField(verbose_name="Costo Equivalente ($/kWh)")
 
     class Meta:
         abstract = True
-
+        
     def get_kwh_equivalente(self):
-        """
-        Normalización crítica: Convierte el combustible a kWh teóricos.
-        Nota: Esta es una simplificación, en producción requerirá un convertidor de unidades robusto 
-        según la unidad del PC (MJ vs kWh). Por ahora asumiremos conversión directa si PC está en kWh/unidad,
-        o conversión estándar de MJ a kWh (1 MJ = 0.277 kWh).
-        """
-        # Lógica simplificada: Si el PC viene en MJ, convertir a kWh
-        factor_conversion = 1.0
-        if 'MJ' in self.unidad_pc:
-            factor_conversion = 0.277778
-        elif 'kJ' in self.unidad_pc:
-            factor_conversion = 0.000277778
-            
-        energia_total = self.consumo_total_anual * self.poder_calorifico * factor_conversion
-        return energia_total
+        return self.consumo_anual_kwh
+        
+    def calcular_emisiones_ton_co2(self):
+        return self.emisiones_totales
 
-
-# --- MODELOS CONCRETOS (TABLAS REALES) ---
+# --- MODELOS CONCRETOS ---
+# Heredan los campos manuales de arriba
 
 class GasNatural(CombustibleBase):
-    """ Unidad: Metros Cúbicos (m3) """
-    unidad_medida = "m³"
-    
-    class Meta:
-        verbose_name = "Gas Natural"
-        verbose_name_plural = "Gas Natural"
+    class Meta: verbose_name = "Registro Gas Natural"
 
 class CarbonMineral(CombustibleBase):
-    """ Unidad: Toneladas """
-    unidad_medida = "Ton"
-
-    class Meta:
-        verbose_name = "Carbón Mineral"
-        verbose_name_plural = "Carbón Mineral"
+    class Meta: verbose_name = "Registro Carbón Mineral"
 
 class FuelOil(CombustibleBase):
-    """ Unidad: Galones """
-    unidad_medida = "Gal"
-
-    class Meta:
-        verbose_name = "Fuel Oil / Diesel"
-        verbose_name_plural = "Fuel Oil / Diesel"
+    class Meta: verbose_name = "Registro Fuel Oil"
 
 class Biomasa(CombustibleBase):
-    """ Unidad: Toneladas (Madera, Bagazo, Cascarilla) """
-    tipo_biomasa = models.CharField(max_length=50, default="Genérica", help_text="Ej: Bagazo, Cisco, Leña")
-    unidad_medida = "Ton"
-
-    class Meta:
-        verbose_name = "Biomasa / Bagazo"
-        verbose_name_plural = "Biomasa"
+    tipo = models.CharField(max_length=50, default="Genérica")
+    class Meta: verbose_name = "Registro Biomasa"
 
 class GasPropano(CombustibleBase):
-    """ Unidad: Kilogramos (kg) o Galones """
-    unidad_medida = "kg" # Estandarizamos a masa según tu texto corregido
-
-    class Meta:
-        verbose_name = "Gas Propano (GLP)"
-        verbose_name_plural = "Gas Propano (GLP)"
+    class Meta: verbose_name = "Registro GLP"

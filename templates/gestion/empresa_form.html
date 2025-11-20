@@ -1,0 +1,66 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Nueva Empresa{% endblock %}
+{% block page_title %}Registrar Empresa{% endblock %}
+{% block page_subtitle %}Añadir un nuevo cliente a la base de datos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card-modern p-5">
+            <form method="post">
+                {% csrf_token %}
+                
+                <h6 class="text-uppercase text-muted fw-bold mb-4 border-bottom pb-2">Datos Corporativos</h6>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-8">
+                        <label class="form-label fw-medium text-secondary">Razón Social</label>
+                        {{ form.razon_social }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium text-secondary">NIT</label>
+                        {{ form.nit }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium text-secondary">Sector Productivo</label>
+                        {{ form.sector_productivo }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium text-secondary">Ciudad</label>
+                        {{ form.ciudad }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label fw-medium text-secondary">Dirección Física</label>
+                        {{ form.direccion }}
+                    </div>
+                </div>
+
+                <h6 class="text-uppercase text-muted fw-bold mb-4 mt-5 border-bottom pb-2">Contacto Principal</h6>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <label class="form-label fw-medium text-secondary">Nombre Completo</label>
+                        {{ form.contacto_nombre }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium text-secondary">Email Corporativo</label>
+                        {{ form.contacto_email }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium text-secondary">Teléfono</label>
+                        {{ form.contacto_telefono }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mt-5">
+                    <a href="{% url 'lista_empresas' %}" class="btn btn-light border px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-primary px-5 shadow-sm">Guardar Empresa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
