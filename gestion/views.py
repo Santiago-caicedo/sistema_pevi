@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -79,11 +80,14 @@ def crear_proyecto(request):
 @login_required
 def detalle_proyecto(request, proyecto_id):
     """
-    Hub del Proyecto: Muestra tarjetas, estado y calcula KPIs agregados.
+    Hub del Proyecto: 
+    - Recupera bitácora energética.
+    - Calcula totales y KPIs.
+    - Prepara datos JSON para visualización con Chart.js.
     """
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
 
-    # 1. Recuperamos los registros de la Bitácora
+    # 1. RECUPERAR OBJETOS DE BITÁCORA
     electricidad = proyecto.electricidad_related.first()
     gas_natural = proyecto.gasnatural_related.first()
     carbon = proyecto.carbonmineral_related.first()
@@ -91,52 +95,97 @@ def detalle_proyecto(request, proyecto_id):
     biomasa = proyecto.biomasa_related.first()
     gas_propano = proyecto.gaspropano_related.first()
 
-    # 2. Lista de fuentes activas
-    fuentes_todas = [electricidad, gas_natural, carbon, fuel_oil, biomasa, gas_propano]
-    fuentes_activas = [f for f in fuentes_todas if f is not None]
+    # 2. CÁLCULO DE TOTALES (KPIs)
+    # Lista de objetos para iterar
+    fuentes_map = [
+        ('Electricidad', electricidad),
+        ('Gas Natural', gas_natural),
+        ('Carbón Mineral', carbon),
+        ('Fuel Oil', fuel_oil),
+        ('Biomasa', biomasa),
+        ('GLP', gas_propano),
+    ]
 
-    # 3. Cálculo de Totales (KPIs)
     total_emisiones = 0.0
     total_costo = 0.0
     total_energia = 0.0
 
-    for f in fuentes_activas:
-        total_emisiones += f.emisiones_totales
-        total_costo += f.costo_total_anual
-        
-        if hasattr(f, 'consumo_anual_kwh'): 
-            total_energia += f.consumo_anual_kwh
-        elif hasattr(f, 'consumo_anual'): 
-            total_energia += f.consumo_anual
+    # Listas para Chart.js
+    chart_labels = []
+    chart_data_energia = []
+    chart_data_costos = []
+    chart_colors = []
 
-    # 4. Indicador IDES
+    # Mapa de colores corporativos (Bootstrap standard)
+    color_map = {
+        'Electricidad': '#ffc107',   # Amarillo
+        'Gas Natural': '#0d6efd',    # Azul
+        'Carbón Mineral': '#212529', # Negro
+        'Fuel Oil': '#dc3545',       # Rojo
+        'Biomasa': '#198754',        # Verde
+        'GLP': '#0dcaf0'             # Cyan
+    }
+
+    for nombre, fuente in fuentes_map:
+        if fuente:
+            # A. Sumar Emisiones
+            total_emisiones += fuente.emisiones_totales
+            
+            # B. Sumar Costos
+            total_costo += fuente.costo_total_anual
+            
+            # C. Sumar Energía (Manejando polimorfismo de campos)
+            energia_fuente = 0
+            if hasattr(fuente, 'consumo_anual_kwh'): 
+                energia_fuente = fuente.consumo_anual_kwh
+            elif hasattr(fuente, 'consumo_anual'): 
+                energia_fuente = fuente.consumo_anual
+            
+            total_energia += energia_fuente
+
+            # D. Agregar datos a las Gráficas (Solo si hay consumo real)
+            if energia_fuente > 0:
+                chart_labels.append(nombre)
+                chart_data_energia.append(round(energia_fuente))
+                chart_data_costos.append(round(fuente.costo_total_anual))
+                chart_colors.append(color_map.get(nombre, '#cccccc'))
+
+    # 3. CÁLCULO INDICADOR DE DESEMPEÑO (IDES)
     indicador_ides = 0
     if proyecto.produccion_total and proyecto.produccion_total > 0 and total_energia > 0:
         indicador_ides = total_energia / proyecto.produccion_total
 
-    # 5. CORRECCIÓN DEL ERROR: Preparamos la producción como entero aquí
+    # 4. PREPARACIÓN DE VISUALIZACIÓN DE PRODUCCIÓN
     produccion_display = 0
     if proyecto.produccion_total:
         produccion_display = round(proyecto.produccion_total)
 
+    # 5. CONTEXTO FINAL
     context = {
         'proyecto': proyecto,
-        'produccion_display': produccion_display, # <--- Nueva variable limpia para el template
         
-        # Objetos individuales
+        # Objetos individuales (Para las tarjetas)
         'electricidad': electricidad,
         'gas_natural': gas_natural,
         'carbon_mineral': carbon,
         'fuel_oil': fuel_oil,
         'biomasa': biomasa,
         'gas_propano': gas_propano,
+        'produccion_display': produccion_display,
         
-        # KPIs Redondeados
+        # KPIs Redondeados (Para evitar errores de template)
         'kpi_emisiones': round(total_emisiones, 2),
         'kpi_energia': round(total_energia),
         'kpi_costo': round(total_costo),
         'kpi_ides': round(indicador_ides, 4),
+        
+        # Datos JSON para Chart.js
+        'chart_labels': json.dumps(chart_labels),
+        'chart_data_energia': json.dumps(chart_data_energia),
+        'chart_data_costos': json.dumps(chart_data_costos),
+        'chart_colors': json.dumps(chart_colors),
     }
+    
     return render(request, 'gestion/proyecto_detalle.html', context)
 
 
@@ -233,36 +282,48 @@ FORM_MAPPING = {
 def registrar_consumo(request, proyecto_id, tipo_energia):
     """
     Vista Maestra: Maneja CUALQUIER tipo de formulario de energía.
+    AHORA SOPORTA EDICIÓN: Si ya existe el dato, lo carga.
     """
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
     
-    # 1. Validar que el tipo de energía existe en nuestro mapa
+    # 1. Validar configuración
     config = FORM_MAPPING.get(tipo_energia)
     if not config:
         messages.error(request, "Tipo de energía no reconocido.")
         return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     
     FormClass = config['form']
+    
+    # 2. BUSCAR SI YA EXISTE UN REGISTRO (Para editar en vez de crear)
+    # Usamos el modelo vinculado al formulario para buscar en la BD
+    ModelClass = FormClass._meta.model 
+    registro_existente = ModelClass.objects.filter(proyecto=proyecto).first()
 
-    # 2. Procesar Formulario
+    # 3. Procesar Formulario
     if request.method == 'POST':
-        form = FormClass(request.POST)
+        # Pasamos 'instance' para que Django sepa que es una ACTUALIZACIÓN
+        form = FormClass(request.POST, instance=registro_existente)
+        
         if form.is_valid():
             registro = form.save(commit=False)
-            registro.proyecto = proyecto # Asignamos el proyecto automáticamente
+            registro.proyecto = proyecto # Aseguramos el vínculo
             registro.save()
-            messages.success(request, f"Registro de {config['titulo']} guardado correctamente.")
+            
+            accion = "actualizado" if registro_existente else "creado"
+            messages.success(request, f"Registro de {config['titulo']} {accion} correctamente.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
         else:
             messages.error(request, "Error en el formulario. Verifique los datos.")
     else:
-        form = FormClass()
+        # Si es GET, cargamos el formulario con los datos existentes (si los hay)
+        form = FormClass(instance=registro_existente)
 
     context = {
         'proyecto': proyecto,
         'form': form,
         'titulo_energia': config['titulo'],
-        'icono': config['icono']
+        'icono': config['icono'],
+        'es_edicion': registro_existente is not None # Para cambiar el texto del botón si quieres
     }
     return render(request, 'gestion/registro_energia_form.html', context)
 

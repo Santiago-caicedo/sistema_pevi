@@ -76,12 +76,34 @@
     </div>
 </div>
 
+{% if kpi_energia > 0 %}
+<div class="row mb-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card-modern p-4 h-100 bg-white shadow-sm">
+            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2">Matriz de Consumo (kWh eq)</h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartEnergia"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-7">
+        <div class="card-modern p-4 h-100 bg-white shadow-sm">
+            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2">Distribución de Costos (COP)</h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartCostos"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <h5 class="fw-bold text-dark mb-0">Bitácora de Información</h5>
-    <span class="text-muted small">Gestiona los datos de producción y energéticos</span>
+    <h5 class="fw-bold text-dark mb-0">Bitácora de Registros</h5>
+    <span class="text-muted small">Gestión de datos manuales y soportes</span>
 </div>
 
-<div class="row g-4 pb-5">
+<div class="row g-4 mb-5">
     
     <div class="col-md-6 col-lg-4">
         <div class="card-modern h-100 p-4 position-relative hover-lift border border-secondary border-opacity-25 bg-white">
@@ -153,7 +175,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'electricidad' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -192,7 +214,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_natural' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -231,7 +253,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'carbon' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -270,7 +292,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'fuel_oil' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -309,7 +331,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'biomasa' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -348,7 +370,7 @@
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</button>
+                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_propano' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
                 <div class="text-center py-2 text-muted mb-3">
@@ -365,7 +387,7 @@
 
 </div>
 
-<div class="row mt-5">
+<div class="row mt-2">
     <div class="col-12">
         <div class="card-modern p-0 overflow-hidden bg-white shadow-sm">
             <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-light">
@@ -373,7 +395,7 @@
                     <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-paperclip me-2"></i>Documentos y Evidencias</h6>
                     <small class="text-muted">Facturas, informes parciales y soportes técnicos</small>
                 </div>
-                <button type="button" class="btn btn-white border shadow-sm text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <button type="button" class="btn btn-white border shadow-sm text-primary fw-medium hover-lift" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-cloud-upload me-2"></i> Subir Archivo
                 </button>
             </div>
@@ -407,7 +429,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">
+                            <td colspan="4" class="text-center py-5 text-muted">
                                 <i class="bi bi-folder-x fs-3 d-block mb-2 opacity-50"></i>
                                 No hay documentos cargados en este repositorio.
                             </td>
@@ -449,4 +471,84 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const labels = {{ chart_labels|safe }};
+        const dataEnergia = {{ chart_data_energia|safe }};
+        const dataCostos = {{ chart_data_costos|safe }};
+        const colores = {{ chart_colors|safe }};
+
+        if (labels.length === 0) return;
+
+        // 1. Doughnut
+        const ctxEnergia = document.getElementById('chartEnergia').getContext('2d');
+        new Chart(ctxEnergia, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataEnergia,
+                    backgroundColor: colores,
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { font: { family: "'Inter', sans-serif", size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return (context.label || '') + ': ' + context.raw.toLocaleString() + ' kWh';
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 2. Bar
+        const ctxCostos = document.getElementById('chartCostos').getContext('2d');
+        new Chart(ctxCostos, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Costo Anual',
+                    data: dataCostos,
+                    backgroundColor: colores,
+                    borderRadius: 5,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

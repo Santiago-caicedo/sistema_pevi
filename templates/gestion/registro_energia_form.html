@@ -13,7 +13,7 @@
             <div class="bg-white p-4 border-bottom border-2">
                 <div class="row align-items-center">
                     <div class="col-3 border-end text-center">
-                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 60px; max-width: 100%;">
+                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 100px; max-width: 100%;">
                     </div>
                     <div class="col-6 text-center">
                         <h5 class="fw-bold text-uppercase mb-1 text-dark">Formato de Registro Energético</h5>
@@ -99,7 +99,8 @@
                             <i class="bi bi-arrow-left me-2"></i> Cancelar
                         </a>
                         <button type="submit" class="btn btn-primary px-5 py-2 shadow-sm fw-bold">
-                            <i class="bi bi-save me-2"></i> GUARDAR REGISTRO
+                            <i class="bi bi-save me-2"></i> 
+                            {% if es_edicion %}ACTUALIZAR DATOS{% else %}GUARDAR REGISTRO{% endif %}
                         </button>
                     </div>
                 </form>
