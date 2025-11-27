@@ -14,6 +14,8 @@ from auditorias.forms import (
     ElectricidadForm, GasNaturalForm, CarbonForm, 
     FuelOilForm, BiomasaForm, GasPropanoForm
 )
+from .forms import UsuarioEditarForm, UsuarioForm
+from .models import Usuario
 
 # ==========================================
 #  VISTAS DE GESTIÓN PRINCIPAL
@@ -372,3 +374,81 @@ def subir_documento(request, proyecto_id):
     # Si es GET, redirigimos al detalle (usaremos un modal o una página aparte, 
     # pero por simplicidad redirigimos si intentan entrar por URL directa)
     return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+
+
+
+# ==========================================
+#  GESTIÓN DE EQUIPO (USUARIOS)
+# ==========================================
+
+@login_required
+def lista_usuarios(request):
+    """Directorio de personal filtrado por Centro PEVI."""
+    usuarios = Usuario.objects.all().order_by('first_name')
+    
+    # FILTRO DE SEGURIDAD:
+    # Si no es Superadmin, solo ve los de su centro
+    if request.user.centro_pevi:
+        usuarios = usuarios.filter(centro_pevi=request.user.centro_pevi)
+        
+    return render(request, 'gestion/lista_usuarios.html', {'usuarios': usuarios})
+
+@login_required
+def crear_usuario(request):
+    """Registrar nuevo miembro del equipo."""
+    if request.method == 'POST':
+        form = UsuarioForm(request.POST)
+        if form.is_valid():
+            nuevo_usuario = form.save(commit=False)
+            
+            # ASIGNACIÓN AUTOMÁTICA DE CENTRO
+            if request.user.centro_pevi:
+                nuevo_usuario.centro_pevi = request.user.centro_pevi
+            
+            nuevo_usuario.save()
+            messages.success(request, f"Usuario {nuevo_usuario.username} creado exitosamente.")
+            return redirect('lista_usuarios')
+    else:
+        form = UsuarioForm()
+    
+    return render(request, 'gestion/usuario_form.html', {'form': form, 'titulo': 'Nuevo Usuario'})
+
+@login_required
+def editar_usuario(request, usuario_id):
+    """Modificar datos de un miembro."""
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    
+    # SEGURIDAD: Verificar que el usuario pertenezca al mismo centro (o ser superadmin)
+    if request.user.centro_pevi and usuario.centro_pevi != request.user.centro_pevi:
+        messages.error(request, "No tienes permiso para editar este usuario.")
+        return redirect('lista_usuarios')
+
+    if request.method == 'POST':
+        form = UsuarioEditarForm(request.POST, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Datos actualizados correctamente.")
+            return redirect('lista_usuarios')
+    else:
+        form = UsuarioEditarForm(instance=usuario)
+        
+    return render(request, 'gestion/usuario_form.html', {'form': form, 'titulo': 'Editar Usuario'})
+
+@login_required
+def eliminar_usuario(request, usuario_id):
+    """Eliminar (o desactivar) usuario."""
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    
+    # SEGURIDAD
+    if request.user.centro_pevi and usuario.centro_pevi != request.user.centro_pevi:
+        messages.error(request, "Acción no permitida.")
+        return redirect('lista_usuarios')
+        
+    # Evitar auto-suicidio
+    if usuario == request.user:
+        messages.error(request, "No puedes eliminarte a ti mismo.")
+        return redirect('lista_usuarios')
+
+    usuario.delete()
+    messages.success(request, "Usuario eliminado del sistema.")
+    return redirect('lista_usuarios')
