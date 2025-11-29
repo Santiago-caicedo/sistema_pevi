@@ -13,7 +13,7 @@
             <div class="bg-white p-4 border-bottom border-2">
                 <div class="row align-items-center">
                     <div class="col-3 border-end text-center">
-                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 110px; max-width: 100%;">
+                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 120px; max-width: 100%;">
                     </div>
                     <div class="col-6 text-center">
                         <h5 class="fw-bold text-uppercase mb-1 text-dark">Formato de Registro Energético</h5>
@@ -109,7 +109,7 @@
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-dark text-uppercase">{{ field.label }}</label>
                                 {{ field }}
-                                <div class="form-text small text-muted fst-italic">Calculado automáticamente o Manual</div>
+                                <div class="form-text small text-muted fst-italic">Calculado autom.</div>
                             </div>
                             {% endif %}
                         {% endfor %}
@@ -218,7 +218,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         
-        // 1. SELECTORES INTELIGENTES (Para Electricidad y Combustibles)
+        // 1. DEFINICIÓN DE CAMPOS
         const inputConsumoMensual = document.querySelector("input[name*='consumo_mensual']");
         const inputConsumoAnual = document.querySelector("input[name*='consumo_anual']");
         
@@ -229,10 +229,11 @@
         const inputFactorEmision = document.querySelector("input[name*='factor_emision']");
         const inputEmisiones = document.querySelector("input[name*='emisiones_totales']");
 
-        // Campos específicos de Combustibles (kWh conversion)
+        // Campos específicos de Combustibles
         const inputPC = document.querySelector("input[name*='poder_calorifico']");
         const outputKwhMensual = document.querySelector("input[name*='consumo_mensual_kwh']");
         const outputKwhAnual = document.querySelector("input[name*='consumo_anual_kwh']");
+        const outputCostoKwh = document.querySelector("input[name*='costo_kwh_equivalente']");
 
         // 2. HELPERS NUMÉRICOS
         function formatNumber(n) {
@@ -247,130 +248,113 @@
             return parseFloat(val.toString().replace(/,/g, "")) || 0;
         }
 
-        // 3. CÁLCULO EN CADENA (The Logic Engine)
+        // 3. CÁLCULO EN CADENA
         function calcularTodo() {
-            // Obtener valores
+            // A. Obtener valores limpios
             let valConsumoMes = cleanNumber(inputConsumoMensual.value);
             let valCostoUnit = cleanNumber(inputCostoUnitario?.value);
             let valFactor = cleanNumber(inputFactorEmision?.value);
+            let valPC = cleanNumber(inputPC?.value);
 
-            // A. Proyecciones Anuales
+            // B. Proyecciones
             let valConsumoAnio = valConsumoMes * 12;
-
-            // B. Costos
             let valCostoMes = valConsumoMes * valCostoUnit;
             let valCostoAnio = valCostoMes * 12;
 
-            // C. Emisiones (Consumo Anual * Factor / 1000)
-            let valEmisiones = (valConsumoAnio * valFactor) / 1000;
-
-            // D. Asignar al DOM (Con formato)
+            // C. Asignar cálculos básicos al DOM
             if (inputConsumoAnual) inputConsumoAnual.value = formatNumber(valConsumoAnio.toFixed(2));
             if (inputCostoMensual) inputCostoMensual.value = formatNumber(valCostoMes.toFixed(0));
             if (inputCostoAnual) inputCostoAnual.value = formatNumber(valCostoAnio.toFixed(0));
-            if (inputEmisiones) inputEmisiones.value = formatNumber(valEmisiones.toFixed(3));
 
-            // E. Disparar Conversión Energética
-            calcularKwhConversion(valConsumoMes, valConsumoAnio);
-        }
+            // D. Cálculo de Conversión Energética (kWh)
+            // Variable clave: Consumo Eq. Anual en kWh (para usar en emisiones)
+            let kwhAnualParaEmisiones = valConsumoAnio; // Por defecto: Electricidad
 
-        function calcularKwhConversion(consumoMes, consumoAnio) {
-            if (!outputKwhMensual || !inputPC) return; // Si es electricidad, sale.
+            if (outputKwhAnual && valPC > 0) {
+                // Es Combustible -> Aplicar fórmula física
+                let factorFisico = 1.0;
+                const titulo = "{{ titulo_energia|lower }}"; 
+                if (titulo.includes("fuel") || titulo.includes("diesel")) factorFisico = 0.00378541;
+                else if (titulo.includes("carbon") || titulo.includes("biomasa")) factorFisico = 1000.0;
 
-            let pc = cleanNumber(inputPC.value);
-            let factorFisico = 1.0;
-            const titulo = "{{ titulo_energia|lower }}"; 
+                let kwhMes = (valConsumoMes * factorFisico * valPC) / 3600;
+                let kwhAnio = (valConsumoAnio * factorFisico * valPC) / 3600;
 
-            if (titulo.includes("fuel") || titulo.includes("diesel")) {
-                factorFisico = 0.00378541; // Galones -> m3
-            } else if (titulo.includes("carbon") || titulo.includes("biomasa")) {
-                factorFisico = 1000.0; // Ton -> kg
-            }
+                // Actualizamos la variable con el valor convertido
+                kwhAnualParaEmisiones = kwhAnio;
 
-            if (pc > 0) {
-                // Energía (kWh) = (Cantidad * Factor * PC_kJ) / 3600
-                let kwhMes = (consumoMes * factorFisico * pc) / 3600;
-                let kwhAnio = (consumoAnio * factorFisico * pc) / 3600;
-
+                // Llenar campos amarillos
                 outputKwhMensual.value = formatNumber(kwhMes.toFixed(2));
                 outputKwhAnual.value = formatNumber(kwhAnio.toFixed(2));
+                
+                // INDICADOR: Costo Equivalente ($/kWh)
+                if(kwhAnio > 0 && outputCostoKwh) {
+                    let indicador = valCostoAnio / kwhAnio;
+                    outputCostoKwh.value = formatNumber(indicador.toFixed(2));
+                } else if (outputCostoKwh) {
+                    outputCostoKwh.value = "0";
+                }
+            } else if (outputCostoKwh && !outputKwhAnual) {
+                // Caso raro (Electricidad) donde no hay conversión pero hay indicador
+                if(valConsumoAnio > 0) outputCostoKwh.value = formatNumber((valCostoAnio/valConsumoAnio).toFixed(2));
             }
+
+            // E. Cálculo de Emisiones (CORREGIDO)
+            // Fórmula: (Consumo Eq. Anual kWh * Factor) / 1000
+            let valEmisiones = (kwhAnualParaEmisiones * valFactor) / 1000;
+            
+            if (inputEmisiones) inputEmisiones.value = formatNumber(valEmisiones.toFixed(3));
         }
 
-        // 4. LISTENERS (Trigger calculations on keyup)
+        // 4. LISTENERS
         const triggers = [inputConsumoMensual, inputCostoUnitario, inputFactorEmision, inputPC];
         triggers.forEach(input => {
             if(input) input.addEventListener("keyup", calcularTodo);
         });
 
-        // 5. MÁSCARA DE MILES & INICIALIZACIÓN
-        const allNumericInputs = document.querySelectorAll(
-            "input[name*='consumo'], input[name*='costo'], input[name*='poder'], input[name*='emisiones'], input[name*='factor'], input[name*='kwh']"
-        );
-
-        allNumericInputs.forEach(input => {
-            input.setAttribute('type', 'text'); // Forzar texto para permitir comas
+        // 5. MÁSCARA Y LIMPIEZA
+        const inputs = document.querySelectorAll("input[name*='consumo'], input[name*='costo'], input[name*='poder'], input[name*='emisiones'], input[name*='factor'], input[name*='kwh']");
+        
+        inputs.forEach(input => {
+            input.setAttribute('type', 'text');
             input.setAttribute('autocomplete', 'off');
-
-            // Formatear valor inicial (si es edición)
-            if (input.value) input.value = formatNumber(input.value);
-
-            // Evento de formato al escribir
+            
+            if(input.value) input.value = formatNumber(input.value);
+            
             input.addEventListener('keyup', function(e) {
-                if (e.key === "." || e.key === "Decimal" || e.key.startsWith("Arrow")) return;
-                
-                let cursorPosition = this.selectionStart;
-                let originalLength = this.value.length;
-                
+                if(e.key === "." || e.key === "Decimal" || e.key.startsWith("Arrow")) return;
+                let cp = this.selectionStart;
+                let len = this.value.length;
                 this.value = formatNumber(this.value);
-
-                let newLength = this.value.length;
-                this.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+                this.setSelectionRange(cp + (this.value.length - len), cp + (this.value.length - len));
             });
         });
 
-        // 6. LIMPIEZA FINAL (Antes de enviar al servidor)
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function() {
-            allNumericInputs.forEach(input => {
-                input.value = input.value.replace(/,/g, "");
-            });
+        document.querySelector('form').addEventListener('submit', function() {
+            inputs.forEach(i => i.value = i.value.replace(/,/g, ""));
         });
-
     });
 
     // ----------------------------------------------------
-    // LÓGICA DE LA CALCULADORA MODAL
+    // F. CALCULADORA MODAL
     // ----------------------------------------------------
     function calcularPC() {
-        const unidad = document.getElementById('calc_unidad').value;
-        const valor = parseFloat(document.getElementById('calc_valor').value);
-        if (isNaN(valor)) { alert("Digita un valor válido"); return; }
-
-        const factores = {
-            'kcal_m3': 4.184, 'MJ_m3': 1000, 'kWh_m3': 3600, 'BTU_ft3': 37.258, 'therm_CCF': 37258.9,
-            'kcal_kg': 4.184, 'MJ_kg': 1000, 'kWh_kg': 3600, 'BTU_lb': 2.326
-        };
-
-        let resultado = 0;
-        if (factores[unidad]) resultado = valor * factores[unidad];
-        document.getElementById('calc_resultado').value = resultado.toFixed(2);
-        document.getElementById('display_resultado').innerText = resultado.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const u = document.getElementById('calc_unidad').value;
+        const v = parseFloat(document.getElementById('calc_valor').value);
+        if(isNaN(v)) return alert("Valor inválido");
+        const f = {'kcal_m3': 4.184, 'MJ_m3': 1000, 'kWh_m3': 3600, 'BTU_ft3': 37.258, 'therm_CCF': 37258.9, 'kcal_kg': 4.184, 'MJ_kg': 1000, 'kWh_kg': 3600, 'BTU_lb': 2.326};
+        let r = f[u] ? v * f[u] : 0;
+        document.getElementById('calc_resultado').value = r.toFixed(2);
+        document.getElementById('display_resultado').innerText = r.toLocaleString('en-US', {minimumFractionDigits: 2});
     }
-
+    
     function aplicarPC() {
-        const resultado = document.getElementById('calc_resultado').value;
-        if (resultado && resultado != 0) {
-            const inputPC = document.getElementById('id_poder_calorifico');
-            if (inputPC) {
-                inputPC.value = resultado;
-                // Disparamos evento keyup para que recalcule los kWh automáticamente
-                inputPC.dispatchEvent(new Event('keyup'));
-                
-                // Efecto visual
-                inputPC.classList.add('bg-success', 'text-white', 'bg-opacity-25');
-                setTimeout(() => inputPC.classList.remove('bg-success', 'text-white', 'bg-opacity-25'), 1000);
-            }
+        const r = document.getElementById('calc_resultado').value;
+        const i = document.getElementById('id_poder_calorifico');
+        if(i && r!=0) { 
+            i.value = r; 
+            // Disparar eventos para recalcular todo
+            i.dispatchEvent(new Event('keyup')); 
         }
     }
 </script>
