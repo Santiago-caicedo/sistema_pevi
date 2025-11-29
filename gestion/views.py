@@ -40,7 +40,6 @@ def registrar_produccion(request, proyecto_id):
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
     
     if request.method == 'POST':
-        # instance=proyecto es CLAVE para que ACTUALICE y no cree uno nuevo
         form = ProduccionForm(request.POST, instance=proyecto)
         if form.is_valid():
             form.save()
@@ -51,12 +50,9 @@ def registrar_produccion(request, proyecto_id):
 
     context = {
         'proyecto': proyecto,
-        'form': form,
-        'titulo_energia': 'Contexto Productivo', # Reusamos el template
-        'icono': 'bi-boxes'
+        'form': form
     }
-    # Reusamos el MISMO template bonito de registro de energía
-    return render(request, 'gestion/registro_energia_form.html', context)
+    return render(request, 'gestion/produccion_form.html', context)
 
 
 # ==========================================

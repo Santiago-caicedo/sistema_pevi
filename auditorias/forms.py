@@ -61,9 +61,23 @@ class ProduccionForm(EstiloBootstrapMixin, forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        # -----------------------------------------------------------
+        # CORRECCIÓN: INTERCEPTOR DE COMAS
+        # Limpiamos 'produccion_total' antes de que Django lo lea
+        # -----------------------------------------------------------
+        if args:
+            data = args[0].copy()
+            if 'produccion_total' in data and isinstance(data['produccion_total'], str):
+                data['produccion_total'] = data['produccion_total'].replace(',', '')
+            args = (data,) + args[1:]
+            
         super().__init__(*args, **kwargs)
-        # Permitir que se vea como texto para soportar comas visuales
-        self.fields['produccion_total'].widget = forms.TextInput(attrs={'class': 'form-control'})
+        
+        # Forzar que el input sea Texto para que el navegador no moleste con validaciones HTML5
+        self.fields['produccion_total'].widget = forms.TextInput(attrs={
+            'class': 'form-control', 
+            'autocomplete': 'off'
+        })
 
 class DocumentoForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
