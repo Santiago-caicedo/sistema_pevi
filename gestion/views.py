@@ -191,19 +191,22 @@ def detalle_proyecto(request, proyecto_id):
         'biomasa': biomasa,
         'gas_propano': gas_propano,
         
-        # KPIs
+        # KPIs GENERALES
         'kpi_emisiones': round(total_emisiones, 2),
-        'kpi_energia': round(total_energia),
+        'kpi_energia': round(total_energia), # Total kWh eq (La suma de todo)
         'kpi_costo': round(total_costo),
         'kpi_ides': round(indicador_ides, 4),
         
+        # --- NUEVO: KPIs DESGLOSADOS PARA LA TARJETA ---
+        'kpi_elec_kwh': round(total_kwh_electrico),      # Solo electricidad
+        'kpi_term_mbtu': round(mbtu_termico, 2),         # Solo térmico (convertido a MBTU)
+        # -----------------------------------------------
+
         # JSON Charts
         'chart_labels': json.dumps(chart_labels),
         'chart_data_energia': json.dumps(chart_data_energia),
         'chart_data_costos': json.dumps(chart_data_costos),
         'chart_colors': json.dumps(chart_colors),
-        
-        # NUEVO: Datos MBTU
         'chart_data_mbtu': json.dumps(chart_data_mbtu),
     }
     
