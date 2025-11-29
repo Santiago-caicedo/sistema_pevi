@@ -85,7 +85,7 @@ def detalle_proyecto(request, proyecto_id):
     Hub del Proyecto: 
     - Recupera bitácora energética.
     - Calcula totales y KPIs.
-    - Prepara datos JSON para visualización con Chart.js.
+    - Prepara datos JSON para visualización (kWh, Costos y MBTU).
     """
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
 
@@ -98,7 +98,6 @@ def detalle_proyecto(request, proyecto_id):
     gas_propano = proyecto.gaspropano_related.first()
 
     # 2. CÁLCULO DE TOTALES (KPIs)
-    # Lista de objetos para iterar
     fuentes_map = [
         ('Electricidad', electricidad),
         ('Gas Natural', gas_natural),
@@ -111,14 +110,17 @@ def detalle_proyecto(request, proyecto_id):
     total_emisiones = 0.0
     total_costo = 0.0
     total_energia = 0.0
+    
+    # Acumuladores para MBTU
+    total_kwh_electrico = 0.0
+    total_kwh_termico = 0.0
 
-    # Listas para Chart.js
+    # Listas para Gráficas Generales
     chart_labels = []
     chart_data_energia = []
     chart_data_costos = []
     chart_colors = []
 
-    # Mapa de colores corporativos (Bootstrap standard)
     color_map = {
         'Electricidad': '#ffc107',   # Amarillo
         'Gas Natural': '#0d6efd',    # Azul
@@ -130,14 +132,14 @@ def detalle_proyecto(request, proyecto_id):
 
     for nombre, fuente in fuentes_map:
         if fuente:
-            # A. Sumar Emisiones
+            # A. Sumar Emisiones y Costos
             total_emisiones += fuente.emisiones_totales
-            
-            # B. Sumar Costos
             total_costo += fuente.costo_total_anual
             
-            # C. Sumar Energía (Manejando polimorfismo de campos)
+            # B. Obtener Energía en kWh (Polimorfismo)
             energia_fuente = 0
+            es_electrico = (nombre == 'Electricidad')
+            
             if hasattr(fuente, 'consumo_anual_kwh'): 
                 energia_fuente = fuente.consumo_anual_kwh
             elif hasattr(fuente, 'consumo_anual'): 
@@ -145,47 +147,64 @@ def detalle_proyecto(request, proyecto_id):
             
             total_energia += energia_fuente
 
-            # D. Agregar datos a las Gráficas (Solo si hay consumo real)
+            # C. Clasificar para MBTU
+            if es_electrico:
+                total_kwh_electrico += energia_fuente
+            else:
+                total_kwh_termico += energia_fuente
+
+            # D. Datos para Gráficas de Desglose
             if energia_fuente > 0:
                 chart_labels.append(nombre)
                 chart_data_energia.append(round(energia_fuente))
                 chart_data_costos.append(round(fuente.costo_total_anual))
                 chart_colors.append(color_map.get(nombre, '#cccccc'))
 
-    # 3. CÁLCULO INDICADOR DE DESEMPEÑO (IDES)
+    # 3. CONVERSIÓN A MBTU (Millones de BTU)
+    # Factor: 1 kWh = 0.00341214 MBTU
+    FACTOR_MBTU = 0.00341214
+    mbtu_electrico = total_kwh_electrico * FACTOR_MBTU
+    mbtu_termico = total_kwh_termico * FACTOR_MBTU
+    
+    # Datos para la gráfica comparativa
+    chart_data_mbtu = [round(mbtu_electrico, 2), round(mbtu_termico, 2)]
+
+    # 4. CÁLCULO INDICADOR IDES
     indicador_ides = 0
     if proyecto.produccion_total and proyecto.produccion_total > 0 and total_energia > 0:
         indicador_ides = total_energia / proyecto.produccion_total
 
-    # 4. PREPARACIÓN DE VISUALIZACIÓN DE PRODUCCIÓN
+    # 5. PRODUCCIÓN DISPLAY
     produccion_display = 0
     if proyecto.produccion_total:
         produccion_display = round(proyecto.produccion_total)
 
-    # 5. CONTEXTO FINAL
     context = {
         'proyecto': proyecto,
+        'produccion_display': produccion_display,
         
-        # Objetos individuales (Para las tarjetas)
+        # Objetos
         'electricidad': electricidad,
         'gas_natural': gas_natural,
         'carbon_mineral': carbon,
         'fuel_oil': fuel_oil,
         'biomasa': biomasa,
         'gas_propano': gas_propano,
-        'produccion_display': produccion_display,
         
-        # KPIs Redondeados (Para evitar errores de template)
+        # KPIs
         'kpi_emisiones': round(total_emisiones, 2),
         'kpi_energia': round(total_energia),
         'kpi_costo': round(total_costo),
         'kpi_ides': round(indicador_ides, 4),
         
-        # Datos JSON para Chart.js
+        # JSON Charts
         'chart_labels': json.dumps(chart_labels),
         'chart_data_energia': json.dumps(chart_data_energia),
         'chart_data_costos': json.dumps(chart_data_costos),
         'chart_colors': json.dumps(chart_colors),
+        
+        # NUEVO: Datos MBTU
+        'chart_data_mbtu': json.dumps(chart_data_mbtu),
     }
     
     return render(request, 'gestion/proyecto_detalle.html', context)
@@ -251,32 +270,38 @@ FORM_MAPPING = {
     'electricidad': {
         'form': ElectricidadForm, 
         'titulo': 'Energía Eléctrica', 
-        'icono': 'bi-plug-fill'
+        'icono': 'bi-plug-fill',
+        'tipo_fisica': 'electricidad' # No aplica calculadora de PC
     },
     'gas_natural': {
         'form': GasNaturalForm, 
         'titulo': 'Gas Natural', 
-        'icono': 'bi-fire'
+        'icono': 'bi-fire',
+        'tipo_fisica': 'volumen' # Target: kJ/m3
     },
     'carbon': {
         'form': CarbonForm, 
         'titulo': 'Carbón Mineral', 
-        'icono': 'bi-box-seam-fill'
+        'icono': 'bi-box-seam-fill',
+        'tipo_fisica': 'masa' # Target: kJ/kg
     },
     'fuel_oil': {
         'form': FuelOilForm, 
         'titulo': 'Fuel Oil / Diesel', 
-        'icono': 'bi-droplet-fill'
+        'icono': 'bi-droplet-fill',
+        'tipo_fisica': 'volumen' # Target: kJ/m3 (Convertiremos Galones a m3)
     },
     'biomasa': {
         'form': BiomasaForm, 
         'titulo': 'Biomasa / Bagazo', 
-        'icono': 'bi-recycle'
+        'icono': 'bi-recycle',
+        'tipo_fisica': 'masa' # Target: kJ/kg
     },
     'gas_propano': {
         'form': GasPropanoForm, 
         'titulo': 'Gas Propano (GLP)', 
-        'icono': 'bi-cloud-fog2-fill'
+        'icono': 'bi-cloud-fog2-fill',
+        'tipo_fisica': 'masa' # El GLP lo definimos en kg, así que su PC debe ser kJ/kg
     },
 }
 
@@ -325,7 +350,8 @@ def registrar_consumo(request, proyecto_id, tipo_energia):
         'form': form,
         'titulo_energia': config['titulo'],
         'icono': config['icono'],
-        'es_edicion': registro_existente is not None # Para cambiar el texto del botón si quieres
+        'tipo_fisica': config.get('tipo_fisica', 'masa'), # <--- NUEVO
+        'es_edicion': registro_existente is not None
     }
     return render(request, 'gestion/registro_energia_form.html', context)
 

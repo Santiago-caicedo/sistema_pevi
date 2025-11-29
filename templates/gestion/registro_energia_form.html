@@ -13,7 +13,7 @@
             <div class="bg-white p-4 border-bottom border-2">
                 <div class="row align-items-center">
                     <div class="col-3 border-end text-center">
-                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 100px; max-width: 100%;">
+                        <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia" style="max-height: 110px; max-width: 100%;">
                     </div>
                     <div class="col-6 text-center">
                         <h5 class="fw-bold text-uppercase mb-1 text-dark">Formato de Registro Energético</h5>
@@ -21,8 +21,7 @@
                         <span class="badge bg-light text-dark border mt-2">{{ titulo_energia }}</span>
                     </div>
                     <div class="col-3 text-end small text-muted">
-                        <div><strong>Cód:</strong> PEVI-FR-001</div>
-                        <div><strong>Versión:</strong> 2.0</div>
+                        <div><strong>Física:</strong> {{ tipo_fisica|upper }}</div>
                         <div><strong>Fecha:</strong> {% now "d/m/Y" %}</div>
                     </div>
                 </div>
@@ -30,28 +29,28 @@
 
             <div class="p-5 bg-white">
                 
-                <div class="alert alert-light border mb-4 d-flex align-items-center">
+                <div class="alert alert-light border mb-5 d-flex align-items-center">
                     <i class="bi bi-info-circle-fill text-primary fs-4 me-3"></i>
                     <div>
                         <div class="text-uppercase small text-muted fw-bold">Empresa Auditada</div>
                         <div class="fw-bold text-dark">{{ proyecto.empresa.razon_social }}</div>
-                        <div class="small">NIT: {{ proyecto.empresa.nit }} | Centro: {{ proyecto.centro.nombre }}</div>
+                        <div class="small">Centro: {{ proyecto.centro.nombre }}</div>
                     </div>
                 </div>
 
-                <form method="post" class="needs-validation">
+                <form method="post" class="needs-validation" novalidate>
                     {% csrf_token %}
                     
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                     {% endif %}
 
-                    <h6 class="text-uppercase text-primary fw-bold mb-3 mt-2 border-bottom pb-2">
+                    <h6 class="text-uppercase text-primary fw-bold mb-3 border-bottom pb-2">
                         <i class="bi bi-speedometer me-2"></i>1. Datos de Consumo
                     </h6>
                     <div class="row g-4 mb-4">
                         {% for field in form %}
-                            {% if 'consumo' in field.name %}
+                            {% if 'consumo' in field.name and 'kwh' not in field.name %}
                             <div class="col-md-6">
                                 <label class="form-label fw-medium small text-secondary text-uppercase">{{ field.label }}</label>
                                 {{ field }}
@@ -64,9 +63,9 @@
                     <h6 class="text-uppercase text-primary fw-bold mb-3 mt-5 border-bottom pb-2">
                         <i class="bi bi-currency-dollar me-2"></i>2. Información de Costos
                     </h6>
-                    <div class="row g-4 mb-4 bg-light p-3 rounded mx-1">
+                    <div class="row g-4 mb-4 bg-light p-3 rounded mx-1 border border-light">
                         {% for field in form %}
-                            {% if 'costo' in field.name %}
+                            {% if 'costo' in field.name and 'kwh' not in field.name %}
                             <div class="col-md-4">
                                 <label class="form-label fw-medium small text-secondary text-uppercase">{{ field.label }}</label>
                                 <div class="input-group input-group-sm">
@@ -79,16 +78,61 @@
                         {% endfor %}
                     </div>
 
+                    {% if tipo_fisica != 'electricidad' %}
                     <h6 class="text-uppercase text-primary fw-bold mb-3 mt-5 border-bottom pb-2">
-                        <i class="bi bi-leaf me-2"></i>3. Parámetros Técnicos y Ambientales
+                        <i class="bi bi-gear me-2"></i>3. Parámetros Técnicos
+                    </h6>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-5">
+                            <label class="form-label fw-medium small text-secondary text-uppercase">
+                                Poder Calorífico ({% if tipo_fisica == 'volumen' %}kJ/m³{% else %}kJ/kg{% endif %})
+                            </label>
+                            <div class="input-group">
+                                {{ form.poder_calorifico }}
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCalculadora" title="Convertir Unidades">
+                                    <i class="bi bi-calculator"></i>
+                                </button>
+                            </div>
+                            <div class="form-text small">Base para el cálculo energético automático.</div>
+                            <div class="d-none">{{ form.unidad_pc }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if tipo_fisica != 'electricidad' %}
+                    <h6 class="text-uppercase text-primary fw-bold mb-3 mt-5 border-bottom pb-2">
+                        <i class="bi bi-lightning-charge me-2"></i>4. Conversión Energética (Normalizado)
+                    </h6>
+                    <div class="row g-4 mb-4 bg-soft-warning p-3 rounded mx-1 border border-warning-subtle">
+                        {% for field in form %}
+                            {% if 'kwh' in field.name %}
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-dark text-uppercase">{{ field.label }}</label>
+                                {{ field }}
+                                <div class="form-text small text-muted fst-italic">Calculado automáticamente o Manual</div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <h6 class="text-uppercase text-primary fw-bold mb-3 mt-5 border-bottom pb-2">
+                        <i class="bi bi-leaf me-2"></i>5. Impacto Ambiental
                     </h6>
                     <div class="row g-4 mb-4">
                         {% for field in form %}
-                            {% if 'costo' not in field.name and 'consumo' not in field.name %}
+                            {% if 'emisiones' in field.name or 'factor' in field.name %}
                             <div class="col-md-6">
                                 <label class="form-label fw-medium small text-secondary text-uppercase">{{ field.label }}</label>
                                 {{ field }}
-                                <div class="form-text small">{{ field.help_text }}</div>
+                                
+                                {% if 'factor' in field.name %}
+                                <div class="mt-1 text-end">
+                                    <a href="http://www1.upme.gov.co/Calculadora_Emisiones/Paginas/default.aspx" target="_blank" class="text-decoration-none small fw-bold text-success">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Consultar factores UPME
+                                    </a>
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                         {% endfor %}
@@ -110,7 +154,225 @@
                 Sistema de Gestión de Información PEVI &copy; {% now "Y" %}
             </div>
         </div>
-
     </div>
 </div>
+
+{% if tipo_fisica != 'electricidad' %}
+<div class="modal fade" id="modalCalculadora" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-calculator me-2"></i>Conversor de Unidades</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <p class="small text-muted mb-3">
+                    Selecciona la unidad original de tu factura. El sistema la convertirá a 
+                    {% if tipo_fisica == 'volumen' %}<strong>kJ/m³</strong>{% else %}<strong>kJ/kg</strong>{% endif %}.
+                </p>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Unidad de Origen</label>
+                    <select id="calc_unidad" class="form-select">
+                        {% if tipo_fisica == 'volumen' %}
+                            <option value="BTU_ft3">BTU / pie³ (BTU/ft³)</option>
+                            <option value="kcal_m3">kilocalorías / m³ (kcal/m³)</option>
+                            <option value="kWh_m3">kWh / m³</option>
+                            <option value="MJ_m3">Megajulios / m³ (MJ/m³)</option>
+                            <option value="therm_CCF">Therms / CCF</option>
+                        {% else %}
+                            <option value="BTU_lb">BTU / libra (BTU/lb)</option>
+                            <option value="kcal_kg">kilocalorías / kg</option>
+                            <option value="MJ_kg">Megajulios / kg</option>
+                            <option value="kWh_kg">kWh / kg</option>
+                        {% endif %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Valor a Convertir</label>
+                    <input type="number" id="calc_valor" class="form-control" placeholder="Ej: 12000">
+                </div>
+                
+                <div class="d-grid mb-3">
+                    <button type="button" onclick="calcularPC()" class="btn btn-secondary btn-sm fw-bold">Calcular</button>
+                </div>
+
+                <div class="bg-white p-3 rounded border text-center">
+                    <small class="text-muted d-block mb-1">Resultado ({% if tipo_fisica == 'volumen' %}kJ/m³{% else %}kJ/kg{% endif %})</small>
+                    <h4 class="fw-bold text-success mb-0" id="display_resultado">0.00</h4>
+                    <input type="hidden" id="calc_resultado">
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" onclick="aplicarPC()" class="btn btn-primary w-100 fw-bold shadow-sm" data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-2"></i> Usar este Valor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // 1. SELECTORES INTELIGENTES (Para Electricidad y Combustibles)
+        const inputConsumoMensual = document.querySelector("input[name*='consumo_mensual']");
+        const inputConsumoAnual = document.querySelector("input[name*='consumo_anual']");
+        
+        const inputCostoUnitario = document.querySelector("input[name*='costo_unitario']");
+        const inputCostoMensual = document.querySelector("input[name*='costo_mensual']");
+        const inputCostoAnual = document.querySelector("input[name*='costo_total_anual']");
+        
+        const inputFactorEmision = document.querySelector("input[name*='factor_emision']");
+        const inputEmisiones = document.querySelector("input[name*='emisiones_totales']");
+
+        // Campos específicos de Combustibles (kWh conversion)
+        const inputPC = document.querySelector("input[name*='poder_calorifico']");
+        const outputKwhMensual = document.querySelector("input[name*='consumo_mensual_kwh']");
+        const outputKwhAnual = document.querySelector("input[name*='consumo_anual_kwh']");
+
+        // 2. HELPERS NUMÉRICOS
+        function formatNumber(n) {
+            if(!n && n !== 0) return "";
+            let parts = n.toString().replace(/,/g, "").split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            return parts.join(".");
+        }
+
+        function cleanNumber(val) {
+            if(!val) return 0;
+            return parseFloat(val.toString().replace(/,/g, "")) || 0;
+        }
+
+        // 3. CÁLCULO EN CADENA (The Logic Engine)
+        function calcularTodo() {
+            // Obtener valores
+            let valConsumoMes = cleanNumber(inputConsumoMensual.value);
+            let valCostoUnit = cleanNumber(inputCostoUnitario?.value);
+            let valFactor = cleanNumber(inputFactorEmision?.value);
+
+            // A. Proyecciones Anuales
+            let valConsumoAnio = valConsumoMes * 12;
+
+            // B. Costos
+            let valCostoMes = valConsumoMes * valCostoUnit;
+            let valCostoAnio = valCostoMes * 12;
+
+            // C. Emisiones (Consumo Anual * Factor / 1000)
+            let valEmisiones = (valConsumoAnio * valFactor) / 1000;
+
+            // D. Asignar al DOM (Con formato)
+            if (inputConsumoAnual) inputConsumoAnual.value = formatNumber(valConsumoAnio.toFixed(2));
+            if (inputCostoMensual) inputCostoMensual.value = formatNumber(valCostoMes.toFixed(0));
+            if (inputCostoAnual) inputCostoAnual.value = formatNumber(valCostoAnio.toFixed(0));
+            if (inputEmisiones) inputEmisiones.value = formatNumber(valEmisiones.toFixed(3));
+
+            // E. Disparar Conversión Energética
+            calcularKwhConversion(valConsumoMes, valConsumoAnio);
+        }
+
+        function calcularKwhConversion(consumoMes, consumoAnio) {
+            if (!outputKwhMensual || !inputPC) return; // Si es electricidad, sale.
+
+            let pc = cleanNumber(inputPC.value);
+            let factorFisico = 1.0;
+            const titulo = "{{ titulo_energia|lower }}"; 
+
+            if (titulo.includes("fuel") || titulo.includes("diesel")) {
+                factorFisico = 0.00378541; // Galones -> m3
+            } else if (titulo.includes("carbon") || titulo.includes("biomasa")) {
+                factorFisico = 1000.0; // Ton -> kg
+            }
+
+            if (pc > 0) {
+                // Energía (kWh) = (Cantidad * Factor * PC_kJ) / 3600
+                let kwhMes = (consumoMes * factorFisico * pc) / 3600;
+                let kwhAnio = (consumoAnio * factorFisico * pc) / 3600;
+
+                outputKwhMensual.value = formatNumber(kwhMes.toFixed(2));
+                outputKwhAnual.value = formatNumber(kwhAnio.toFixed(2));
+            }
+        }
+
+        // 4. LISTENERS (Trigger calculations on keyup)
+        const triggers = [inputConsumoMensual, inputCostoUnitario, inputFactorEmision, inputPC];
+        triggers.forEach(input => {
+            if(input) input.addEventListener("keyup", calcularTodo);
+        });
+
+        // 5. MÁSCARA DE MILES & INICIALIZACIÓN
+        const allNumericInputs = document.querySelectorAll(
+            "input[name*='consumo'], input[name*='costo'], input[name*='poder'], input[name*='emisiones'], input[name*='factor'], input[name*='kwh']"
+        );
+
+        allNumericInputs.forEach(input => {
+            input.setAttribute('type', 'text'); // Forzar texto para permitir comas
+            input.setAttribute('autocomplete', 'off');
+
+            // Formatear valor inicial (si es edición)
+            if (input.value) input.value = formatNumber(input.value);
+
+            // Evento de formato al escribir
+            input.addEventListener('keyup', function(e) {
+                if (e.key === "." || e.key === "Decimal" || e.key.startsWith("Arrow")) return;
+                
+                let cursorPosition = this.selectionStart;
+                let originalLength = this.value.length;
+                
+                this.value = formatNumber(this.value);
+
+                let newLength = this.value.length;
+                this.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+            });
+        });
+
+        // 6. LIMPIEZA FINAL (Antes de enviar al servidor)
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function() {
+            allNumericInputs.forEach(input => {
+                input.value = input.value.replace(/,/g, "");
+            });
+        });
+
+    });
+
+    // ----------------------------------------------------
+    // LÓGICA DE LA CALCULADORA MODAL
+    // ----------------------------------------------------
+    function calcularPC() {
+        const unidad = document.getElementById('calc_unidad').value;
+        const valor = parseFloat(document.getElementById('calc_valor').value);
+        if (isNaN(valor)) { alert("Digita un valor válido"); return; }
+
+        const factores = {
+            'kcal_m3': 4.184, 'MJ_m3': 1000, 'kWh_m3': 3600, 'BTU_ft3': 37.258, 'therm_CCF': 37258.9,
+            'kcal_kg': 4.184, 'MJ_kg': 1000, 'kWh_kg': 3600, 'BTU_lb': 2.326
+        };
+
+        let resultado = 0;
+        if (factores[unidad]) resultado = valor * factores[unidad];
+        document.getElementById('calc_resultado').value = resultado.toFixed(2);
+        document.getElementById('display_resultado').innerText = resultado.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function aplicarPC() {
+        const resultado = document.getElementById('calc_resultado').value;
+        if (resultado && resultado != 0) {
+            const inputPC = document.getElementById('id_poder_calorifico');
+            if (inputPC) {
+                inputPC.value = resultado;
+                // Disparamos evento keyup para que recalcule los kWh automáticamente
+                inputPC.dispatchEvent(new Event('keyup'));
+                
+                // Efecto visual
+                inputPC.classList.add('bg-success', 'text-white', 'bg-opacity-25');
+                setTimeout(() => inputPC.classList.remove('bg-success', 'text-white', 'bg-opacity-25'), 1000);
+            }
+        }
+    }
+</script>
+{% endblock %}
 {% endblock %}

@@ -143,8 +143,8 @@ class CombustibleBase(FuenteEnergiaBase):
     consumo_anual_orig = models.FloatField(verbose_name="Consumo Anual (Ud. Original)")
     
     # Datos Técnicos
-    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)")
-    unidad_pc = models.CharField(max_length=20, verbose_name="Unidad del PC", help_text="Ej: kJ/m3, MJ/kg")
+    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)", help_text="Unidad Estandarizada: kJ/m³ (Gases/Líq) o kJ/kg (Sólidos)")
+    unidad_pc = models.CharField(max_length=20, default="Estándar", editable=False)
     
     # Consumo Convertido (Las columnas 'Consumo kWh.GN/mes' del Excel)
     consumo_mensual_kwh = models.FloatField(verbose_name="Consumo Eq. Mensual (kWh)")
@@ -155,6 +155,40 @@ class CombustibleBase(FuenteEnergiaBase):
 
     class Meta:
         abstract = True
+    
+
+    def save(self, *args, **kwargs):
+        # CÁLCULO AUTOMÁTICO DE ENERGÍA (kWh)
+        # Fórmula Base: Energía (kJ) = Cantidad * PC
+        # Energía (kWh) = Energía (kJ) / 3600
+        
+        factor_conversion_unidad = 1.0
+        
+        # CASO ESPECIAL: Fuel Oil (Entra en Galones, PC en kJ/m3)
+        # 1 Galón = 0.00378541 m3
+        if self._meta.model_name == 'fueloil':
+             factor_conversion_unidad = 0.00378541
+        
+        # CASO ESPECIAL: Carbón/Biomasa (Entra en Toneladas, PC en kJ/kg)
+        # 1 Tonelada = 1000 kg
+        elif self._meta.model_name in ['carbonmineral', 'biomasa']:
+            factor_conversion_unidad = 1000.0
+            
+        # Gas Natural entra en m3 y PC en kJ/m3 -> Factor 1.0
+        # GLP entra en kg y PC en kJ/kg -> Factor 1.0
+
+        if self.consumo_anual_orig and self.poder_calorifico:
+            # 1. Calculamos energía total en kJ
+            energia_kj = (self.consumo_anual_orig * factor_conversion_unidad) * self.poder_calorifico
+            
+            # 2. Convertimos a kWh (1 kWh = 3600 kJ)
+            self.consumo_anual_kwh = energia_kj / 3600
+            
+            # 3. Calculamos indicador de costo
+            if self.costo_total_anual and self.consumo_anual_kwh > 0:
+                self.costo_kwh_equivalente = self.costo_total_anual / self.consumo_anual_kwh
+        
+        super().save(*args, **kwargs)
         
     def get_kwh_equivalente(self):
         return self.consumo_anual_kwh

@@ -1,5 +1,7 @@
 {% extends 'layouts/base.html' %}
-{% load humanize %} {% block title %}Panel: {{ proyecto.nombre_proyecto }}{% endblock %}
+{% load humanize %}
+
+{% block title %}Panel: {{ proyecto.nombre_proyecto }}{% endblock %}
 {% block page_title %}{{ proyecto.nombre_proyecto }}{% endblock %}
 {% block page_subtitle %}
     <span class="text-muted">Cliente:</span> <strong>{{ proyecto.empresa.razon_social }}</strong> | 
@@ -25,7 +27,6 @@
         {% endif %}
         
         <div class="vr text-muted"></div>
-        
         <small class="text-muted">
             <i class="bi bi-calendar3 me-1"></i> Inicio: <strong>{{ proyecto.fecha_inicio|date:"d M, Y" }}</strong>
         </small>
@@ -52,7 +53,6 @@
             <span class="text-muted small">kWh Equivalentes / año</span>
         </div>
     </div>
-
     <div class="col-md-4">
         <div class="card-modern p-4 border-start border-4 border-success h-100 bg-white shadow-sm">
             <div class="d-flex justify-content-between mb-2">
@@ -63,7 +63,6 @@
             <span class="text-muted small">Toneladas CO2eq / año</span>
         </div>
     </div>
-
     <div class="col-md-4">
         <div class="card-modern p-4 border-start border-4 border-warning h-100 bg-white shadow-sm">
             <div class="d-flex justify-content-between mb-2">
@@ -77,19 +76,28 @@
 </div>
 
 {% if kpi_energia > 0 %}
-<div class="row mb-5">
-    <div class="col-md-6 col-lg-5">
+<div class="row g-4 mb-5">
+    <div class="col-lg-4">
         <div class="card-modern p-4 h-100 bg-white shadow-sm">
-            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2">Matriz de Consumo (kWh eq)</h6>
+            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2 text-center">Matriz de Consumo (kWh)</h6>
             <div style="height: 250px; position: relative;">
                 <canvas id="chartEnergia"></canvas>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6 col-lg-7">
+    <div class="col-lg-4">
         <div class="card-modern p-4 h-100 bg-white shadow-sm">
-            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2">Distribución de Costos (COP)</h6>
+            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2 text-center">Balance Térmico (MBTU)</h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartMBTU"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-modern p-4 h-100 bg-white shadow-sm">
+            <h6 class="fw-bold text-dark mb-4 border-bottom pb-2 text-center">Distribución de Costos</h6>
             <div style="height: 250px; position: relative;">
                 <canvas id="chartCostos"></canvas>
             </div>
@@ -104,7 +112,6 @@
 </div>
 
 <div class="row g-4 mb-5">
-    
     <div class="col-md-6 col-lg-4">
         <div class="card-modern h-100 p-4 position-relative hover-lift border border-secondary border-opacity-25 bg-white">
             <div class="d-flex justify-content-between align-items-start mb-4">
@@ -162,7 +169,6 @@
                     <i class="bi bi-plug-fill fs-5"></i>
                 </div>
             </div>
-
             {% if electricidad %}
                 <div class="mb-4 border-start border-2 border-warning ps-3">
                     <div class="d-flex justify-content-between">
@@ -178,14 +184,8 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'electricidad' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'electricidad' %}" class="btn btn-outline-warning btn-sm border-dashed fw-medium text-dark">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'electricidad' %}" class="btn btn-outline-warning btn-sm border-dashed fw-medium text-dark"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
@@ -201,7 +201,6 @@
                     <i class="bi bi-fire fs-5"></i>
                 </div>
             </div>
-
             {% if gas_natural %}
                 <div class="mb-4 border-start border-2 border-primary ps-3">
                     <div class="d-flex justify-content-between">
@@ -217,14 +216,8 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'gas_natural' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_natural' %}" class="btn btn-outline-primary btn-sm border-dashed fw-medium">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'gas_natural' %}" class="btn btn-outline-primary btn-sm border-dashed fw-medium"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
@@ -240,7 +233,6 @@
                     <i class="bi bi-box-seam-fill fs-5"></i>
                 </div>
             </div>
-
             {% if carbon_mineral %}
                 <div class="mb-4 border-start border-2 border-dark ps-3">
                     <div class="d-flex justify-content-between">
@@ -256,14 +248,8 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'carbon' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'carbon' %}" class="btn btn-outline-secondary btn-sm border-dashed fw-medium">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'carbon' %}" class="btn btn-outline-secondary btn-sm border-dashed fw-medium"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
@@ -279,7 +265,6 @@
                     <i class="bi bi-droplet-fill fs-5"></i>
                 </div>
             </div>
-
             {% if fuel_oil %}
                 <div class="mb-4 border-start border-2 border-danger ps-3">
                     <div class="d-flex justify-content-between">
@@ -295,14 +280,8 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'fuel_oil' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'fuel_oil' %}" class="btn btn-outline-danger btn-sm border-dashed fw-medium text-dark">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'fuel_oil' %}" class="btn btn-outline-danger btn-sm border-dashed fw-medium text-dark"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
@@ -318,7 +297,6 @@
                     <i class="bi bi-recycle fs-5"></i>
                 </div>
             </div>
-
             {% if biomasa %}
                 <div class="mb-4 border-start border-2 border-success ps-3">
                     <div class="d-flex justify-content-between">
@@ -334,14 +312,8 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'biomasa' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'biomasa' %}" class="btn btn-outline-success btn-sm border-dashed fw-medium text-dark">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'biomasa' %}" class="btn btn-outline-success btn-sm border-dashed fw-medium text-dark"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
@@ -357,7 +329,6 @@
                     <i class="bi bi-cloud-fog2-fill fs-5"></i>
                 </div>
             </div>
-
             {% if gas_propano %}
                 <div class="mb-4 border-start border-2 border-info ps-3">
                     <div class="d-flex justify-content-between">
@@ -373,18 +344,11 @@
                     <a href="{% url 'registrar_consumo' proyecto.id 'gas_propano' %}" class="btn btn-light btn-sm border text-secondary fw-medium">Ver Detalles</a>
                 </div>
             {% else %}
-                <div class="text-center py-2 text-muted mb-3">
-                    <small>No registrado</small>
-                </div>
-                <div class="d-grid">
-                    <a href="{% url 'registrar_consumo' proyecto.id 'gas_propano' %}" class="btn btn-outline-info btn-sm border-dashed fw-medium text-dark">
-                        <i class="bi bi-plus-lg"></i> Registrar Consumo
-                    </a>
-                </div>
+                <div class="text-center py-2 text-muted mb-3"><small>No registrado</small></div>
+                <div class="d-grid"><a href="{% url 'registrar_consumo' proyecto.id 'gas_propano' %}" class="btn btn-outline-info btn-sm border-dashed fw-medium text-dark"><i class="bi bi-plus-lg"></i> Registrar Consumo</a></div>
             {% endif %}
         </div>
     </div>
-
 </div>
 
 <div class="row mt-2">
@@ -399,7 +363,6 @@
                     <i class="bi bi-cloud-upload me-2"></i> Subir Archivo
                 </button>
             </div>
-
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -476,14 +439,18 @@
 {% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Datos generales
         const labels = {{ chart_labels|safe }};
         const dataEnergia = {{ chart_data_energia|safe }};
         const dataCostos = {{ chart_data_costos|safe }};
         const colores = {{ chart_colors|safe }};
+        
+        // Datos MBTU
+        const dataMBTU = {{ chart_data_mbtu|safe }};
 
         if (labels.length === 0) return;
 
-        // 1. Doughnut
+        // 1. DOUGHNUT (kWh)
         const ctxEnergia = document.getElementById('chartEnergia').getContext('2d');
         new Chart(ctxEnergia, {
             type: 'doughnut',
@@ -500,23 +467,42 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { font: { family: "'Inter', sans-serif", size: 11 } }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return (context.label || '') + ': ' + context.raw.toLocaleString() + ' kWh';
-                            }
-                        }
-                    }
+                    legend: { position: 'right', labels: { font: { family: "'Inter', sans-serif", size: 11 } } },
+                    tooltip: { callbacks: { label: function(c) { return (c.label || '') + ': ' + c.raw.toLocaleString() + ' kWh'; } } }
                 },
-                cutout: '70%'
+                cutout: '65%'
             }
         });
 
-        // 2. Bar
+        // 2. BAR (MBTU - Eléctrico vs Térmico)
+        const ctxMBTU = document.getElementById('chartMBTU').getContext('2d');
+        new Chart(ctxMBTU, {
+            type: 'bar',
+            data: {
+                labels: ['Energía Eléctrica', 'Energía Térmica'],
+                datasets: [{
+                    label: 'Consumo (MBTU)',
+                    data: dataMBTU,
+                    backgroundColor: ['#ffc107', '#dc3545'], // Amarillo Elec, Rojo Térmico
+                    borderRadius: 5,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(c) { return c.raw.toLocaleString() + ' MBTU'; } } }
+                }
+            }
+        });
+
+        // 3. BAR (Costos)
         const ctxCostos = document.getElementById('chartCostos').getContext('2d');
         new Chart(ctxCostos, {
             type: 'bar',
@@ -534,15 +520,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f1f5f9' },
-                        ticks: { font: { family: "'Inter', sans-serif", size: 10 } }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { family: "'Inter', sans-serif", size: 11 } }
-                    }
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
                 },
                 plugins: {
                     legend: { display: false }
