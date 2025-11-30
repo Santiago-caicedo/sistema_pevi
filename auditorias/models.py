@@ -76,6 +76,36 @@ class ProyectoAuditoria(models.Model):
 
     def __str__(self):
         return f"{self.nombre_proyecto} - {self.empresa.razon_social}"
+    
+    def get_total_kwh(self):
+        """
+        Calcula la suma total de energía (Eléctrica + Térmica) en kWh.
+        Usado para KPIs rápidos en listados y dashboards.
+        """
+        total = 0.0
+        
+        # 1. Sumar Electricidad
+        # Usamos .first() porque la relación devuelve un QuerySet
+        elec = self.electricidad_related.first()
+        if elec:
+            total += elec.consumo_anual
+
+        # 2. Sumar Combustibles (Usando el campo normalizado en kWh)
+        # Lista de las relaciones inversas (related_name)
+        combustibles = [
+            self.gasnatural_related.first(),
+            self.carbonmineral_related.first(),
+            self.fueloil_related.first(),
+            self.biomasa_related.first(),
+            self.gaspropano_related.first()
+        ]
+
+        for fuente in combustibles:
+            if fuente:
+                # Sumamos el campo 'consumo_anual_kwh' que calculamos en el save()
+                total += fuente.consumo_anual_kwh
+        
+        return total
 
 class DocumentoProyecto(models.Model):
     """

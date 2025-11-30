@@ -15,32 +15,35 @@ class CentroPevi(models.Model):
         return self.nombre
 
 class Usuario(AbstractUser):
-    """
-    Modelo de usuario personalizado para el sistema PEVI.
-    Reemplaza al usuario por defecto de Django.
-    """
-    # Definimos los roles como constantes
-    ROL_ADMIN = 'ADMIN'
-    ROL_LIDER = 'LIDER'
-    ROL_INGENIERO = 'INGENIERO'
-
+    # DEFINICIÓN DE ROLES (Jerarquía de Gobernanza)
+    ROL_ESTUDIANTE = 'ESTUDIANTE'
+    ROL_PROFESOR = 'PROFESOR'
+    ROL_DIRECTOR = 'DIRECTOR_CENTRO'
+    ROL_NACIONAL = 'DIRECTOR_NACIONAL' # Director PEVI Líder (Ve todo)
+    
     ROLES_CHOICES = [
-        (ROL_ADMIN, 'Administrador Global (UPME)'),
-        (ROL_LIDER, 'Líder de Centro'),
-        (ROL_INGENIERO, 'Ingeniero / Estudiante'),
+        (ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
+        (ROL_PROFESOR, 'Profesor Líder de Proyecto'),
+        (ROL_DIRECTOR, 'Director de Centro PEVI'),
+        (ROL_NACIONAL, 'Director Nacional (Líder PEVI)'),
     ]
 
-    # Campos personalizados
-    centro_pevi = models.ForeignKey(
-        CentroPevi, 
-        on_delete=models.PROTECT, 
-        null=True, 
-        blank=True, 
-        related_name="usuarios",
-        help_text="A qué universidad pertenece este usuario"
-    )
-    rol = models.CharField(max_length=20, choices=ROLES_CHOICES, default=ROL_INGENIERO)
-    cargo = models.CharField(max_length=100, blank=True, help_text="Ej: Docente Coordinador, Tesista")
+    centro_pevi = models.ForeignKey(CentroPevi, on_delete=models.PROTECT, null=True, blank=True)
+    rol = models.CharField(max_length=30, choices=ROLES_CHOICES, default=ROL_ESTUDIANTE)
+    cargo = models.CharField(max_length=100, blank=True)
+
+    # Helper properties para usar en los templates fácilmente
+    @property
+    def es_director_centro(self):
+        return self.rol == self.ROL_DIRECTOR
+    
+    @property
+    def es_nacional(self):
+        return self.rol == self.ROL_NACIONAL or self.is_superuser
+
+    @property
+    def es_profesor(self):
+        return self.rol == self.ROL_PROFESOR
 
     def __str__(self):
         return f"{self.username} - {self.get_rol_display()}"

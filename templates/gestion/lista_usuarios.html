@@ -1,0 +1,94 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Equipo{% endblock %}
+{% block page_title %}Gestión de Talento{% endblock %}
+{% block page_subtitle %}Administración de usuarios y roles{% endblock %}
+
+{% block content %}
+<div class="card-modern p-0 shadow-sm">
+    
+    <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control bg-light border-start-0" placeholder="Buscar usuario...">
+            </div>
+        </div>
+        <a href="{% url 'crear_usuario' %}" class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm fw-medium hover-lift">
+            <i class="bi bi-person-plus me-2"></i> Nuevo Miembro
+        </a>
+    </div>
+
+    <div class="table-responsive" style="overflow: visible;">
+        <table class="table-modern table-hover align-middle">
+            <thead>
+                <tr>
+                    <th class="ps-4 text-secondary text-uppercase" style="font-size: 0.75rem;">Usuario</th>
+                    <th class="text-secondary text-uppercase" style="font-size: 0.75rem;">Rol / Cargo</th>
+                    <th class="text-secondary text-uppercase" style="font-size: 0.75rem;">Estado</th>
+                    <th class="text-secondary text-uppercase" style="font-size: 0.75rem;">Último Acceso</th>
+                    <th class="text-end pe-4"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3 fw-bold shadow-sm" 
+                                 style="width: 40px; height: 40px; font-size: 0.9rem;">
+                                {{ u.username|slice:":2"|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="small text-muted">{{ u.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if u.rol == 'DIRECTOR_CENTRO' %}
+                            <span class="badge bg-soft-primary text-primary border border-primary-subtle mb-1">Director</span>
+                        {% elif u.rol == 'DIRECTOR_NACIONAL' %}
+                            <span class="badge bg-dark text-white border mb-1">Director Nacional</span>
+                        {% elif u.rol == 'PROFESOR' %}
+                            <span class="badge bg-soft-info text-info border border-info-subtle mb-1">Profesor Líder</span>
+                        {% else %}
+                            <span class="badge bg-light text-secondary border border-secondary-subtle mb-1">Estudiante</span>
+                        {% endif %}
+                        <div class="small text-muted" style="font-size: 0.75rem;">{{ u.cargo|default:"-" }}</div>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge bg-soft-success text-success rounded-pill border border-success-subtle px-2">Activo</span>
+                        {% else %}
+                            <span class="badge bg-soft-danger text-danger rounded-pill border border-danger-subtle px-2">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                        {{ u.last_login|date:"d M Y"|default:"Nunca" }}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="dropdown">
+                            <button class="btn btn-light btn-sm border rounded-circle shadow-sm" type="button" data-bs-toggle="dropdown" data-bs-display="static">
+                                <i class="bi bi-three-dots-vertical text-muted"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li><a class="dropdown-item" href="{% url 'editar_usuario' u.id %}"><i class="bi bi-pencil me-2 text-secondary"></i> Editar</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'eliminar_usuario' u.id %}" onclick="return confirm('¿Seguro de eliminar este usuario?');"><i class="bi bi-trash me-2"></i> Eliminar</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        No hay usuarios registrados en tu equipo.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

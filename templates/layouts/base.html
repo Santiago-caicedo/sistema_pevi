@@ -15,18 +15,18 @@
     
     <style>
         :root {
-            /* Paleta Enterprise "Slate" */
-            --sidebar-bg: #0f172a; /* Azul oscurísimo, casi negro */
+            /* Paleta de Colores "Slate" (Profesional/SaaS) */
+            --sidebar-bg: #0f172a; 
             --sidebar-text: #94a3b8;
-            --sidebar-active: #38bdf8; /* Cyan moderno */
+            --sidebar-active: #38bdf8; 
             --sidebar-active-bg: rgba(56, 189, 248, 0.1);
             
-            --body-bg: #f1f5f9; /* Gris muy pálido y limpio */
+            --body-bg: #f1f5f9; 
             --card-bg: #ffffff;
             --text-primary: #1e293b;
             --text-secondary: #64748b;
             
-            --primary-brand: #0284c7; /* Azul corporativo moderno */
+            --primary-brand: #0284c7;
             
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -39,7 +39,7 @@
             font-size: 0.95rem;
         }
 
-        /* --- SIDEBAR DE ALTO NIVEL --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: 260px;
             background-color: var(--sidebar-bg);
@@ -93,6 +93,7 @@
             color: #475569;
             padding: 1.5rem 1.5rem 0.5rem 1.5rem;
             font-weight: 600;
+            margin-top: 1rem;
         }
 
         /* --- MAIN CONTENT --- */
@@ -125,9 +126,6 @@
             box-shadow: var(--shadow-sm);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
-        /* CORRECCIÓN: Quitamos hover effect agresivo para evitar saltos en layout, usamos una clase específica si se requiere */
-        /* .card-modern:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); } */
 
         /* --- TABLAS --- */
         .table-modern {
@@ -157,7 +155,7 @@
             border-bottom: none;
         }
 
-        /* --- BADGES (ETIQUETAS) --- */
+        /* --- BADGES Y UTILIDADES --- */
         .badge-soft {
             padding: 0.35em 0.65em;
             font-size: 0.75em;
@@ -171,7 +169,6 @@
         .bg-soft-info    { background-color: #cffafe; color: #0891b2; }
         .bg-soft-secondary { background-color: #f1f5f9; color: #475569; }
 
-        /* Utility classes */
         .hover-lift {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -191,7 +188,7 @@
 
     <nav class="sidebar">
         <div class="brand-logo d-flex justify-content-center mb-3">
-            <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia" style="max-width: 80%; max-height: 150px; object-fit: contain;">
+            <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia" style="max-width: 80%; max-height: 120px; object-fit: contain;">
         </div>
         
         <div class="sidebar-menu">
@@ -200,24 +197,36 @@
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
             
-            <a href="{% url 'lista_empresas' %}" 
-               class="nav-link {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="bi bi-buildings"></i> Empresas
-            </a>
-            
             <a href="{% url 'lista_proyectos' %}" 
                class="nav-link {% if 'proyecto' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-folder2-open"></i> Proyectos
             </a>
 
+            {% if user.es_director_centro or user.es_nacional or user.is_superuser %}
+            <a href="{% url 'lista_empresas' %}" 
+               class="nav-link {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-buildings"></i> Empresas
+            </a>
+            {% endif %}
+
+            {% if user.es_director_centro or user.es_nacional or user.is_superuser %}
             <div class="sidebar-heading">Administración</div>
             
-            <a href="/admin/gestion/usuario/" target="_blank" class="nav-link">
+            <a href="{% url 'dashboard_estrategico' %}" 
+               class="nav-link {% if 'metricas' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-graph-up-arrow"></i> Métricas & KPIs
+            </a>
+
+            <a href="{% url 'lista_usuarios' %}" class="nav-link ...">
                 <i class="bi bi-people"></i> Equipo
             </a>
+            {% endif %}
+            
+            {% if user.is_superuser %}
             <a href="/admin/" target="_blank" class="nav-link">
-                <i class="bi bi-gear"></i> Configuración
+                <i class="bi bi-gear"></i> Sistema (Django)
             </a>
+            {% endif %}
         </div>
 
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 1.5rem;">
@@ -235,27 +244,29 @@
         <header class="top-navbar">
             <div>
                 <h1 class="page-title">{% block page_title %}Resumen General{% endblock %}</h1>
-                <p class="text-muted mb-0 small">{% block page_subtitle %}Bienvenido al sistema de gestión energética{% endblock %}</p>
+                <p class="text-muted mb-0 small">{% block page_subtitle %}Sistema de Gestión Energética PEVI{% endblock %}</p>
             </div>
             
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-light rounded-circle shadow-sm position-relative">
+                <button class="btn btn-light rounded-circle shadow-sm position-relative border-0">
                     <i class="bi bi-bell"></i>
                     <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
                 </button>
                 
                 <div class="d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm">
                     <div class="me-2 text-end lh-1">
-                        <div class="fw-bold small">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="fw-bold small text-dark">{{ user.get_full_name|default:user.username }}</div>
                         <div class="text-muted" style="font-size: 0.7rem;">
                             {% if user.centro_pevi %}
-                                {{ user.centro_pevi.codigo_interno }}
+                                {{ user.centro_pevi.nombre }}
+                            {% elif user.is_superuser %}
+                                Super Admin Global
                             {% else %}
-                                Admin Global
+                                Usuario PEVI
                             {% endif %}
                         </div>
                     </div>
-                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 35px; height: 35px;">
                         {{ user.username|slice:":1"|upper }}
                     </div>
                 </div>

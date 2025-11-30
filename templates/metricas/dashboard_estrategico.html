@@ -1,0 +1,240 @@
+{% extends 'layouts/base.html' %}
+{% load humanize %}
+
+{% block title %}BI Energético{% endblock %}
+{% block page_title %}Inteligencia de Negocio{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+
+<div class="card-modern p-4 mb-4 border-0 shadow-sm bg-white">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-12 mb-2">
+            <small class="text-uppercase fw-bold text-muted ls-1"><i class="bi bi-funnel me-1"></i> Filtros de Análisis</small>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-bold text-secondary">Ingeniero / Líder</label>
+            <select name="lider" class="form-select form-select-sm" 
+                    onchange="document.getElementsByName('proyecto')[0].value=''; this.form.submit()">
+                <option value="">-- Todos los Ingenieros --</option>
+                {% for l in opciones_lideres %}
+                <option value="{{ l.id }}" {% if filtro_actual_lider == l.id %}selected{% endif %}>
+                    {{ l.get_full_name|default:l.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label small fw-bold text-secondary">Proyecto Específico</label>
+            <select name="proyecto" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">-- Consolidado General --</option>
+                {% for p in opciones_proyectos %}
+                <option value="{{ p.id }}" {% if filtro_actual_proyecto == p.id %}selected{% endif %}>
+                    {{ p.nombre_proyecto }} ({{ p.empresa.razon_social }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 text-end">
+            <a href="{% url 'dashboard_estrategico' %}" class="btn btn-light btn-sm border text-secondary w-100">
+                <i class="bi bi-x-circle me-1"></i> Limpiar Filtros
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card-modern p-3 border-start border-4 border-dark h-100 shadow-sm">
+            <h3 class="fw-bold mb-0 text-dark">{{ kpi_proyectos }}</h3>
+            <small class="text-muted text-uppercase fw-bold">Proyectos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-modern p-3 border-start border-4 border-primary h-100 shadow-sm">
+            <h4 class="fw-bold mb-0 text-primary">{{ kpi_energia_total|intcomma }} <span class="fs-6 text-muted">kWh</span></h4>
+            <small class="text-muted text-uppercase fw-bold">Consumo Total</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-modern p-3 border-start border-4 border-warning h-100 shadow-sm">
+            <h4 class="fw-bold mb-0 text-dark">$ {{ kpi_costo_total|intcomma }}</h4>
+            <small class="text-muted text-uppercase fw-bold">Costo Total</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-modern p-3 border-start border-4 border-success h-100 shadow-sm">
+            <h4 class="fw-bold mb-0 text-success">{{ kpi_emisiones|intcomma }} <span class="fs-6">Ton</span></h4>
+            <small class="text-muted text-uppercase fw-bold">Huella CO2</small>
+        </div>
+    </div>
+</div>
+
+{% if kpi_energia_total > 0 %}
+<div class="row g-4 mb-5">
+    
+    <div class="col-lg-4">
+        <div class="card-modern p-4 h-100 shadow-sm">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 text-center">Matriz Global (kWh Eq)</h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartMix"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-modern p-4 h-100 shadow-sm position-relative overflow-hidden">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 text-center">Balance Térmico Global</h6>
+            
+            <div class="d-flex flex-column justify-content-between" style="height: 250px;">
+                <div class="d-flex align-items-center p-2 border rounded bg-white shadow-sm mb-2">
+                    <div class="rounded-circle p-2 bg-soft-warning text-warning me-3"><i class="bi bi-lightning-charge-fill fs-5"></i></div>
+                    <div>
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Eléctrica</small>
+                        <div class="fw-bold text-dark">{{ kpi_elec_kwh|intcomma }} kWh</div>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center p-2 border rounded bg-white shadow-sm mb-3">
+                    <div class="rounded-circle p-2 bg-soft-danger text-danger me-3"><i class="bi bi-fire fs-5"></i></div>
+                    <div>
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Térmica</small>
+                        <div class="fw-bold text-dark">{{ kpi_term_mbtu|intcomma }} MBTU</div>
+                    </div>
+                </div>
+
+                <div style="flex-grow: 1; position: relative;">
+                    <canvas id="chartMBTU"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-modern p-4 h-100 shadow-sm">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 text-center">Distribución de Costos ($)</h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartCostos"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card-modern p-0 shadow-sm overflow-hidden">
+    <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-table me-2"></i>Detalle de Proyectos (Base de Datos)</h6>
+        <span class="badge bg-light text-secondary border">Registros: {{ tabla_proyectos|length }}</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 table-modern">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Proyecto / Empresa</th>
+                    <th>Líder</th>
+                    <th>Producción</th>
+                    <th class="text-end">Energía Total (kWh)</th>
+                    <th class="text-end">Costo Total ($)</th>
+                    <th class="text-end">Huella (TonCO2)</th>
+                    <th class="text-end pe-4">IDES (kWh/u)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in tabla_proyectos %}
+                <tr>
+                    <td class="ps-4">
+                        <a href="{% url 'detalle_proyecto' item.objeto.id %}" class="fw-bold text-dark text-decoration-none hover-underline">
+                            {{ item.objeto.nombre_proyecto }}
+                        </a>
+                        <div class="small text-muted">{{ item.empresa }}</div>
+                    </td>
+                    <td><span class="badge bg-light text-secondary border">{{ item.lider }}</span></td>
+                    <td>
+                        <div class="small fw-bold">{{ item.produccion|intcomma }}</div>
+                        <div class="small text-muted" style="font-size: 0.7rem;">{{ item.unidad_prod }}</div>
+                    </td>
+                    <td class="text-end font-monospace">{{ item.energia_total|intcomma }}</td>
+                    <td class="text-end font-monospace">$ {{ item.costo|intcomma }}</td>
+                    <td class="text-end font-monospace">{{ item.emisiones|intcomma }}</td>
+                    <td class="text-end pe-4 fw-bold text-primary">{{ item.ides }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center py-5 text-muted">Sin datos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .hover-underline:hover { text-decoration: underline !important; color: #0284c7 !important; }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const labels = {{ chart_labels|safe }};
+        const dataEnergia = {{ chart_data_energia|safe }};
+        const dataCostos = {{ chart_data_costos|safe }};
+        const colors = {{ chart_colors|safe }};
+        const dataMBTU = {{ chart_data_mbtu|safe }};
+
+        if (labels.length === 0) return;
+
+        // 1. Dona
+        new Chart(document.getElementById('chartMix'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{ data: dataEnergia, backgroundColor: colors, borderWidth: 0, hoverOffset: 10 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '65%',
+                layout: { padding: 20 },
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } } }
+            }
+        });
+
+        // 2. Bar Costos
+        new Chart(document.getElementById('chartCostos'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Costo Total', data: dataCostos, backgroundColor: colors, borderRadius: 4, barThickness: 30 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f8f9fa' } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // 3. Bar MBTU (Eléctrico vs Térmico)
+        new Chart(document.getElementById('chartMBTU'), {
+            type: 'bar',
+            data: {
+                labels: ['Eléctrica', 'Térmica'],
+                datasets: [{
+                    label: 'MBTU',
+                    data: dataMBTU,
+                    backgroundColor: ['#ffc107', '#dc3545'],
+                    borderRadius: 4,
+                    barThickness: 30
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y', // Barras horizontales
+                plugins: { legend: { display: false } },
+                scales: { 
+                    x: { beginAtZero: true, grid: { display: false } },
+                    y: { grid: { display: false } } 
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
