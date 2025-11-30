@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from gestion.views import (
-    crear_empresa, dashboard, crear_proyecto, detalle_proyecto, 
+    crear_empresa, dashboard, crear_proyecto, detalle_proyecto, generar_informe_pdf, 
     lista_proyectos, lista_empresas, registrar_consumo, registrar_produccion, subir_documento
 )
 from django.conf import settings
@@ -32,6 +32,8 @@ urlpatterns = [
     # Django usará esta solo si no coincidió con "produccion" ni "documentos"
     # =========================================================================
     path('proyectos/<int:proyecto_id>/registro/<str:tipo_energia>/', registrar_consumo, name='registrar_consumo'),
+
+    path('proyectos/<int:proyecto_id>/informe/pdf/', generar_informe_pdf, name='generar_informe_pdf'),
 ]
 
 if settings.DEBUG:

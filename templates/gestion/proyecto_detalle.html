@@ -37,7 +37,9 @@
             <i class="bi bi-pencil-square me-1"></i> Editar Proyecto
         </button>
         <button class="btn btn-primary btn-sm fw-medium shadow-sm">
-            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Informe
+            <a href="{% url 'generar_informe_pdf' proyecto.id %}" target="_blank" class="btn btn-primary btn-sm fw-medium shadow-sm">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Informe
+            </a>
         </button>
     </div>
 </div>

@@ -17,6 +17,11 @@ from auditorias.forms import (
 from .forms import UsuarioEditarForm, UsuarioForm
 from .models import Usuario
 
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import tempfile
+
 # ==========================================
 #  VISTAS DE GESTIÓN PRINCIPAL
 # ==========================================
@@ -477,3 +482,102 @@ def eliminar_usuario(request, usuario_id):
     usuario.delete()
     messages.success(request, "Usuario eliminado del sistema.")
     return redirect('lista_usuarios')
+
+#__________________________________
+#VISTA PARA GENERACIÓN DE PDF'S
+
+@login_required
+def generar_informe_pdf(request, proyecto_id):
+    """Genera el Informe de Línea Base en PDF."""
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+
+    # 1. RECUPERAR OBJETOS
+    electricidad = proyecto.electricidad_related.first()
+    gas_natural = proyecto.gasnatural_related.first()
+    carbon = proyecto.carbonmineral_related.first()
+    fuel_oil = proyecto.fueloil_related.first()
+    biomasa = proyecto.biomasa_related.first()
+    gas_propano = proyecto.gaspropano_related.first()
+
+    # Mapa para iterar
+    fuentes_map = [
+        ('Electricidad', electricidad, 'kWh'),
+        ('Gas Natural', gas_natural, 'm³'),
+        ('Carbón Mineral', carbon, 'Ton'),
+        ('Fuel Oil', fuel_oil, 'Gal'),
+        ('Biomasa', biomasa, 'Ton'),
+        ('GLP', gas_propano, 'kg'),
+    ]
+
+    # Acumuladores
+    total_emisiones = 0.0
+    total_costo = 0.0
+    total_energia = 0.0
+    total_kwh_electrico = 0.0
+    total_kwh_termico = 0.0
+
+    # Lista limpia para enviar al PDF (Sin objetos complejos)
+    datos_tabla = []
+
+    for nombre_bonito, fuente, unidad in fuentes_map:
+        if fuente:
+            # Cálculos
+            total_emisiones += fuente.emisiones_totales
+            total_costo += fuente.costo_total_anual
+            
+            energia_kwh = 0
+            if hasattr(fuente, 'consumo_anual_kwh'): 
+                energia_kwh = fuente.consumo_anual_kwh
+                consumo_orig = fuente.consumo_anual_orig
+            elif hasattr(fuente, 'consumo_anual'): 
+                energia_kwh = fuente.consumo_anual
+                consumo_orig = fuente.consumo_anual
+            
+            total_energia += energia_kwh
+
+            if nombre_bonito == 'Electricidad':
+                total_kwh_electrico += energia_kwh
+            else:
+                total_kwh_termico += energia_kwh
+
+            # PREPARAR DATO PARA PDF (Formato Python directo)
+            # Esto evita el error de _meta y floatform en el template
+            datos_tabla.append({
+                'nombre': nombre_bonito,
+                'unidad': unidad,
+                'consumo': f"{consumo_orig:,.0f}",      # Ejemplo: 1,200
+                'energia': f"{energia_kwh:,.0f}",       # Ejemplo: 15,000
+                'emisiones': f"{fuente.emisiones_totales:,.2f}", # Ejemplo: 2.50
+                'costo': f"{fuente.costo_total_anual:,.0f}"      # Ejemplo: 5,000,000
+            })
+
+    # Indicador IDES
+    indicador_ides = 0
+    if proyecto.produccion_total and proyecto.produccion_total > 0 and total_energia > 0:
+        indicador_ides = total_energia / proyecto.produccion_total
+
+    # 2. CONTEXTO PARA EL PDF (Todo pre-formateado)
+    context = {
+        'proyecto': proyecto,
+        'datos_tabla': datos_tabla, # Usamos la nueva lista limpia
+        
+        # KPIs formateados
+        'kpi_emisiones': f"{total_emisiones:,.2f}",
+        'kpi_energia': f"{total_energia:,.0f}",
+        'kpi_costo': f"{total_costo:,.0f}",
+        'kpi_ides': f"{indicador_ides:,.2f}",
+        'kpi_elec': f"{total_kwh_electrico:,.0f}",
+        'kpi_term': f"{total_kwh_termico:,.0f}",
+        
+        'base_url': request.build_absolute_uri('/') 
+    }
+
+    # 3. RENDERIZAR
+    html_string = render_to_string('gestion/informe_pdf.html', context)
+    html = HTML(string=html_string, base_url=request.build_absolute_uri())
+    result = html.write_pdf()
+
+    response = HttpResponse(result, content_type='application/pdf')
+    filename = f"Informe_PEVI_{proyecto.id}.pdf"
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response

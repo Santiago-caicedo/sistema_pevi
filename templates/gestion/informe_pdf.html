@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe PEVI</title>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.5; font-size: 12px; }
+        .header { border-bottom: 2px solid #0d47a1; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { max-height: 60px; }
+        h1 { color: #0d47a1; font-size: 24px; margin: 0; }
+        h2 { font-size: 16px; color: #555; margin-top: 5px; font-weight: normal; }
+        .section-title { background-color: #f1f5f9; padding: 8px 15px; font-weight: bold; color: #0f172a; border-left: 5px solid #0d47a1; margin-top: 30px; margin-bottom: 15px; font-size: 14px; text-transform: uppercase; }
+        
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background-color: #0d47a1; color: white; padding: 8px; text-align: left; font-size: 11px; }
+        td { border-bottom: 1px solid #ddd; padding: 8px; font-size: 11px; }
+        .text-right { text-align: right; }
+        .total-row td { font-weight: bold; background-color: #f8f9fa; border-top: 2px solid #333; }
+
+        /* KPI Box */
+        .kpi-container { width: 100%; margin-bottom: 20px; }
+        .kpi-table { width: 100%; border: none; }
+        .kpi-cell { width: 33%; padding: 5px; border: none; }
+        .kpi-box { border: 1px solid #ddd; padding: 15px; text-align: center; border-radius: 5px; background: #fff; }
+        .kpi-value { font-size: 18px; font-weight: bold; color: #0d47a1; display: block; }
+        .kpi-label { font-size: 10px; text-transform: uppercase; color: #666; }
+
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="{% static 'img/logo_pevi.png' %}" class="logo" alt="Logo PEVI">
+        <div style="text-align: right;">
+            <h1>Informe de Línea Base</h1>
+            <h2>Programa de Evaluación Industrial</h2>
+            <small>Fecha: {% now "d/m/Y" %}</small>
+        </div>
+    </div>
+
+    <div class="section-title">1. Contexto de la Auditoría</div>
+    <table>
+        <tr>
+            <td width="20%"><strong>Empresa:</strong></td>
+            <td>{{ proyecto.empresa.razon_social }}</td>
+            <td width="20%"><strong>NIT:</strong></td>
+            <td>{{ proyecto.empresa.nit }}</td>
+        </tr>
+        <tr>
+            <td><strong>Centro PEVI:</strong></td>
+            <td>{{ proyecto.centro.nombre }}</td>
+            <td><strong>Sector:</strong></td>
+            <td>{{ proyecto.empresa.sector_productivo }}</td>
+        </tr>
+        <tr>
+            <td><strong>Producción Base:</strong></td>
+            <td>{{ proyecto.produccion_total }} {{ proyecto.unidad_produccion }}</td>
+            <td><strong>Líder:</strong></td>
+            <td>{{ proyecto.lider_proyecto.get_full_name }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">2. Indicadores de Desempeño (KPIs)</div>
+    <div class="kpi-container">
+        <table class="kpi-table">
+            <tr>
+                <td class="kpi-cell">
+                    <div class="kpi-box">
+                        <span class="kpi-value">{{ kpi_energia }} kWh</span>
+                        <span class="kpi-label">Consumo Total (Eq)</span>
+                    </div>
+                </td>
+                <td class="kpi-cell">
+                    <div class="kpi-box">
+                        <span class="kpi-value">{{ kpi_ides }}</span>
+                        <span class="kpi-label">IDES (kWh/{{ proyecto.unidad_produccion }})</span>
+                    </div>
+                </td>
+                <td class="kpi-cell">
+                    <div class="kpi-box">
+                        <span class="kpi-value">$ {{ kpi_costo }}</span>
+                        <span class="kpi-label">Costo Operativo Anual</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section-title">3. Matriz de Consumo Energético</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Fuente de Energía</th>
+                <th class="text-right">Consumo Original</th>
+                <th class="text-right">Energía (kWh/año)</th>
+                <th class="text-right">Emisiones (TonCO2)</th>
+                <th class="text-right">Costo Total ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in datos_tabla %}
+            <tr>
+                <td><strong>{{ item.nombre }}</strong></td>
+                <td class="text-right">{{ item.consumo }} {{ item.unidad }}</td>
+                <td class="text-right">{{ item.energia }}</td>
+                <td class="text-right">{{ item.emisiones }}</td>
+                <td class="text-right">$ {{ item.costo }}</td>
+            </tr>
+            {% endfor %}
+            
+            <tr class="total-row">
+                <td>TOTALES</td>
+                <td>-</td>
+                <td class="text-right">{{ kpi_energia }}</td>
+                <td class="text-right">{{ kpi_emisiones }}</td>
+                <td class="text-right">$ {{ kpi_costo }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="section-title">4. Balance de Energía</div>
+    <table>
+        <tr>
+            <td><strong>Consumo Eléctrico:</strong></td>
+            <td class="text-right">{{ kpi_elec }} kWh</td>
+            <td>(Motores, Iluminación, Aire Comprimido)</td>
+        </tr>
+        <tr>
+            <td><strong>Consumo Térmico:</strong></td>
+            <td class="text-right">{{ kpi_term }} kWh</td>
+            <td>(Calderas, Hornos, Procesos de calor)</td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Generado automáticamente por la plataforma PEVI Colombia.<br>
+        Unidad de Planeación Minero Energética - UPME
+    </div>
+
+</body>
+</html>
