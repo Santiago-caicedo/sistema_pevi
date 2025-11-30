@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from gestion.views import (
-    crear_empresa, dashboard, crear_proyecto, detalle_proyecto, generar_informe_pdf, 
+    crear_empresa, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, generar_informe_pdf, 
     lista_proyectos, lista_empresas, registrar_consumo, registrar_produccion, subir_documento
 )
 from django.conf import settings
@@ -17,6 +17,7 @@ urlpatterns = [
     
     path('proyectos/', lista_proyectos, name='lista_proyectos'),
     path('proyectos/nuevo/', crear_proyecto, name='crear_proyecto'),
+    path('proyectos/<int:proyecto_id>/editar/', editar_proyecto, name='editar_proyecto'),
     
     # 1. Rutas específicas del proyecto
     path('proyectos/<int:proyecto_id>/', detalle_proyecto, name='detalle_proyecto'),

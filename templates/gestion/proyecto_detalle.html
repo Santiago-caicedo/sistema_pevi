@@ -34,7 +34,9 @@
 
     <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm fw-medium">
-            <i class="bi bi-pencil-square me-1"></i> Editar Proyecto
+            <a href="{% url 'editar_proyecto' proyecto.id %}" class="btn btn-outline-secondary btn-sm fw-medium">
+                <i class="bi bi-pencil-square me-1"></i> Editar Proyecto
+            </a>
         </button>
         <button class="btn btn-primary btn-sm fw-medium shadow-sm">
             <a href="{% url 'generar_informe_pdf' proyecto.id %}" target="_blank" class="btn btn-primary btn-sm fw-medium shadow-sm">

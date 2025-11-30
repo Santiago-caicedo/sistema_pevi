@@ -265,6 +265,29 @@ def crear_proyecto(request):
     return render(request, 'gestion/proyecto_form.html', {'form': form})
 
 
+@login_required
+def editar_proyecto(request, proyecto_id):
+    """Permite modificar los datos administrativos del proyecto."""
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+    
+    if request.method == 'POST':
+        # Pasamos instance=proyecto para que Django sepa que es una EDICIÓN
+        form = ProyectoForm(request.POST, instance=proyecto, user=request.user)
+        if form.is_valid():
+            form.save()
+            form.save_m2m() # Importante para guardar cambios en el equipo (Many-to-Many)
+            messages.success(request, "Datos del proyecto actualizados correctamente.")
+            return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    else:
+        form = ProyectoForm(instance=proyecto, user=request.user)
+
+    # Reutilizamos el mismo formulario de creación
+    return render(request, 'gestion/proyecto_form.html', {
+        'form': form, 
+        'titulo': 'Editar Proyecto' # Variable para cambiar el título visual
+    })
+
+
 # ==========================================
 #  REGISTRO MANUAL DE ENERGÍA (BITÁCORA)
 # ==========================================

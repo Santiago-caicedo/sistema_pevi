@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html' %}
 
-{% block title %}Nuevo Proyecto{% endblock %}
-{% block page_title %}Iniciar Auditoría{% endblock %}
+{% block title %}{{ titulo|default:"Nuevo Proyecto" }}{% endblock %}
+{% block page_title %}{{ titulo|default:"Iniciar Auditoría" }}{% endblock %}
 {% block page_subtitle %}Formulario de registro de proyecto energético{% endblock %}
 
 {% block content %}
