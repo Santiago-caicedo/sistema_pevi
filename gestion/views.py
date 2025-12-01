@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 
 # Librería PDF
@@ -13,7 +13,7 @@ from weasyprint import HTML
 import tempfile
 
 # Modelos y Formularios del Sistema
-from .models import Usuario
+from .models import CentroPevi, Usuario
 from .forms import UsuarioForm, UsuarioEditarForm
 from auditorias.models import ProyectoAuditoria, Empresa
 from auditorias.forms import (
@@ -162,23 +162,89 @@ def dashboard(request):
 @login_required
 @acceso_staff
 def lista_proyectos(request):
+    """
+    Listado de auditorías con filtros avanzados.
+    AJUSTE: Incluye filtro rápido para "Mis Proyectos" en roles directivos.
+    """
     user = request.user
+    
+    # Inicialización
     proyectos = ProyectoAuditoria.objects.none()
+    opciones_centros = []
+    opciones_lideres = []
+    es_vista_nacional = False
+    titulo_vista = "Gestión de Proyectos"
 
-    # Mismos filtros de seguridad que el Dashboard
+    # 1. DEFINICIÓN DE PERMISOS (SCOPE)
+    
+    # CASO A: Es Nacional (Puro o Híbrido) -> VE TODO
     if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
-        proyectos = ProyectoAuditoria.objects.select_related('empresa', 'centro').all()
-    elif user.rol == 'DIRECTOR_CENTRO':
-        proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-    elif user.rol == 'PROFESOR':
-        proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user)
-    elif user.rol == 'ESTUDIANTE':
-        proyectos = ProyectoAuditoria.objects.filter(equipo=user)
+        proyectos = ProyectoAuditoria.objects.select_related('empresa', 'centro', 'lider_proyecto').all()
+        
+        opciones_centros = CentroPevi.objects.filter(activo=True).order_by('nombre')
+        
+        # MEJORA: Traemos a TODOS los que tengan proyectos asignados (incluyendo al mismo Director Nacional)
+        opciones_lideres = Usuario.objects.filter(proyectos_liderados__isnull=False).distinct().order_by('first_name')
+        
+        es_vista_nacional = True
+        titulo_vista = "Portafolio Nacional de Proyectos"
 
-    return render(request, 'gestion/lista_proyectos.html', {
-        'proyectos': proyectos.order_by('-created_at'),
-        'usuario_centro': user.centro_pevi
-    })
+    # CASO B: Director de Centro
+    elif user.rol == 'DIRECTOR_CENTRO':
+        if user.centro_pevi:
+            proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi).select_related('empresa', 'lider_proyecto')
+            # Líderes locales que tengan proyectos
+            opciones_lideres = Usuario.objects.filter(centro_pevi=user.centro_pevi, proyectos_liderados__isnull=False).distinct()
+            
+        es_vista_nacional = False
+        titulo_vista = f"Proyectos {user.centro_pevi.nombre}"
+        
+    # CASO C: Profesor
+    elif user.rol == 'PROFESOR':
+        proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user).select_related('empresa')
+        es_vista_nacional = False
+        titulo_vista = "Mis Proyectos Liderados"
+        
+    # CASO D: Estudiante
+    elif user.rol == 'ESTUDIANTE':
+        proyectos = ProyectoAuditoria.objects.filter(equipo=user).select_related('empresa')
+        es_vista_nacional = False
+        titulo_vista = "Mis Asignaciones"
+
+    # 2. PROCESAMIENTO DE FILTROS
+    filtro_q = request.GET.get('q')
+    filtro_estado = request.GET.get('estado')
+    filtro_lider = request.GET.get('lider')
+    filtro_centro = request.GET.get('centro')
+
+    if filtro_q:
+        proyectos = proyectos.filter(Q(nombre_proyecto__icontains=filtro_q) | Q(empresa__razon_social__icontains=filtro_q))
+
+    if filtro_estado:
+        proyectos = proyectos.filter(estado=filtro_estado)
+
+    # Filtro Líder (Funciona también para filtrarse a sí mismo)
+    if filtro_lider and (user.es_directivo or user.is_superuser):
+        proyectos = proyectos.filter(lider_proyecto_id=filtro_lider)
+
+    if filtro_centro and es_vista_nacional:
+        proyectos = proyectos.filter(centro_id=filtro_centro)
+
+    # 3. CONTEXTO
+    context = {
+        'proyectos': proyectos.order_by('-updated_at'),
+        'page_subtitle': titulo_vista,
+        'opciones_centros': opciones_centros,
+        'opciones_lideres': opciones_lideres,
+        'es_vista_nacional': es_vista_nacional,
+        
+        'filtro_actual_q': filtro_q or '',
+        'filtro_actual_estado': filtro_estado or '',
+        'filtro_actual_lider': int(filtro_lider) if filtro_lider else '',
+        'filtro_actual_centro': int(filtro_centro) if filtro_centro else '',
+    }
+
+    return render(request, 'gestion/lista_proyectos.html', context)
 
 # ==============================================================================
 #  2. GESTIÓN ADMINISTRATIVA (Empresas y Equipo)
@@ -626,3 +692,34 @@ def generar_informe_pdf(request, proyecto_id):
     filename = f"Informe_PEVI_{proyecto.id}.pdf"
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
+
+
+@login_required
+@solo_lideres # Solo Directores y Profesores pueden cambiar estados
+def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
+    """
+    Cambia el ciclo de vida del proyecto:
+    BORRADOR -> EJECUCION -> FINALIZADO
+    """
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+    
+    # Validación de seguridad extra (Propiedad)
+    if not verificar_acceso_proyecto(request.user, proyecto):
+        raise PermissionDenied("No tienes permiso sobre este proyecto.")
+
+    # Validar que el estado sea uno de los permitidos
+    estados_validos = ['BORRADOR', 'EJECUCION', 'FINALIZADO']
+    
+    if nuevo_estado in estados_validos:
+        proyecto.estado = nuevo_estado
+        proyecto.save()
+        
+        # Mensajes de feedback según el estado
+        if nuevo_estado == 'EJECUCION':
+            messages.success(request, "¡Proyecto activado! Ahora está En Ejecución.")
+        elif nuevo_estado == 'FINALIZADO':
+            messages.success(request, "Proyecto Finalizado y Cerrado exitosamente.")
+        else:
+            messages.info(request, "Estado del proyecto actualizado.")
+            
+    return redirect('detalle_proyecto', proyecto_id=proyecto.id)

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from gestion.views import (
-    crear_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf, 
+    cambiar_estado_proyecto, crear_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf, 
     lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento
 )
 from django.conf import settings
@@ -27,6 +27,7 @@ urlpatterns = [
     path('proyectos/<int:proyecto_id>/editar/', editar_proyecto, name='editar_proyecto'),
     path('proyectos/<int:proyecto_id>/documentos/subir/', subir_documento, name='subir_documento'),
     path('proyectos/<int:proyecto_id>/informe/pdf/', generar_informe_pdf, name='generar_informe_pdf'),
+    path('proyectos/<int:proyecto_id>/estado/<str:nuevo_estado>/', cambiar_estado_proyecto, name='cambiar_estado'),
 
     # --- REGISTROS DE BITÁCORA (Orden Importante) ---
     path('proyectos/<int:proyecto_id>/registro/produccion/', registrar_produccion, name='registrar_produccion'),

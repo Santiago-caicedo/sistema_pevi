@@ -53,6 +53,11 @@ class Usuario(AbstractUser):
     @property
     def es_profesor(self):
         return self.rol == self.ROL_PROFESOR
+    
+    @property
+    def es_directivo(self):
+        """Devuelve True si el usuario tiene capacidad de gestión (Director o Nacional)."""
+        return self.rol in [self.ROL_DIRECTOR, self.ROL_NACIONAL] or self.is_superuser
 
     def __str__(self):
         return f"{self.username} - {self.get_rol_display()}"

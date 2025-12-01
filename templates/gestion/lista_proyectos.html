@@ -3,58 +3,112 @@
 {% block title %}Proyectos{% endblock %}
 {% block page_title %}Gestión de Auditorías{% endblock %}
 {% block page_subtitle %}
-    {% if usuario_centro %}
-        Proyectos registrados por {{ usuario_centro.nombre }}
+    {% if es_vista_nacional %}
+        Portafolio Nacional
     {% else %}
-        Vista Global (Administrador UPME)
+        Vista Local / Mis Proyectos
     {% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="card-modern p-0 shadow-sm">
     
-    <div class="p-4 border-bottom bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
-        
-        <div class="d-flex gap-2">
-            <div class="input-group input-group-sm" style="width: 280px;">
-                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control bg-light border-start-0" placeholder="Buscar por empresa o código...">
+    <div class="p-4 border-bottom bg-white">
+        <form method="get" class="row g-2 align-items-center">
+            
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control bg-light border-start-0" 
+                           placeholder="Buscar empresa o proyecto..." 
+                           value="{{ filtro_actual_q }}">
+                </div>
             </div>
-            <div class="vr text-muted mx-2"></div>
-            <select class="form-select form-select-sm w-auto border-light bg-light fw-medium text-secondary">
-                <option>Todos los Estados</option>
-                <option>En Ejecución</option>
-                <option>Finalizados</option>
-            </select>
-        </div>
 
-        {% if user.rol != 'ESTUDIANTE' %}
-        <a href="{% url 'crear_proyecto' %}" class="btn btn-primary ...">
-            <i class="bi bi-plus-lg me-2"></i> Nuevo Proyecto
-        </a>
-        {% endif %}
+            <div class="col-md-2">
+                <select name="estado" class="form-select form-select-sm border-light bg-light fw-medium text-secondary" onchange="this.form.submit()">
+                    <option value="">-- Estado --</option>
+                    <option value="BORRADOR" {% if filtro_actual_estado == 'BORRADOR' %}selected{% endif %}>Borrador</option>
+                    <option value="EJECUCION" {% if filtro_actual_estado == 'EJECUCION' %}selected{% endif %}>En Ejecución</option>
+                    <option value="FINALIZADO" {% if filtro_actual_estado == 'FINALIZADO' %}selected{% endif %}>Finalizado</option>
+                </select>
+            </div>
+
+            {% if es_vista_nacional %}
+            <div class="col-md-3">
+                <select name="centro" class="form-select form-select-sm border-light bg-light fw-medium text-secondary" onchange="this.form.submit()">
+                    <option value="">-- Todos los Centros --</option>
+                    {% for c in opciones_centros %}
+                    <option value="{{ c.id }}" {% if filtro_actual_centro == c.id %}selected{% endif %}>
+                        {{ c.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {% if opciones_lideres %}
+            <div class="col-md-3">
+                <select name="lider" class="form-select form-select-sm border-light bg-light fw-medium text-secondary" onchange="this.form.submit()">
+                    <option value="">-- Todos los Líderes --</option>
+                    
+                    <option value="{{ user.id }}" class="fw-bold text-primary" {% if filtro_actual_lider == user.id %}selected{% endif %}>
+                        ★ Mis Proyectos
+                    </option>
+                    <option disabled>──────────</option>
+
+                    {% for l in opciones_lideres %}
+                        {% if l.id != user.id %}
+                        <option value="{{ l.id }}" {% if filtro_actual_lider == l.id %}selected{% endif %}>
+                            {{ l.get_full_name|default:l.username }}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col text-end">
+                {% if user.rol != 'ESTUDIANTE' %}
+                <a href="{% url 'crear_proyecto' %}" class="btn btn-primary btn-sm rounded-pill shadow-sm fw-medium hover-lift">
+                    <i class="bi bi-plus-lg"></i> <span class="d-none d-lg-inline">Nuevo</span>
+                </a>
+                {% endif %}
+                
+                {% if filtro_actual_q or filtro_actual_estado or filtro_actual_centro or filtro_actual_lider %}
+                <a href="{% url 'lista_proyectos' %}" class="btn btn-light btn-sm rounded-circle border ms-1" title="Limpiar Filtros">
+                    <i class="bi bi-x-lg text-muted"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
     </div>
 
     <div class="table-responsive" style="overflow: visible;">
         <table class="table-modern table-hover align-middle">
             <thead>
                 <tr>
-                    <th class="ps-4 text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">Proyecto / Cliente</th>
-                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">Líder & Equipo</th>
-                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">Cronograma</th>
-                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">Estado</th>
+                    <th class="ps-4 text-uppercase text-secondary" style="font-size: 0.75rem;">Proyecto / Cliente</th>
+                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem;">Líder & Equipo</th>
+                    {% if es_vista_nacional %}
+                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem;">Centro PEVI</th>
+                    {% endif %}
+                    <th class="text-uppercase text-secondary" style="font-size: 0.75rem;">Estado</th>
                     <th class="text-end pe-4"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in proyectos %}
-                <tr style="position: relative;"> <td class="ps-4 py-3">
+                <tr>
+                    <td class="ps-4 py-3">
                         <div class="d-flex align-items-center">
                             <div class="rounded-3 bg-soft-primary text-primary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
                                 <i class="bi bi-folder2-open fs-5"></i>
                             </div>
                             <div>
-                                <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 250px;">{{ p.nombre_proyecto }}</div>
+                                <a href="{% url 'detalle_proyecto' p.id %}" class="fw-bold text-dark text-decoration-none hover-underline mb-0 text-truncate" style="max-width: 250px; display:block;">
+                                    {{ p.nombre_proyecto }}
+                                </a>
                                 <div class="small text-muted">
                                     <i class="bi bi-building me-1"></i> {{ p.empresa.razon_social }}
                                 </div>
@@ -65,105 +119,56 @@
                     <td>
                         {% if p.lider_proyecto %}
                             <div class="d-flex align-items-center mb-1">
-                                <i class="bi bi-person-circle text-secondary me-2"></i>
-                                <span class="small fw-medium text-dark">{{ p.lider_proyecto.get_full_name|default:p.lider_proyecto.username }}</span>
+                                {% if p.lider_proyecto == user %}
+                                    <i class="bi bi-star-fill text-warning me-2"></i>
+                                    <span class="small fw-bold text-dark">Yo (Líder)</span>
+                                {% else %}
+                                    <i class="bi bi-person-circle text-secondary me-2"></i>
+                                    <span class="small fw-medium text-dark">{{ p.lider_proyecto.get_full_name|default:p.lider_proyecto.username }}</span>
+                                {% endif %}
                             </div>
                         {% else %}
-                            <span class="small text-muted fst-italic">Sin líder asignado</span>
+                            <span class="small text-muted fst-italic">Sin líder</span>
                         {% endif %}
                         
                         {% if p.equipo.count > 0 %}
                             <span class="badge bg-light text-secondary border rounded-pill" style="font-size: 0.65rem;">
-                                +{{ p.equipo.count }} Ing.
+                                +{{ p.equipo.count }}
                             </span>
                         {% endif %}
                     </td>
 
-                    <td>
-                        <div class="small text-dark fw-medium">{{ p.fecha_inicio|date:"d M, Y" }}</div>
-                        {% if p.fecha_cierre_estimada %}
-                            <div class="small text-muted" style="font-size: 0.75rem;">
-                                Fin est: {{ p.fecha_cierre_estimada|date:"d M" }}
-                            </div>
-                        {% else %}
-                            <div class="small text-muted">-</div>
-                        {% endif %}
-                    </td>
+                    {% if es_vista_nacional %}
+                    <td><span class="badge bg-light text-dark border">{{ p.centro.nombre }}</span></td>
+                    {% endif %}
 
                     <td>
                         {% if p.estado == 'FINALIZADO' %}
                             <span class="badge bg-soft-success text-success border border-success-subtle rounded-pill px-3">Finalizado</span>
-                            <div class="progress mt-2" style="height: 3px; width: 80px;">
-                                <div class="progress-bar bg-success" style="width: 100%"></div>
-                            </div>
                         {% elif p.estado == 'EJECUCION' %}
                             <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3">En Ejecución</span>
-                            <div class="progress mt-2" style="height: 3px; width: 80px;">
-                                <div class="progress-bar bg-primary progress-bar-striped" style="width: 60%"></div>
-                            </div>
                         {% else %}
                             <span class="badge bg-soft-secondary text-secondary border rounded-pill px-3">{{ p.get_estado_display }}</span>
-                            <div class="progress mt-2" style="height: 3px; width: 80px;">
-                                <div class="progress-bar bg-secondary" style="width: 20%"></div>
-                            </div>
                         {% endif %}
                     </td>
 
                     <td class="text-end pe-4">
-                        <div class="dropdown">
-                            <button class="btn btn-light btn-sm border rounded-circle shadow-sm" 
-                                    type="button" 
-                                    data-bs-toggle="dropdown" 
-                                    aria-expanded="false" 
-                                    data-bs-display="static">
-                                <i class="bi bi-three-dots-vertical text-muted"></i>
-                            </button>
-                            
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="z-index: 9999;">
-                                <li><h6 class="dropdown-header text-uppercase small">Acciones</h6></li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'detalle_proyecto' p.id %}">
-                                        <i class="bi bi-speedometer2 me-2 text-primary"></i> Ir al Panel
-                                    </a>
-                                </li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i> Editar Datos</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i> Archivar</a></li>
-                            </ul>
-                        </div>
+                        <a href="{% url 'detalle_proyecto' p.id %}" class="btn btn-light btn-sm border text-secondary fw-medium">Gestionar</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-5">
-                        <div class="mb-3">
-                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
-                            </div>
-                        </div>
-                        <h6 class="fw-bold text-dark">No hay proyectos registrados</h6>
-                        <p class="text-muted small mb-4">Comienza creando una nueva auditoría energética para una empresa.</p>
-                        <a href="{% url 'crear_proyecto' %}" class="btn btn-primary btn-sm px-4 rounded-pill">
-                            Crear Primer Proyecto
-                        </a>
+                    <td colspan="{% if es_vista_nacional %}5{% else %}4{% endif %}" class="text-center py-5">
+                        <h6 class="fw-bold text-dark">No se encontraron proyectos</h6>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
-    {% if proyectos.count > 10 %}
-    <div class="p-3 border-top bg-light d-flex justify-content-between align-items-center">
-        <small class="text-muted">Mostrando <strong>{{ proyectos.count }}</strong> resultados</small>
-        <nav>
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
 </div>
+
+<style>
+    .hover-underline:hover { text-decoration: underline !important; color: #0284c7 !important; }
+</style>
 {% endblock %}
