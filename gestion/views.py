@@ -92,35 +92,57 @@ def verificar_acceso_proyecto(user, proyecto):
 @acceso_staff
 def dashboard(request):
     user = request.user
-    proyectos = ProyectoAuditoria.objects.none()
     
+    # Política Default Deny: Empezamos vacío por seguridad
+    proyectos = ProyectoAuditoria.objects.none()
+    rol_label = "Usuario PEVI"
+
     # 1. SALUDO DINÁMICO
     hora = timezone.now().hour
     if 5 <= hora < 12: saludo = "Buenos días"
     elif 12 <= hora < 18: saludo = "Buenas tardes"
     else: saludo = "Buenas noches"
 
-    # 2. FILTRADO POR ROL (Tu lógica existente)
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    # 2. FILTRADO POR ROL Y CONTEXTO (Lógica Jerárquica)
+
+    # CASO A: Director Nacional con Centro Asignado (Ej: César Acevedo)
+    # Prioridad: Mostrar operación de su Centro en el día a día.
+    if user.rol == 'DIRECTOR_NACIONAL' and user.centro_pevi:
+        proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
+        rol_label = f"Director Nacional / Centro {user.centro_pevi.nombre}"
+
+    # CASO B: Superadmin o Director Nacional "Puro" (Sin centro específico)
+    # Prioridad: Visión de Dios (Todo el país)
+    elif user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
         proyectos = ProyectoAuditoria.objects.all()
-        rol_label = "Administración Nacional"
+        rol_label = "Administración Nacional Consolidada"
+
+    # CASO C: Director de Centro Estándar
     elif user.rol == 'DIRECTOR_CENTRO':
         if user.centro_pevi:
             proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-        rol_label = f"Dirección {user.centro_pevi.nombre}"
+            rol_label = f"Dirección {user.centro_pevi.nombre}"
+        else:
+            rol_label = "Director sin Centro Asignado"
+
+    # CASO D: Profesor Líder
     elif user.rol == 'PROFESOR':
         proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user)
         rol_label = "Líder de Proyectos"
+
+    # CASO E: Estudiante / Ingeniero
     elif user.rol == 'ESTUDIANTE':
         proyectos = ProyectoAuditoria.objects.filter(equipo=user)
         rol_label = "Ingeniero Junior / Estudiante"
 
-    # 3. KPIs (Calculados sobre lo que el usuario PUEDE ver)
+    # 3. CÁLCULO DE KPIs (Sobre la vista filtrada)
     total_proyectos = proyectos.count()
     activos = proyectos.filter(estado='EJECUCION').count()
-    # Suma rápida de energía para el KPI visual
+    
+    # Suma rápida de energía usando el helper del modelo
     total_kwh = sum([p.get_total_kwh() for p in proyectos]) 
 
+    # 4. CONTEXTO PARA EL TEMPLATE
     context = {
         'lista_proyectos': proyectos.order_by('-updated_at')[:10], # Top 10 recientes
         'kpi_total': total_proyectos,
@@ -129,10 +151,12 @@ def dashboard(request):
         'saludo': saludo,
         'rol_label': rol_label,
         
-        # Flags para el template
+        # Flags para definir qué diseño mostrar (Ejecutivo vs Operativo)
+        # Nota: Nacionales y Directores ven el diseño Ejecutivo (Tarjetas de colores)
         'es_directivo': user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'] or user.is_superuser,
         'es_operativo': user.rol in ['PROFESOR', 'ESTUDIANTE'],
     }
+    
     return render(request, 'gestion/dashboard.html', context)
 
 @login_required

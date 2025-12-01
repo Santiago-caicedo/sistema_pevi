@@ -15,7 +15,7 @@
     
     <style>
         :root {
-            /* Paleta de Colores "Slate" (Profesional/SaaS) */
+            /* Paleta de Colores "Slate" */
             --sidebar-bg: #0f172a; 
             --sidebar-text: #94a3b8;
             --sidebar-active: #38bdf8; 
@@ -102,7 +102,7 @@
             padding: 2rem;
         }
 
-        /* --- NAVBAR SUPERIOR --- */
+        /* --- NAVBAR --- */
         .top-navbar {
             background: transparent;
             padding-bottom: 2rem;
@@ -118,7 +118,7 @@
             margin: 0;
         }
 
-        /* --- TARJETAS (CARDS) --- */
+        /* --- TARJETAS & TABLAS --- */
         .card-modern {
             background: var(--card-bg);
             border: none;
@@ -127,7 +127,6 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        /* --- TABLAS --- */
         .table-modern {
             width: 100%;
             border-collapse: separate;
@@ -155,7 +154,6 @@
             border-bottom: none;
         }
 
-        /* --- BADGES Y UTILIDADES --- */
         .badge-soft {
             padding: 0.35em 0.65em;
             font-size: 0.75em;
@@ -169,17 +167,9 @@
         .bg-soft-info    { background-color: #cffafe; color: #0891b2; }
         .bg-soft-secondary { background-color: #f1f5f9; color: #475569; }
 
-        .hover-lift {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .hover-lift:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
-        }
-        .border-dashed {
-            border-style: dashed !important;
-            border-width: 1px;
-        }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        .border-dashed { border-style: dashed !important; border-width: 1px; }
 
     </style>
     {% block extra_css %}{% endblock %}
@@ -202,7 +192,7 @@
                 <i class="bi bi-folder2-open"></i> Proyectos
             </a>
 
-            {% if user.es_director_centro or user.es_nacional or user.is_superuser %}
+            {% if user.es_director_centro or user.is_superuser %}
             <a href="{% url 'lista_empresas' %}" 
                class="nav-link {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-buildings"></i> Empresas
@@ -212,19 +202,22 @@
             {% if user.es_director_centro or user.es_nacional or user.is_superuser %}
             <div class="sidebar-heading">Administración</div>
             
+            {% if user.es_director_centro %}
             <a href="{% url 'dashboard_estrategico' %}" 
-               class="nav-link {% if 'metricas' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="bi bi-graph-up-arrow"></i> Métricas & KPIs
+               class="nav-link {% if request.resolver_match.url_name == 'dashboard_estrategico' %}active{% endif %}">
+                <i class="bi bi-graph-up-arrow"></i> Métricas & BI
             </a>
+            {% endif %}
 
-            {% if user.es_nacional or user.is_superuser %}
+            {% if user.es_nacional %}
             <a href="{% url 'dashboard_nacional' %}" 
                class="nav-link {% if request.resolver_match.url_name == 'dashboard_nacional' %}active{% endif %}">
                 <i class="bi bi-globe-americas"></i> Tablero Nacional
             </a>
             {% endif %}
 
-            <a href="{% url 'lista_usuarios' %}" class="nav-link ...">
+            <a href="{% url 'lista_usuarios' %}" 
+               class="nav-link {% if 'equipo' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-people"></i> Equipo
             </a>
             {% endif %}
@@ -269,7 +262,7 @@
                             {% elif user.is_superuser %}
                                 Super Admin Global
                             {% else %}
-                                Usuario PEVI
+                                Dirección Nacional
                             {% endif %}
                         </div>
                     </div>
@@ -286,7 +279,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     {% block extra_js %}{% endblock %}

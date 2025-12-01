@@ -34,12 +34,21 @@ class Usuario(AbstractUser):
 
     # Helper properties para usar en los templates fácilmente
     @property
-    def es_director_centro(self):
-        return self.rol == self.ROL_DIRECTOR
-    
-    @property
     def es_nacional(self):
+        """Es líder nacional o superusuario."""
         return self.rol == self.ROL_NACIONAL or self.is_superuser
+
+    @property
+    def es_director_centro(self):
+        """
+        Devuelve True si:
+        1. Su rol es explícitamente Director de Centro.
+        2. O SI ES NACIONAL pero tiene un centro asignado (Caso César Acevedo).
+        """
+        es_director_puro = (self.rol == self.ROL_DIRECTOR)
+        es_nacional_con_centro = (self.rol == self.ROL_NACIONAL and self.centro_pevi is not None)
+        
+        return es_director_puro or es_nacional_con_centro or self.is_superuser
 
     @property
     def es_profesor(self):

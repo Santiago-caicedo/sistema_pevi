@@ -34,9 +34,18 @@
     </div>
 
     <div class="col-md-3">
-        <div class="card-modern p-4 border-0 shadow-sm bg-dark text-white h-100 d-flex flex-column justify-content-center align-items-center text-center hover-lift" style="cursor: pointer;" onclick="window.location='{% url 'dashboard_estrategico' %}'">
-            <i class="bi bi-graph-up-arrow fs-1 mb-2 text-info"></i>
-            <span class="fw-bold text-uppercase small">Ir a Métricas & BI</span>
+        <div class="card-modern p-4 border-0 shadow-sm bg-dark text-white h-100 d-flex flex-column justify-content-center align-items-center text-center hover-lift" 
+             style="cursor: pointer;" 
+             onclick="window.location='{% if user.es_nacional %}{% url 'dashboard_nacional' %}{% else %}{% url 'dashboard_estrategico' %}{% endif %}'">
+            
+            {% if user.es_nacional %}
+                <i class="bi bi-globe-americas fs-1 mb-2 text-info"></i>
+                <span class="fw-bold text-uppercase small">Ver Tablero Nacional</span>
+            {% else %}
+                <i class="bi bi-graph-up-arrow fs-1 mb-2 text-info"></i>
+                <span class="fw-bold text-uppercase small">Ir a Métricas & BI</span>
+            {% endif %}
+            
         </div>
     </div>
 </div>
