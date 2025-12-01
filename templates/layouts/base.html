@@ -188,7 +188,7 @@
 
     <nav class="sidebar">
         <div class="brand-logo d-flex justify-content-center mb-3">
-            <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia" style="max-width: 80%; max-height: 120px; object-fit: contain;">
+            <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia" style="max-width: 80%; max-height: 140px; object-fit: contain;">
         </div>
         
         <div class="sidebar-menu">
@@ -216,6 +216,13 @@
                class="nav-link {% if 'metricas' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-graph-up-arrow"></i> Métricas & KPIs
             </a>
+
+            {% if user.es_nacional or user.is_superuser %}
+            <a href="{% url 'dashboard_nacional' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'dashboard_nacional' %}active{% endif %}">
+                <i class="bi bi-globe-americas"></i> Tablero Nacional
+            </a>
+            {% endif %}
 
             <a href="{% url 'lista_usuarios' %}" class="nav-link ...">
                 <i class="bi bi-people"></i> Equipo

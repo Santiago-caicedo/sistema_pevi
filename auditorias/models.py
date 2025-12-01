@@ -106,6 +106,22 @@ class ProyectoAuditoria(models.Model):
                 total += fuente.consumo_anual_kwh
         
         return total
+    
+    def get_total_emisiones(self):
+        """Calcula la Huella de Carbono Total del proyecto."""
+        total = 0.0
+        # Lista de relaciones
+        fuentes = [
+            self.electricidad_related.first(),
+            self.gasnatural_related.first(),
+            self.carbonmineral_related.first(),
+            self.fueloil_related.first(),
+            self.biomasa_related.first(),
+            self.gaspropano_related.first()
+        ]
+        for f in fuentes:
+            if f: total += f.emisiones_totales
+        return total
 
 class DocumentoProyecto(models.Model):
     """

@@ -1,0 +1,806 @@
+{% extends 'layouts/base.html' %}
+{% load humanize %}
+
+{% block title %}Tablero Nacional{% endblock %}
+{% block page_title %}Dirección Nacional{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+
+<!-- Filtro principal -->
+<div class="card-modern card-filter border-0 shadow-sm mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-8">
+            <h6 class="text-uppercase text-white-50 fw-semibold mb-1 small">
+                Selección de vista
+            </h6>
+            <h4 class="text-white fw-bold mb-0">
+                Tablero Nacional de Centros PEVI
+            </h4>
+            <p class="text-white-50 mb-0 small mt-2">
+                Filtra por centro para ver el detalle o mantén la vista nacional consolidada para análisis comparativo.
+            </p>
+        </div>
+        <div class="col-md-4 d-none d-md-flex justify-content-end">
+            <div class="pill-hint text-white-50 small">
+                <i class="bi bi-lightbulb me-1"></i>
+                Consejo: cambia de centro y observa cómo se actualizan los KPI y gráficos.
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="row g-3 align-items-end mt-4">
+        <div class="col-md-9">
+            <label class="form-label small fw-bold text-white-50">
+                Seleccionar Centro PEVI para análisis detallado
+            </label>
+            <div class="input-group input-group-lg">
+                <span class="input-group-text bg-transparent border-end-0 text-white-50">
+                    <i class="bi bi-building-check"></i>
+                </span>
+                <select name="centro" class="form-select form-select-lg filter-select border-start-0" onchange="this.form.submit()">
+                    <option value="">-- Vista Nacional Consolidada (Comparativa) --</option>
+                    {% for c in opciones_centros %}
+                        <option value="{{ c.id }}" {% if filtro_actual_centro == c.id %}selected{% endif %}>
+                            {{ c.nombre }} - {{ c.region }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-bold text-white-50">Acciones rápidas</label>
+            <a href="{% url 'dashboard_nacional' %}"
+               class="btn btn-reset-filter w-100 d-flex align-items-center justify-content-center gap-2">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span>Restablecer vista</span>
+            </a>
+        </div>
+    </form>
+</div>
+
+{% if vista_detalle %}
+
+    <!-- KPIs Detalle Centro -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card kpi-neutral h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-folder2-open"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">{{ kpi_proyectos }}</div>
+                    <div class="kpi-label">Proyectos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-primary h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">
+                        {{ kpi_energia|intcomma }}
+                        <span class="kpi-unit">kWh</span>
+                    </div>
+                    <div class="kpi-label">Consumo total</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-warning h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">
+                        $ {{ kpi_costo|intcomma }}
+                    </div>
+                    <div class="kpi-label">Costo total</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-success h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-cloud-fog2-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">
+                        {{ kpi_emisiones|intcomma }}
+                        <span class="kpi-unit">Ton</span>
+                    </div>
+                    <div class="kpi-label">Huella CO₂</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if kpi_energia > 0 %}
+    <!-- Gráficos detalle -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-4">
+            <div class="card-modern card-panel h-100">
+                <div class="card-panel-header">
+                    <span class="chip chip-soft-warning">MBTU</span>
+                    <h6 class="card-panel-title">Balance térmico</h6>
+                </div>
+
+                <div class="row text-center mb-3 mt-2">
+                    <div class="col-6">
+                        <small class="text-warning fw-bold d-block mb-1">Energía eléctrica</small>
+                        <div class="fw-bold small text-muted">Consumo</div>
+                        <div class="fw-bold">{{ kpi_elec_kwh|intcomma }} kWh</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-danger fw-bold d-block mb-1">Energía térmica</small>
+                        <div class="fw-bold small text-muted">Equivalent. MBTU</div>
+                        <div class="fw-bold">{{ kpi_term_mbtu|intcomma }} MBTU</div>
+                    </div>
+                </div>
+
+                <div style="height: 200px;">
+                    <canvas id="chartMBTU"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-modern card-panel h-100">
+                <div class="card-panel-header">
+                    <span class="chip chip-soft-primary">kWh</span>
+                    <h6 class="card-panel-title">Matriz energética</h6>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartMix"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-modern card-panel h-100">
+                <div class="card-panel-header">
+                    <span class="chip chip-soft-info">$</span>
+                    <h6 class="card-panel-title">Distribución de costos</h6>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartCostos"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla proyectos detalle -->
+    <div class="card-modern card-table shadow-sm">
+        <div class="card-table-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="icon-circle icon-circle-soft-primary">
+                    <i class="bi bi-list-task"></i>
+                </span>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">Listado de proyectos del centro</h6>
+                    <small class="text-muted">Detalle consolidado de energía, costo e IDES por proyecto.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 table-modern">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Proyecto</th>
+                        <th>Líder</th>
+                        <th>Prod.</th>
+                        <th class="text-end">Energía (kWh)</th>
+                        <th class="text-end">Costo ($)</th>
+                        <th class="text-end pe-4">IDES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in tabla_proyectos %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{% url 'detalle_proyecto' item.objeto.id %}"
+                               class="fw-semibold text-dark text-decoration-none project-link">
+                                {{ item.objeto.nombre_proyecto }}
+                            </a>
+                            <div class="small text-muted">
+                                {{ item.empresa }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-secondary">
+                                {{ item.lider }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">
+                            {{ item.produccion|intcomma }}
+                        </td>
+                        <td class="text-end font-monospace">
+                            {{ item.energia_total|intcomma }}
+                        </td>
+                        <td class="text-end font-monospace">
+                            {{ item.costo|intcomma }}
+                        </td>
+                        <td class="text-end pe-4 fw-bold text-primary">
+                            {{ item.ides }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inboxes mb-2 d-block" style="font-size: 1.8rem;"></i>
+                            Sin datos para el centro seleccionado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% else %}
+
+    <!-- KPIs vista nacional -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="kpi-card kpi-dark h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-geo-alt-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">
+                        {{ kpi_centros }}
+                    </div>
+                    <div class="kpi-label text-white-50">Centros PEVI</div>
+                    <div class="small text-white-50 mt-1">Cobertura nacional de la red PEVI.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi-card kpi-primary-light h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-value text-primary">
+                        {{ kpi_energia|intcomma }}
+                        <span class="kpi-unit">kWh</span>
+                    </div>
+                    <div class="kpi-label">Energía total país</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi-card kpi-success-light h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-cloud-fog2-fill"></i>
+                </div>
+                <div>
+                    <div class="kpi-value text-success">
+                        {{ kpi_emisiones|intcomma }}
+                        <span class="kpi-unit">Ton</span>
+                    </div>
+                    <div class="kpi-label">Huella país</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi-card kpi-neutral h-100">
+                <div class="kpi-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div>
+                    <div class="kpi-value">
+                        {{ kpi_proyectos }}
+                    </div>
+                    <div class="kpi-label">Proyectos registrados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos nacional -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="card-modern card-panel h-100">
+                <div class="card-panel-header">
+                    <span class="chip chip-soft-primary">
+                        <i class="bi bi-bar-chart-steps me-1"></i>kWh
+                    </span>
+                    <h6 class="card-panel-title">Ranking de centros por energía gestionada</h6>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartRanking"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-modern card-panel h-100">
+                <div class="card-panel-header">
+                    <span class="chip chip-soft-info">
+                        <i class="bi bi-pie-chart-fill me-1"></i>% Proyectos
+                    </span>
+                    <h6 class="card-panel-title text-center">Carga operativa por centro</h6>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartPie"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla nacional -->
+    <div class="card-modern card-table shadow-sm">
+        <div class="card-table-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="icon-circle icon-circle-soft-warning">
+                    <i class="bi bi-trophy-fill"></i>
+                </span>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">Desempeño por Centro PEVI</h6>
+                    <small class="text-muted">
+                        Comparativo nacional de energía, huella e intensidad por proyecto.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 table-modern">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Universidad / Centro</th>
+                        <th>Región</th>
+                        <th class="text-center">Proyectos</th>
+                        <th class="text-end">Energía total (kWh)</th>
+                        <th class="text-end">Huella (TonCO₂)</th>
+                        <th class="text-end pe-4">Promedio / proy.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in tabla_centros %}
+                    <tr>
+                        <td class="ps-4 fw-semibold text-dark">
+                            {{ c.nombre }}
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-secondary">
+                                {{ c.region }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-soft-primary rounded-pill">
+                                {{ c.proyectos }}
+                            </span>
+                        </td>
+                        <td class="text-end font-monospace">
+                            {{ c.energia|intcomma }}
+                        </td>
+                        <td class="text-end font-monospace">
+                            {{ c.emisiones|intcomma }}
+                        </td>
+                        <td class="text-end pe-4 text-muted small">
+                            {{ c.promedio_kwh|intcomma }} kWh
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const labels = {{ chart_labels|safe }};
+        const dataEnergia = {{ chart_data_energia|safe }};
+        const dataProyectos = {{ chart_data_proyectos|default:"[]"|safe }};
+        const dataCostos = {{ chart_data_costos|default:"[]"|safe }};
+        const dataMBTU = {{ chart_data_mbtu|default:"[]"|safe }};
+        const colors = {{ chart_colors|default:"[]"|safe }};
+
+        if (labels.length === 0) return;
+
+        {% if vista_detalle %}
+            // --- Scripts modo detalle ---
+            new Chart(document.getElementById('chartMix'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataEnergia,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('chartCostos'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Costo',
+                        data: dataCostos,
+                        backgroundColor: colors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { ticks: { display: false }, grid: { display: false } }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('chartMBTU'), {
+                type: 'bar',
+                data: {
+                    labels: ['Eléctrica', 'Térmica'],
+                    datasets: [{
+                        label: 'MBTU',
+                        data: dataMBTU,
+                        backgroundColor: ['#facc15', '#f97373'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false, grid: { display: false } },
+                        y: { display: false, grid: { display: false } }
+                    }
+                }
+            });
+
+        {% else %}
+            // --- Scripts modo nacional ---
+            new Chart(document.getElementById('chartRanking'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Energía (kWh)',
+                        data: dataEnergia,
+                        backgroundColor: '#0284c7',
+                        borderRadius: 8,
+                        barThickness: 38
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false, grid: { display: false } },
+                        y: { grid: { color: 'rgba(148, 163, 184, 0.2)' } }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('chartPie'), {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataProyectos,
+                        backgroundColor: ['#0f172a', '#1e293b', '#475569', '#64748b', '#94a3b8'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        {% endif %}
+    });
+</script>
+
+<style>
+    /* Tarjeta filtro superior */
+    .card-filter {
+        background: radial-gradient(circle at top left, #0f172a 0, #020617 45%, #020617 100%);
+        color: #fff;
+        border-radius: 1.25rem;
+        padding: 1.75rem 1.75rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-filter::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -80px auto;
+        width: 220px;
+        height: 220px;
+        background: radial-gradient(circle, rgba(56,189,248,.25), transparent 70%);
+        opacity: .9;
+        pointer-events: none;
+    }
+    .filter-select {
+        background-color: rgba(15,23,42,.9);
+        color: #e5e7eb;
+        border-color: rgba(148,163,184,.4);
+    }
+    .filter-select:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 0.15rem rgba(56,189,248,.4);
+        color: #f9fafb;
+        background-color: #020617;
+    }
+    .filter-select option {
+        background-color: #020617;
+        color: #e5e7eb;
+    }
+    .btn-reset-filter {
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,184,.5);
+        background-color: rgba(15,23,42,.9);
+        color: #e5e7eb;
+        padding: 0.65rem 1.25rem;
+        font-weight: 500;
+        font-size: .9rem;
+    }
+    .btn-reset-filter:hover {
+        background-color: #020617;
+        border-color: #38bdf8;
+        color: #f9fafb;
+    }
+    .pill-hint {
+        border-radius: 999px;
+        border: 1px dashed rgba(148,163,184,.5);
+        padding: .4rem 1rem;
+        backdrop-filter: blur(8px);
+        background-color: rgba(15,23,42,.4);
+    }
+
+    /* KPI cards */
+    .kpi-card {
+        border-radius: 1rem;
+        padding: 1.1rem 1.2rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        box-shadow: 0 10px 25px rgba(15,23,42,.04);
+        border: 1px solid rgba(226,232,240,.9);
+        background: #fff;
+    }
+    .kpi-card.kpi-dark {
+        background: radial-gradient(circle at top left, #1f2937 0, #020617 60%);
+        color: #f9fafb;
+        border: none;
+        box-shadow: 0 18px 40px rgba(15,23,42,.55);
+    }
+    .kpi-card.kpi-primary {
+        border-left: 4px solid #0ea5e9;
+    }
+    .kpi-card.kpi-primary-light {
+        border-left: 4px solid #0ea5e9;
+        background: linear-gradient(120deg, #eff6ff 0, #ffffff 60%);
+    }
+    .kpi-card.kpi-success {
+        border-left: 4px solid #22c55e;
+    }
+    .kpi-card.kpi-success-light {
+        border-left: 4px solid #22c55e;
+        background: linear-gradient(120deg, #ecfdf5 0, #ffffff 60%);
+    }
+    .kpi-card.kpi-warning {
+        border-left: 4px solid #f59e0b;
+    }
+    .kpi-card.kpi-neutral {
+        border-left: 4px solid #6b7280;
+    }
+    .kpi-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15,23,42,.04);
+        font-size: 1.3rem;
+        color: #0f172a;
+        flex-shrink: 0;
+    }
+    .kpi-card.kpi-dark .kpi-icon {
+        background: rgba(15,23,42,.8);
+        color: #e5e7eb;
+    }
+    .kpi-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        line-height: 1.1;
+    }
+    .kpi-unit {
+        font-size: .75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin-left: .15rem;
+    }
+    .kpi-label {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        color: #6b7280;
+        margin-top: .25rem;
+        font-weight: 600;
+    }
+
+    /* Tarjetas de gráficos y tablas */
+    .card-panel {
+        border-radius: 1rem;
+        border: 1px solid rgba(226,232,240,1);
+        padding: 1rem 1.2rem 1.2rem;
+        background: #ffffff;
+    }
+    .card-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .75rem;
+    }
+    .card-panel-title {
+        font-size: .85rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        margin: 0;
+        color: #0f172a;
+    }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .18rem .7rem;
+        border-radius: 999px;
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .13em;
+        font-weight: 600;
+        border: 1px solid transparent;
+    }
+    .chip-soft-primary {
+        background: rgba(37,99,235,.06);
+        border-color: rgba(37,99,235,.25);
+        color: #1d4ed8;
+    }
+    .chip-soft-warning {
+        background: rgba(245,158,11,.06);
+        border-color: rgba(245,158,11,.25);
+        color: #92400e;
+    }
+    .chip-soft-info {
+        background: rgba(6,182,212,.06);
+        border-color: rgba(6,182,212,.25);
+        color: #0e7490;
+    }
+
+    .chart-container {
+        height: 260px;
+    }
+
+    /* Tabla */
+    .card-table {
+        border-radius: 1rem;
+        border: 1px solid rgba(226,232,240,1);
+        overflow: hidden;
+        background: #ffffff;
+    }
+    .card-table-header {
+        padding: 1rem 1.3rem;
+        border-bottom: 1px solid rgba(226,232,240,1);
+        background: linear-gradient(90deg, #f9fafb 0, #ffffff 60%);
+    }
+    .table-modern thead {
+        background: #f9fafb;
+        border-bottom: 1px solid rgba(226,232,240,1);
+    }
+    .table-modern thead th {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        color: #6b7280;
+        border-bottom-width: 0;
+        padding-top: .75rem;
+        padding-bottom: .7rem;
+    }
+    .table-modern tbody td {
+        vertical-align: middle;
+        padding-top: .7rem;
+        padding-bottom: .7rem;
+        font-size: .86rem;
+    }
+    .table-modern tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    .icon-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    .icon-circle-soft-primary {
+        background: rgba(37,99,235,.08);
+        color: #1d4ed8;
+    }
+    .icon-circle-soft-warning {
+        background: rgba(245,158,11,.08);
+        color: #b45309;
+    }
+
+    .badge-soft-secondary {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        color: #4b5563;
+        font-weight: 500;
+        font-size: .75rem;
+        border-radius: 999px;
+        padding: .22rem .7rem;
+    }
+    .badge-soft-primary {
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        color: #1d4ed8;
+        font-weight: 600;
+        font-size: .75rem;
+    }
+
+    .project-link {
+        position: relative;
+        transition: color .15s ease;
+    }
+    .project-link:hover {
+        color: #0284c7 !important;
+    }
+    .project-link::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -1px;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg,#38bdf8,#0ea5e9);
+        transition: width .18s ease;
+    }
+    .project-link:hover::after {
+        width: 100%;
+    }
+</style>
+{% endblock %}

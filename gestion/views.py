@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.db.models import Sum
+from django.utils import timezone
 
 # Librería PDF
 from weasyprint import HTML
@@ -91,36 +92,46 @@ def verificar_acceso_proyecto(user, proyecto):
 @acceso_staff
 def dashboard(request):
     user = request.user
-    
-    # Política Default Deny: Empezamos vacío
     proyectos = ProyectoAuditoria.objects.none()
-    titulo = "Bienvenido"
+    
+    # 1. SALUDO DINÁMICO
+    hora = timezone.now().hour
+    if 5 <= hora < 12: saludo = "Buenos días"
+    elif 12 <= hora < 18: saludo = "Buenas tardes"
+    else: saludo = "Buenas noches"
 
-    # Lógica de Gobernanza de Datos (Filtros por Rol)
+    # 2. FILTRADO POR ROL (Tu lógica existente)
     if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
         proyectos = ProyectoAuditoria.objects.all()
-        titulo = "Vista Nacional Consolidada"
+        rol_label = "Administración Nacional"
     elif user.rol == 'DIRECTOR_CENTRO':
         if user.centro_pevi:
             proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-            titulo = f"Gestión {user.centro_pevi.nombre}"
+        rol_label = f"Dirección {user.centro_pevi.nombre}"
     elif user.rol == 'PROFESOR':
         proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user)
-        titulo = "Mis Proyectos (Líder)"
+        rol_label = "Líder de Proyectos"
     elif user.rol == 'ESTUDIANTE':
         proyectos = ProyectoAuditoria.objects.filter(equipo=user)
-        titulo = "Mis Asignaciones"
+        rol_label = "Ingeniero Junior / Estudiante"
 
-    # Cálculo rápido de KPI Global (Suma de consumos de los proyectos visibles)
-    # Nota: Asegúrate de haber agregado el método get_total_kwh() al modelo ProyectoAuditoria
-    total_kwh_global = sum([p.get_total_kwh() for p in proyectos])
+    # 3. KPIs (Calculados sobre lo que el usuario PUEDE ver)
+    total_proyectos = proyectos.count()
+    activos = proyectos.filter(estado='EJECUCION').count()
+    # Suma rápida de energía para el KPI visual
+    total_kwh = sum([p.get_total_kwh() for p in proyectos]) 
 
     context = {
-        'lista_proyectos': proyectos.order_by('-created_at')[:5],
-        'total_proyectos': proyectos.count(),
-        'proyectos_activos': proyectos.filter(estado='EJECUCION').count(),
-        'kpi_total_energia': round(total_kwh_global),
-        'page_subtitle': titulo
+        'lista_proyectos': proyectos.order_by('-updated_at')[:10], # Top 10 recientes
+        'kpi_total': total_proyectos,
+        'kpi_activos': activos,
+        'kpi_energia': round(total_kwh),
+        'saludo': saludo,
+        'rol_label': rol_label,
+        
+        # Flags para el template
+        'es_directivo': user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'] or user.is_superuser,
+        'es_operativo': user.rol in ['PROFESOR', 'ESTUDIANTE'],
     }
     return render(request, 'gestion/dashboard.html', context)
 

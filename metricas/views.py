@@ -6,7 +6,7 @@ from django.core.exceptions import PermissionDenied
 
 # Modelos
 from auditorias.models import ProyectoAuditoria
-from gestion.models import Usuario
+from gestion.models import CentroPevi, Usuario
 from gestion.decorators import solo_directivos
 
 @login_required
@@ -219,3 +219,193 @@ def dashboard_estrategico(request):
     }
 
     return render(request, 'metricas/dashboard_estrategico.html', context)
+
+
+
+@login_required
+@solo_directivos
+def dashboard_nacional(request):
+    """
+    Tablero de Mando Nacional con capacidad Drill-Down.
+    Modo 1: Visión País (Ranking de Centros).
+    Modo 2: Visión Centro (Detalle de Ingeniería específico).
+    """
+    user = request.user
+    
+    # 1. SEGURIDAD ESTRICTA
+    if not (user.is_superuser or user.rol == 'DIRECTOR_NACIONAL'):
+        raise PermissionDenied("Acceso exclusivo a Dirección Nacional.")
+
+    # 2. SELECTOR DE CENTROS
+    centros = CentroPevi.objects.filter(activo=True).order_by('nombre')
+    filtro_centro_id = request.GET.get('centro')
+    
+    # Contexto base
+    context = {
+        'page_title': "Tablero Nacional",
+        'opciones_centros': centros,
+        'filtro_actual_centro': int(filtro_centro_id) if filtro_centro_id else '',
+    }
+
+    # =========================================================
+    # MODO A: VISTA DETALLADA DE UN CENTRO (DRILL-DOWN)
+    # =========================================================
+    if filtro_centro_id:
+        centro_seleccionado = centros.get(id=filtro_centro_id)
+        context['page_subtitle'] = f"Análisis Detallado: {centro_seleccionado.nombre}"
+        context['vista_detalle'] = True # Bandera para el template
+
+        # Obtenemos proyectos SOLO de este centro
+        qs = ProyectoAuditoria.objects.filter(centro=centro_seleccionado).select_related('empresa', 'lider_proyecto')
+        
+        # --- (Aquí reutilizamos la lógica de agregación del BI) ---
+        global_kwh_electrico = 0.0
+        global_kwh_termico = 0.0
+        global_costo_total = 0.0
+        global_emisiones_total = 0.0
+
+        sources_agg = {
+            'Electricidad':   {'kwh': 0, 'costo': 0, 'color': '#ffc107'},
+            'Gas Natural':    {'kwh': 0, 'costo': 0, 'color': '#0d6efd'},
+            'Carbón Mineral': {'kwh': 0, 'costo': 0, 'color': '#212529'},
+            'Fuel Oil':       {'kwh': 0, 'costo': 0, 'color': '#dc3545'},
+            'Biomasa':        {'kwh': 0, 'costo': 0, 'color': '#198754'},
+            'GLP':            {'kwh': 0, 'costo': 0, 'color': '#0dcaf0'},
+        }
+
+        tabla_proyectos = []
+        proyectos_data = qs.prefetch_related(
+            'electricidad_related', 'gasnatural_related', 'carbonmineral_related',
+            'fueloil_related', 'biomasa_related', 'gaspropano_related'
+        )
+
+        for p in proyectos_data:
+            p_kwh_elec = 0
+            p_kwh_term = 0
+            p_costo = 0
+            p_emis = 0
+            
+            mapa = [
+                ('Electricidad', p.electricidad_related.first()),
+                ('Gas Natural', p.gasnatural_related.first()),
+                ('Carbón Mineral', p.carbonmineral_related.first()),
+                ('Fuel Oil', p.fueloil_related.first()),
+                ('Biomasa', p.biomasa_related.first()),
+                ('GLP', p.gaspropano_related.first()),
+            ]
+
+            for nombre, obj in mapa:
+                if obj:
+                    eng = 0
+                    if hasattr(obj, 'consumo_anual_kwh'): eng = obj.consumo_anual_kwh
+                    elif hasattr(obj, 'consumo_anual'): eng = obj.consumo_anual
+                    
+                    if nombre == 'Electricidad': p_kwh_elec += eng
+                    else: p_kwh_term += eng
+                    
+                    p_costo += obj.costo_total_anual
+                    p_emis += obj.emisiones_totales
+                    sources_agg[nombre]['kwh'] += eng
+                    sources_agg[nombre]['costo'] += obj.costo_total_anual
+
+            global_kwh_electrico += p_kwh_elec
+            global_kwh_termico += p_kwh_term
+            global_costo_total += p_costo
+            global_emisiones_total += p_emis
+            
+            p_ides = 0
+            if p.produccion_total > 0:
+                p_ides = round((p_kwh_elec + p_kwh_term) / p.produccion_total, 2)
+
+            tabla_proyectos.append({
+                'objeto': p,
+                'empresa': p.empresa.razon_social,
+                'lider': p.lider_proyecto.get_full_name() if p.lider_proyecto else "-",
+                'produccion': round(p.produccion_total),
+                'unidad_prod': p.unidad_produccion,
+                'energia_total': round(p_kwh_elec + p_kwh_term),
+                'costo': round(p_costo),
+                'emisiones': round(p_emis, 2),
+                'ides': p_ides
+            })
+
+        # Preparar Gráficas de Detalle
+        chart_labels = []
+        data_kwh = []
+        data_costo = []
+        colors = []
+        for key, val in sources_agg.items():
+            if val['kwh'] > 0:
+                chart_labels.append(key)
+                data_kwh.append(round(val['kwh']))
+                data_costo.append(round(val['costo']))
+                colors.append(val['color'])
+
+        FACTOR_MBTU = 0.00341214
+        data_mbtu = [round(global_kwh_electrico * FACTOR_MBTU, 2), round(global_kwh_termico * FACTOR_MBTU, 2)]
+
+        # Actualizar Contexto con Datos de Detalle
+        context.update({
+            'kpi_proyectos': len(tabla_proyectos),
+            'kpi_energia': round(global_kwh_electrico + global_kwh_termico),
+            'kpi_costo': round(global_costo_total),
+            'kpi_emisiones': round(global_emisiones_total, 2),
+            'kpi_elec_kwh': round(global_kwh_electrico),
+            'kpi_term_mbtu': round(global_kwh_termico * FACTOR_MBTU, 2),
+            'tabla_proyectos': tabla_proyectos,
+            'chart_labels': json.dumps(chart_labels),
+            'chart_data_energia': json.dumps(data_kwh),
+            'chart_data_costos': json.dumps(data_costo),
+            'chart_colors': json.dumps(colors),
+            'chart_data_mbtu': json.dumps(data_mbtu),
+        })
+
+    # =========================================================
+    # MODO B: VISTA COMPARATIVA NACIONAL (DEFAULT)
+    # =========================================================
+    else:
+        context['page_subtitle'] = "Visión consolidada de la red PEVI"
+        context['vista_detalle'] = False # Bandera
+        
+        data_centros = []
+        nac_proyectos = 0
+        nac_energia = 0
+        nac_emisiones = 0
+
+        for c in centros:
+            proyectos = ProyectoAuditoria.objects.filter(centro=c)
+            c_qty = proyectos.count()
+            c_energia = sum(p.get_total_kwh() for p in proyectos)
+            c_emisiones = sum(p.get_total_emisiones() for p in proyectos)
+            
+            nac_proyectos += c_qty
+            nac_energia += c_energia
+            nac_emisiones += c_emisiones
+            
+            data_centros.append({
+                'nombre': c.nombre,
+                'region': c.region,
+                'proyectos': c_qty,
+                'energia': round(c_energia),
+                'emisiones': round(c_emisiones, 2),
+                'promedio_kwh': round(c_energia / c_qty) if c_qty > 0 else 0
+            })
+
+        # Datos Comparativos
+        data_centros.sort(key=lambda x: x['energia'], reverse=True)
+        chart_labels = [d['nombre'] for d in data_centros]
+        chart_data_energia = [d['energia'] for d in data_centros]
+        chart_data_proyectos = [d['proyectos'] for d in data_centros]
+
+        context.update({
+            'kpi_centros': centros.count(),
+            'kpi_proyectos': nac_proyectos,
+            'kpi_energia': round(nac_energia),
+            'kpi_emisiones': round(nac_emisiones, 2),
+            'tabla_centros': data_centros,
+            'chart_labels': json.dumps(chart_labels),
+            'chart_data_energia': json.dumps(chart_data_energia),
+            'chart_data_proyectos': json.dumps(chart_data_proyectos),
+        })
+    
+    return render(request, 'metricas/dashboard_nacional.html', context)

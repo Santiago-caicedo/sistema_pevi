@@ -1,66 +1,98 @@
 {% extends 'layouts/base.html' %}
+{% load humanize %}
 
 {% block title %}Dashboard{% endblock %}
-{% block page_title %}Panel de Control{% endblock %}
-{% block page_subtitle %}Métricas clave y auditorías recientes{% endblock %}
+{% block page_title %}{{ saludo }}, {{ user.first_name|default:user.username }}{% endblock %}
+{% block page_subtitle %}{{ rol_label }}{% endblock %}
 
 {% block content %}
+
+{% if es_directivo %}
 <div class="row g-4 mb-5">
-    
-    <div class="col-md-4">
-        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-            <div>
-                <h6 class="text-muted text-uppercase small fw-bold mb-1">Auditorías Totales</h6>
-                <h2 class="fw-bold mb-0">{{ total_proyectos }}</h2>
+    <div class="col-md-3">
+        <div class="card-modern p-4 border-0 shadow-sm bg-primary text-white h-100 position-relative overflow-hidden">
+            <div class="position-relative z-1">
+                <h2 class="fw-bold mb-0">{{ kpi_total }}</h2>
+                <small class="text-white-50 text-uppercase fw-bold ls-1">Proyectos Totales</small>
             </div>
-            <div class="rounded-circle bg-soft-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                <i class="bi bi-folder-fill fs-4" style="color: var(--primary-brand);"></i>
-            </div>
+            <i class="bi bi-folder2-open position-absolute end-0 bottom-0 mb-n2 me-2 text-white opacity-25" style="font-size: 5rem;"></i>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-            <div>
-                <h6 class="text-muted text-uppercase small fw-bold mb-1">En Ejecución</h6>
-                <h2 class="fw-bold mb-0">{{ proyectos_activos }}</h2>
-            </div>
-            <div class="rounded-circle bg-soft-warning d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                <i class="bi bi-activity fs-4 text-warning"></i>
-            </div>
+    <div class="col-md-3">
+        <div class="card-modern p-4 border-0 shadow-sm bg-white h-100 border-start border-4 border-warning">
+            <h2 class="fw-bold mb-0 text-dark">{{ kpi_activos }}</h2>
+            <small class="text-muted text-uppercase fw-bold">En Ejecución</small>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-            <div>
-                <h6 class="text-muted text-uppercase small fw-bold mb-1">CO2 Reducido (Est.)</h6>
-                <h2 class="fw-bold mb-0">0 <span class="fs-6 text-muted fw-normal">Ton</span></h2>
-            </div>
-            <div class="rounded-circle bg-soft-success d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                <i class="bi bi-tree-fill fs-4 text-success"></i>
+    <div class="col-md-3">
+        <div class="card-modern p-4 border-0 shadow-sm bg-white h-100 border-start border-4 border-info">
+            <h4 class="fw-bold mb-0 text-dark">{{ kpi_energia|intcomma }}</h4>
+            <small class="text-muted text-uppercase fw-bold">kWh Auditados</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card-modern p-4 border-0 shadow-sm bg-dark text-white h-100 d-flex flex-column justify-content-center align-items-center text-center hover-lift" style="cursor: pointer;" onclick="window.location='{% url 'dashboard_estrategico' %}'">
+            <i class="bi bi-graph-up-arrow fs-1 mb-2 text-info"></i>
+            <span class="fw-bold text-uppercase small">Ir a Métricas & BI</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+{% if es_operativo %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card-modern border-0 shadow-sm bg-white overflow-hidden">
+            <div class="row g-0">
+                <div class="col-md-8 p-5">
+                    <h4 class="fw-bold text-dark mb-2">Panel de Trabajo</h4>
+                    <p class="text-muted mb-4">
+                        Tienes <strong>{{ kpi_activos }} proyectos activos</strong> asignados. 
+                        Recuerda mantener la bitácora de energía actualizada mes a mes.
+                    </p>
+                    {% if user.rol == 'PROFESOR' %}
+                        <a href="{% url 'crear_proyecto' %}" class="btn btn-primary px-4 shadow-sm fw-bold">
+                            <i class="bi bi-plus-lg me-2"></i> Iniciar Nuevo Proyecto
+                        </a>
+                    {% else %}
+                        <div class="d-flex gap-3">
+                            <div class="d-flex align-items-center text-secondary">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i> {{ kpi_total }} Asignaciones Totales
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 bg-soft-primary d-none d-md-flex align-items-center justify-content-center">
+                    <i class="bi bi-lightning-charge-fill text-primary" style="font-size: 6rem; opacity: 0.2;"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 
-<div class="card-modern p-0 overflow-hidden">
-    <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-        <h5 class="mb-0 fw-bold">Auditorías Recientes</h5>
-        <button class="btn btn-sm btn-primary rounded-pill px-3">
-            <i class="bi bi-plus-lg me-1"></i> Nuevo Proyecto
-        </button>
+
+<div class="card-modern p-0 shadow-sm">
+    <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0">
+            <i class="bi bi-clock-history me-2"></i>Actividad Reciente
+        </h6>
+        <a href="{% url 'lista_proyectos' %}" class="btn btn-light btn-sm border text-secondary">Ver Todo</a>
     </div>
     
-    <div class="table-responsive">
-        <table class="table-modern">
-            <thead>
+    <div class="table-responsive" style="overflow: visible;">
+        <table class="table table-hover align-middle mb-0 table-modern">
+            <thead class="table-light">
                 <tr>
-                    <th class="ps-4">Proyecto / Empresa</th>
-                    <th>Centro PEVI</th>
-                    <th>Fecha Inicio</th>
+                    <th class="ps-4">Proyecto</th>
                     <th>Estado</th>
-                    <th class="text-end pe-4">Acciones</th>
+                    <th>Energía (kWh)</th>
+                    <th>Última Actualización</th>
+                    <th class="text-end pe-4">Acción</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,43 +100,47 @@
                 <tr>
                     <td class="ps-4">
                         <div class="d-flex align-items-center">
-                            <div class="bg-light rounded p-2 me-3 text-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-building text-secondary"></i>
+                            <div class="rounded bg-light p-2 me-3 text-secondary">
+                                <i class="bi bi-building"></i>
                             </div>
                             <div>
-                                <div class="fw-bold text-dark">{{ p.nombre_proyecto }}</div>
+                                <a href="{% url 'detalle_proyecto' p.id %}" class="fw-bold text-dark text-decoration-none hover-underline">
+                                    {{ p.nombre_proyecto }}
+                                </a>
                                 <div class="small text-muted">{{ p.empresa.razon_social }}</div>
                             </div>
                         </div>
                     </td>
                     <td>
-                        <span class="fw-medium">{{ p.centro.nombre }}</span>
-                    </td>
-                    <td class="text-muted text-nowrap">
-                        <i class="bi bi-calendar3 me-1"></i> {{ p.fecha_inicio|date:"d M, Y" }}
-                    </td>
-                    <td>
                         {% if p.estado == 'EJECUCION' %}
-                            <span class="badge badge-soft bg-soft-primary">En Ejecución</span>
+                            <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill">En Ejecución</span>
                         {% elif p.estado == 'FINALIZADO' %}
-                            <span class="badge badge-soft bg-soft-success">Finalizado</span>
-                        {% elif p.estado == 'REVISION' %}
-                            <span class="badge badge-soft bg-soft-warning">Revisión</span>
+                            <span class="badge bg-soft-success text-success border border-success-subtle rounded-pill">Finalizado</span>
                         {% else %}
-                            <span class="badge badge-soft bg-secondary">Borrador</span>
+                            <span class="badge bg-light text-secondary border rounded-pill">{{ p.get_estado_display }}</span>
                         {% endif %}
                     </td>
+                    <td class="font-monospace text-secondary">
+                        {{ p.get_total_kwh|intcomma }}
+                    </td>
+                    <td class="text-muted small">
+                        {{ p.updated_at|date:"d M, Y" }}
+                    </td>
                     <td class="text-end pe-4">
-                        <button class="btn btn-light btn-sm text-muted border hover-shadow">
-                            Detalles
-                        </button>
+                        <a href="{% url 'detalle_proyecto' p.id %}" class="btn btn-sm btn-outline-primary border-dashed fw-bold">
+                            {% if es_operativo %}
+                                <i class="bi bi-pencil-square me-1"></i> Gestionar
+                            {% else %}
+                                <i class="bi bi-eye me-1"></i> Ver
+                            {% endif %}
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="5" class="text-center py-5">
-                        <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
-                        <p class="mb-0">No se encontraron proyectos registrados.</p>
+                        <div class="text-muted opacity-50 mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                        <p class="text-muted mb-0">No tienes proyectos asignados actualmente.</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -112,4 +148,12 @@
         </table>
     </div>
 </div>
+
+<style>
+    .hover-underline:hover {
+        text-decoration: underline !important;
+        color: #0284c7 !important;
+    }
+</style>
+
 {% endblock %}

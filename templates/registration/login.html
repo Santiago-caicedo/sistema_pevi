@@ -1,104 +1,393 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión | PEVI Colombia</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <title>Acceso PEVI | Gestión Energética</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --background: #f5f5f7;
+            --foreground: #111827;
+            --muted-foreground: #6b7280;
+            --border: #e5e7eb;
+            --card: #ffffff;
+            --radius: 0.9rem;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .login-card {
+
+        /* CONTENEDOR PRINCIPAL */
+        .shell {
             width: 100%;
-            max-width: 400px;
-            border: none;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border-radius: 1rem;
+            max-width: 1100px;
+            min-height: 560px;
+            background: var(--card);
+            border-radius: 28px;
+            border: 1px solid rgba(148,163,184,0.25);
+            display: grid;
+            grid-template-columns: 1fr 0.9fr;
             overflow: hidden;
+            box-shadow:
+                0 24px 60px rgba(15,23,42,0.10),
+                0 0 0 0.5px rgba(255,255,255,0.8);
         }
-        .login-header {
-            background-color: #0f172a; /* Color Slate Oscuro */
-            padding: 2rem;
+
+        /* PANEL FORMULARIO */
+        .form-panel {
+            padding: 2.8rem 3rem 2.4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fdfdfd;
+        }
+
+        .form-main {
+            max-width: 380px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .brand-top {
             text-align: center;
-            color: white;
+            margin-bottom: 1.8rem;
         }
-        .btn-primary {
-            background-color: #0284c7;
-            border-color: #0284c7;
-            padding: 0.6rem;
+
+        .brand-top img {
+            height: 80px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 0.75rem;
+        }
+
+        .brand-top span {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #9ca3af;
             font-weight: 600;
         }
-        .btn-primary:hover {
-            background-color: #0369a1;
+
+        .title {
+            font-size: 1.7rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            text-align: center;
+            margin-bottom: 0.4rem;
         }
-        .form-control:focus {
-            border-color: #0284c7;
-            box-shadow: 0 0 0 0.25rem rgba(2, 132, 199, 0.2);
+
+        .subtitle {
+            font-size: 0.92rem;
+            color: var(--muted-foreground);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.4rem;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.45rem;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            font-size: 0.95rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background-color: #ffffff;
+            border-color: #111827;
+            box-shadow: 0 0 0 3px rgba(15,23,42,0.06);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.95rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            background: #111827;
+            color: #f9fafb;
+            margin-top: 0.5rem;
+            transition: opacity 0.15s, transform 0.08s, box-shadow 0.15s;
+            box-shadow: 0 14px 30px rgba(15,23,42,0.22);
+        }
+
+        .btn-primary:hover { opacity: 0.96; }
+        .btn-primary:active {
+            transform: scale(0.98);
+            box-shadow: 0 10px 24px rgba(15,23,42,0.20);
+        }
+
+        .login-meta {
+            margin-top: 0.85rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            text-align: center;
+        }
+
+        /* ERROR */
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            color: #b91c1c;
+            border-radius: 0.75rem;
+            padding: 0.85rem 1rem;
+            font-size: 0.83rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1.3rem;
+        }
+
+        .alert-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background-color: #ef4444;
+        }
+
+        /* ALIADOS BAJO EL FORM */
+        .aliados-block {
+            margin-top: 2rem;
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .aliados-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #a1a1aa;
+            margin-bottom: 0.7rem;
+            text-align: center;
+        }
+
+        .aliados-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.7rem;
+            flex-wrap: wrap;
+        }
+
+        .aliados-row img {
+            height: 30px;
+            object-fit: contain;
+            opacity: 0.7;
+            filter: grayscale(80%);
+            transition: opacity 0.2s, filter 0.2s;
+        }
+
+        .aliados-row img:hover {
+            opacity: 1;
+            filter: grayscale(0%);
+        }
+
+        /* NUEVA BARRA DE MARCA CON IMAGEN LOCAL */
+        .brand-panel {
+            position: relative;
+            padding: 3rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: url("{% static 'img/energy.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .brand-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(0,0,0,0.65) 0, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0.85) 100%);
+            backdrop-filter: saturate(150%) blur(1px);
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: white;
+            max-width: 360px;
+        }
+
+        .brand-logo-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.4rem;
+            margin-bottom: 1.6rem;
+            flex-wrap: wrap;
+        }
+
+        .center-logo {
+            height: 64px;
+            object-fit: contain;
+            filter: brightness(0) invert(1) opacity(0.9);
+            transition: opacity 0.2s, transform 0.12s;
+        }
+
+        .center-logo:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+
+        .brand-main-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.7rem;
+        }
+
+        .brand-main-text {
+            color: #e5e7eb;
+            font-size: 0.98rem;
+            line-height: 1.6;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .shell {
+                grid-template-columns: 1fr;
+                max-width: 560px;
+            }
+            .brand-panel {
+                order: -1;
+                min-height: 260px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .form-panel {
+                padding: 2.2rem 1.7rem 2rem;
+            }
+            .brand-panel {
+                padding: 2.2rem 1.7rem;
+            }
+            .center-logo {
+                height: 52px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="login-card card">
-        <div class="login-header">
-            <div class="mb-3">
-                <i class="bi bi-grid-1x2-fill fs-1 text-info"></i>
+<div class="shell">
+
+    <!-- PANEL DE MARCA CON IMAGEN LOCAL -->
+    <aside class="brand-panel">
+        <div class="brand-overlay"></div>
+
+        <div class="brand-content">
+            <div class="brand-logo-group">
+                <img src="{% static 'img/Logo_de_la_Universidad_del_Atlántico.svg.png' %}" class="center-logo">
+                <img src="{% static 'img/Logo_UAO.svg.png' %}" class="center-logo">
+                <img src="{% static 'img/logo-u-vig.png' %}" class="center-logo">
             </div>
-            <h4 class="fw-bold mb-1">Acceso PEVI</h4>
-            <p class="text-white-50 small mb-0">Programa de Evaluación Industrial</p>
+
+            <h2 class="brand-main-title">Centros PEVI</h2>
+            <p class="brand-main-text">
+                Una red nacional conectada para la gestión y el análisis energético industrial.
+            </p>
         </div>
-        <div class="card-body p-4 bg-white">
-            
+    </aside>
+
+    <!-- PANEL FORMULARIO -->
+    <main class="form-panel">
+        <div class="form-main">
+            <div class="brand-top">
+                <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia">
+                <span>Plataforma PEVI</span>
+            </div>
+
             {% if form.errors %}
-                <div class="alert alert-danger py-2 small text-center rounded-3 mb-3">
-                    Credenciales incorrectas. Intente nuevamente.
-                </div>
+            <div class="alert-error">
+                <span class="alert-dot"></span>
+                <span>Las credenciales ingresadas son incorrectas. Intente nuevamente.</span>
+            </div>
             {% endif %}
 
-            <form method="post">
+            <h1 class="title">Iniciar sesión</h1>
+            <p class="subtitle">Ingresa con tu usuario o correo institucional.</p>
+
+            <form method="post" novalidate>
                 {% csrf_token %}
-                
-                <div class="mb-3">
-                    <label class="form-label small text-muted fw-bold text-uppercase">Usuario</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
-                        <input type="text" name="username" class="form-control border-start-0 bg-light" placeholder="Ingrese su usuario" required autofocus>
-                    </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="username">Usuario o correo</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        class="form-input"
+                        required
+                        autofocus
+                    >
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label small text-muted fw-bold text-uppercase">Contraseña</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" class="form-control border-start-0 bg-light" placeholder="••••••••" required>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Contraseña</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="form-input"
+                        required
+                    >
                 </div>
 
-                <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary shadow-sm">
-                        Ingresar al Sistema
-                    </button>
-                </div>
+                <button type="submit" class="btn-primary">
+                    Ingresar
+                </button>
 
-                <div class="text-center">
-                    <a href="#" class="text-decoration-none small text-muted">¿Olvidó su contraseña?</a>
-                </div>
+                <p class="login-meta">
+                    Acceso exclusivo para personal autorizado de la red PEVI.
+                </p>
             </form>
         </div>
-        <div class="card-footer bg-light text-center py-3 border-top">
-            <small class="text-muted" style="font-size: 0.75rem;">&copy; UPME - Gestión Energética</small>
+
+        <div class="aliados-block">
+            <p class="aliados-title">Programa respaldado por</p>
+            <div class="aliados-row">
+                <img src="{% static 'img/logo-minenergia.png' %}" alt="Ministerio de Minas y Energía">
+                <img src="{% static 'img/logo-unido.png' %}" alt="ONUDI">
+                <img src="{% static 'img/logo-upme.png' %}" alt="UPME">
+            </div>
         </div>
-    </div>
+    </main>
+
+</div>
 
 </body>
 </html>
