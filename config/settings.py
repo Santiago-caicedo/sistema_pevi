@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'gestion',
     'auditorias',
     'metricas',
+    'web',
 ]
 
 MIDDLEWARE = [

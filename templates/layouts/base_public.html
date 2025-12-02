@@ -1,0 +1,395 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}UPME Colombia{% endblock %}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --govco-blue: #3366cc;
+            --upme-green: #4caf50;
+            --upme-blue: #2962ff;
+            --text-dark: #333333;
+            --text-gray: #666666;
+        }
+
+        body { 
+            font-family: 'Work Sans', sans-serif;
+            background-color: #f5f5f5;
+            color: var(--text-dark);
+            padding-top: 110px;
+            margin: 0;
+        }
+        
+        /* --- BARRA SUPERIOR GOV.CO --- */
+        .govco-bar {
+            background: linear-gradient(90deg, #3366cc 0%, #1a4a9e 100%);
+            padding: 8px 0;
+            font-size: 13px;
+        }
+        .govco-bar a {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .govco-bar a:hover {
+            text-decoration: underline;
+        }
+        .govco-bar .govco-logo {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .govco-bar .govco-icon {
+            width: 16px;
+            height: 16px;
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .govco-right-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .govco-right-links a {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .govco-right-links a:hover {
+            opacity: 0.85;
+        }
+        
+        /* --- HEADER PRINCIPAL UPME --- */
+        .navbar-upme {
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            border-bottom: 3px solid var(--upme-blue);
+        }
+        .navbar-upme .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+        }
+        
+        /* Logo UPME */
+        .upme-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .upme-logo-icon {
+            width: 50px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .upme-logo-icon img {
+            max-height: 55px;
+            width: auto;
+        }
+        .upme-logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .upme-logo-text span {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .upme-logo-flag {
+            display: flex;
+            gap: 2px;
+            margin-top: 4px;
+        }
+        .upme-logo-flag .flag-color {
+            width: 18px;
+            height: 6px;
+        }
+        .flag-yellow { background-color: #fdd835; }
+        .flag-blue { background-color: #1565c0; }
+        .flag-red { background-color: #c62828; }
+
+        /* Navegación */
+        .nav-upme {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-upme .nav-item {
+            position: relative;
+        }
+        .nav-upme .nav-link {
+            color: var(--text-gray);
+            font-weight: 500;
+            font-size: 14px;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .nav-upme .nav-link:hover {
+            color: var(--upme-blue);
+            background-color: rgba(41, 98, 255, 0.05);
+        }
+        .nav-upme .nav-link.active {
+            background-color: var(--upme-green);
+            color: white;
+            border-radius: 4px;
+        }
+        .nav-upme .nav-link.active:hover {
+            background-color: #43a047;
+        }
+        
+        /* Dropdown */
+        .nav-upme .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 220px;
+        }
+        .nav-upme .dropdown-item {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+        .nav-upme .dropdown-item:hover {
+            background-color: rgba(41, 98, 255, 0.08);
+            color: var(--upme-blue);
+        }
+
+        /* Logo SIMEC y búsqueda */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .simec-logo img {
+            height: 40px;
+            width: auto;
+        }
+        .btn-search {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 20px;
+            padding: 8px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .btn-search:hover {
+            color: var(--upme-blue);
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 991px) {
+            body {
+                padding-top: 70px;
+            }
+            .govco-right-links span {
+                display: none;
+            }
+            .nav-upme {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0;
+                padding: 15px 0;
+            }
+            .nav-upme .nav-link {
+                width: 100%;
+                padding: 12px 16px;
+            }
+            .header-right {
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #eee;
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* --- FOOTER --- */
+        footer { 
+            background-color: #1a237e; 
+            color: white; 
+            padding: 40px 0 20px; 
+            margin-top: 60px; 
+        }
+        footer a { color: #b3b3b3; text-decoration: none; }
+        footer a:hover { color: white; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- BARRA SUPERIOR GOV.CO -->
+    <div class="govco-bar fixed-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="https://www.gov.co/" target="_blank" class="govco-logo">
+                <span class="govco-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#3366cc">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                </span>
+                GOV.CO
+            </a>
+            <div class="govco-right-links">
+                <a href="#">
+                    <i class="bi bi-gear"></i>
+                    <span>isolucion</span>
+                </a>
+                <a href="#">
+                    <i class="bi bi-person"></i>
+                    <span>Argo</span>
+                </a>
+                <a href="#">
+                    <i class="bi bi-envelope"></i>
+                </a>
+                <a href="#">
+                    <i class="bi bi-universal-access"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER PRINCIPAL UPME -->
+    <nav class="navbar navbar-expand-lg navbar-upme fixed-top" style="top: 40px;">
+        <div class="container">
+            
+            <!-- Logo UPME -->
+            <a class="upme-logo" href="{% url 'home_public' %}">
+                <div class="upme-logo-icon">
+                    <!-- Reemplaza con tu logo real -->
+                    <img src="{% static 'img/upme-escudo.png' %}" alt="Escudo UPME">
+                </div>
+                <div class="upme-logo-text">
+                    <span>UPME</span>
+                    <div class="upme-logo-flag">
+                        <div class="flag-color flag-yellow"></div>
+                        <div class="flag-color flag-blue"></div>
+                        <div class="flag-color flag-red"></div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Botón móvil -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUpme">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navegación -->
+            <div class="collapse navbar-collapse justify-content-center" id="navbarUpme">
+                <ul class="nav-upme">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'home_public' %}">Inicio</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            Nosotros
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Quiénes somos</a></li>
+                            <li><a class="dropdown-item" href="#">Misión y visión</a></li>
+                            <li><a class="dropdown-item" href="#">Organigrama</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            UPME
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Funciones</a></li>
+                            <li><a class="dropdown-item" href="#">Directorio</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Transparencia</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            Servicios a la ciudadanía
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">PQRSD</a></li>
+                            <li><a class="dropdown-item" href="#">Trámites</a></li>
+                            <li><a class="dropdown-item" href="#">Consultas</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            Participa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Encuestas</a></li>
+                            <li><a class="dropdown-item" href="#">Foros</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            Sala de prensa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Noticias</a></li>
+                            <li><a class="dropdown-item" href="#">Comunicados</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <!-- Logo SIMEC y búsqueda -->
+                <div class="header-right">
+                    <a href="#" class="simec-logo">
+                        <img src="{% static 'img/simec-logo.png' %}" alt="SIMEC">
+                    </a>
+                    <button class="btn-search" type="button">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small mb-0">&copy; {% now "Y" %} UPME - Unidad de Planeación Minero Energética. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

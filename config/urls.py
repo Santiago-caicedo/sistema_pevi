@@ -42,6 +42,9 @@ urlpatterns = [
 
     # RUTA MÉTRICAS
     path('metricas/', include('metricas.urls')),
+
+
+    path('web/', include('web.urls')),
 ]
 
 if settings.DEBUG:
