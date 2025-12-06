@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}UPME Colombia{% endblock %}</title>
+    <title>{% block title %}PEVI Colombia{% endblock %}</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +35,7 @@
             background: linear-gradient(90deg, #3366cc 0%, #1a4a9e 100%);
             padding: 8px 0;
             font-size: 13px;
+            min-height: 36px; /* altura de referencia */
         }
         .govco-bar a {
             color: white;
@@ -76,13 +77,18 @@
             opacity: 0.85;
         }
         
-        /* --- HEADER PRINCIPAL UPME --- */
+        /* --- HEADER PRINCIPAL PEVI --- */
         .navbar-upme {
             background-color: #ffffff;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             padding: 0;
             border-bottom: 3px solid var(--upme-blue);
         }
+        /* alineamos justo debajo de la barra GOV.CO */
+        .navbar-upme.fixed-top {
+            top: 36px;
+        }
+
         .navbar-upme .container {
             display: flex;
             align-items: center;
@@ -90,7 +96,7 @@
             padding: 10px 15px;
         }
         
-        /* Logo UPME */
+        /* Logo PEVI */
         .upme-logo {
             display: flex;
             align-items: center;
@@ -187,11 +193,11 @@
             color: var(--upme-blue);
         }
 
-        /* Logo SIMEC y búsqueda */
+        /* Logo derecha, botón portal y búsqueda */
         .header-right {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
         .simec-logo img {
             height: 40px;
@@ -210,7 +216,36 @@
             color: var(--upme-blue);
         }
 
-        /* --- RESPONSIVE --- */
+        /* Botón "Ingresar al portal" acorde al home */
+        .btn-portal {
+            padding: 0.45rem 1.4rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 2px solid #0ea5e9;
+            background: #0ea5e9;
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(14,165,233,0.45);
+            transition: all 0.25s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .btn-portal i {
+            font-size: 1rem;
+        }
+        .btn-portal:hover {
+            background: #0369a1;
+            border-color: #0369a1;
+            color: #ffffff;
+            box-shadow: 0 10px 22px rgba(3,105,161,0.55);
+            transform: translateY(-1px);
+        }
+
         @media (max-width: 991px) {
             body {
                 padding-top: 70px;
@@ -233,19 +268,38 @@
                 padding-top: 15px;
                 border-top: 1px solid #eee;
                 width: 100%;
-                justify-content: space-between;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+            .btn-portal {
+                font-size: 0.75rem;
+                padding: 0.4rem 1.1rem;
             }
         }
 
-        /* --- FOOTER --- */
+        /* --- FOOTER PEVI --- */
         footer { 
-            background-color: #1a237e; 
+            background-color: #0b1c4a; 
             color: white; 
             padding: 40px 0 20px; 
             margin-top: 60px; 
         }
         footer a { color: #b3b3b3; text-decoration: none; }
         footer a:hover { color: white; }
+        .footer-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .footer-logo img {
+            max-height: 45px;
+            width: auto;
+        }
+        .footer-small {
+            font-size: 12px;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -260,7 +314,7 @@
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
                     </svg>
                 </span>
-                GOV.CO
+                UPME.GOV
             </a>
             <div class="govco-right-links">
                 <a href="#">
@@ -281,18 +335,17 @@
         </div>
     </div>
 
-    <!-- HEADER PRINCIPAL UPME -->
-    <nav class="navbar navbar-expand-lg navbar-upme fixed-top" style="top: 40px;">
+    <!-- HEADER PRINCIPAL PEVI -->
+    <nav class="navbar navbar-expand-lg navbar-upme fixed-top">
         <div class="container">
             
-            <!-- Logo UPME -->
+            <!-- Logo PEVI -->
             <a class="upme-logo" href="{% url 'home_public' %}">
                 <div class="upme-logo-icon">
-                    <!-- Reemplaza con tu logo real -->
-                    <img src="{% static 'img/upme-escudo.png' %}" alt="Escudo UPME">
+                    <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia">
                 </div>
                 <div class="upme-logo-text">
-                    <span>UPME</span>
+                    <span>PEVI</span>
                     <div class="upme-logo-flag">
                         <div class="flag-color flag-yellow"></div>
                         <div class="flag-color flag-blue"></div>
@@ -312,62 +365,51 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="{% url 'home_public' %}">Inicio</a>
                     </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Nosotros
+                            Módulos PEVI
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Quiénes somos</a></li>
-                            <li><a class="dropdown-item" href="#">Misión y visión</a></li>
-                            <li><a class="dropdown-item" href="#">Organigrama</a></li>
+                            <li><a class="dropdown-item" href="#">Riesgo</a></li>
+                            <li><a class="dropdown-item" href="#">Exposición</a></li>
+                            <li><a class="dropdown-item" href="#">Sensibilidad</a></li>
+                            <li><a class="dropdown-item" href="#">Capacidad adaptativa</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            UPME
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Funciones</a></li>
-                            <li><a class="dropdown-item" href="#">Directorio</a></li>
-                        </ul>
-                    </li>
+
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Transparencia</a>
+                        <a class="nav-link" href="#">Mapas e indicadores</a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Reportes</a>
+                    </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Servicios a la ciudadanía
+                            Documentación
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">PQRSD</a></li>
-                            <li><a class="dropdown-item" href="#">Trámites</a></li>
-                            <li><a class="dropdown-item" href="#">Consultas</a></li>
+                            <li><a class="dropdown-item" href="#">Metodología</a></li>
+                            <li><a class="dropdown-item" href="#">Guías de uso</a></li>
+                            <li><a class="dropdown-item" href="#">Descargas</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Participa
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Encuestas</a></li>
-                            <li><a class="dropdown-item" href="#">Foros</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Sala de prensa
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Noticias</a></li>
-                            <li><a class="dropdown-item" href="#">Comunicados</a></li>
-                        </ul>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Ayuda y soporte</a>
                     </li>
                 </ul>
 
-                <!-- Logo SIMEC y búsqueda -->
+                <!-- Logo derecha, botón portal y búsqueda -->
                 <div class="header-right">
+                    <a href="{% url 'login' %}" class="btn-portal">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Ingresar al portal
+                    </a>
                     <a href="#" class="simec-logo">
-                        <img src="{% static 'img/simec-logo.png' %}" alt="SIMEC">
+                        <img src="{% static 'img/logo_2.png' %}" alt="PEVI">
                     </a>
                     <button class="btn-search" type="button">
                         <i class="bi bi-search"></i>
@@ -379,11 +421,41 @@
 
     {% block content %}{% endblock %}
 
+    <!-- FOOTER PEVI -->
     <footer>
         <div class="container">
-            <div class="row">
+            <div class="row align-items-start mb-3">
+                <div class="col-md-4 mb-3 mb-md-0 footer-logo">
+                    <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia">
+                    <p class="footer-small mt-2 mb-0">
+                        Plataforma de Evaluación de Vulnerabilidad e Impacto (PEVI) para el análisis del sector energético colombiano.
+                    </p>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="footer-title">PEVI Colombia</div>
+                    <ul class="list-unstyled footer-small mb-0">
+                        <li><a href="#">Acerca de PEVI</a></li>
+                        <li><a href="#">Metodología</a></li>
+                        <li><a href="#">Términos y condiciones</a></li>
+                        <li><a href="#">Política de privacidad</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <div class="footer-title">Contacto</div>
+                    <p class="footer-small mb-1">
+                        Soporte técnico y consultas sobre la plataforma PEVI.
+                    </p>
+                    <p class="footer-small mb-0">
+                        Correo: <a href="mailto:soporte@pevi-colombia.com">soporte@pevi-colombia.com</a><br>
+                        <span>Horario de atención: Lunes a Viernes 8:00 a.m. - 5:00 p.m.</span>
+                    </p>
+                </div>
+            </div>
+            <div class="row mt-3 pt-3 border-top border-secondary">
                 <div class="col-12 text-center">
-                    <p class="small mb-0">&copy; {% now "Y" %} UPME - Unidad de Planeación Minero Energética. Todos los derechos reservados.</p>
+                    <p class="footer-small mb-0">
+                        &copy; {% now "Y" %} PEVI Colombia. Todos los derechos reservados.
+                    </p>
                 </div>
             </div>
         </div>
@@ -393,3 +465,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

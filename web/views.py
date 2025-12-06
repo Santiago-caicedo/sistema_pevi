@@ -30,5 +30,14 @@ def nosotros(request):
 
 def centros(request):
     """Directorio público de universidades."""
-    lista_centros = CentroPevi.objects.filter(activo=True)
-    return render(request, 'web/centros.html', {'centros': lista_centros})
+    # Traemos solo los activos y ordenados por región para agrupar visualmente si queremos
+    lista_centros = CentroPevi.objects.filter(activo=True).order_by('region', 'nombre')
+    
+    # Obtenemos las regiones únicas para el filtro
+    regiones = CentroPevi.objects.filter(activo=True).values_list('region', flat=True).distinct()
+    
+    context = {
+        'centros': lista_centros,
+        'regiones': regiones
+    }
+    return render(request, 'web/centros.html', context)

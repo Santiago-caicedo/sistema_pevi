@@ -4,60 +4,450 @@
 
 {% block content %}
 
-<section class="hero d-flex align-items-center">
-    <div class="container position-relative z-2">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <span class="badge bg-info text-dark mb-3 px-3 py-2 rounded-pill fw-bold">Eficiencia Energética Industrial</span>
-                <h1 class="display-4 fw-bold mb-4">Impulsando la Competitividad Sostenible</h1>
-                <p class="lead text-white-50 mb-5">
-                    Conectamos la academia con la industria para optimizar el consumo energético, reducir costos y mitigar el impacto ambiental.
-                </p>
-                <div class="d-flex gap-3">
-                    <a href="#" class="btn btn-primary btn-lg px-5 rounded-pill shadow fw-bold">Soy una Empresa</a>
-                    <a href="#" class="btn btn-outline-light btn-lg px-5 rounded-pill fw-bold">Soy Universidad</a>
+<div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="4000">
+    
+    <div class="carousel-indicators mb-5">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+    </div>
+
+    <div class="carousel-inner">
+        
+        <div class="carousel-item active">
+            <img src="https://p4.wallpaperbetter.com/wallpaper/751/36/39/industrial-sunrise-hong-kong-power-plant-wallpaper-preview.jpg" alt="Industria Eficiente">
+            <div class="hero-overlay"></div>
+            <div class="carousel-caption">
+                <div class="container d-flex flex-column align-items-center">
+                    <span class="badge bg-primary bg-opacity-75 border border-light mb-3 px-3 py-2 rounded-pill text-uppercase ls-1">Eficiencia Energética Industrial</span>
+                    <h1 class="hero-title">Impulsando la Competitividad Sostenible</h1>
+                    <p class="hero-text">
+                        Conectamos la academia con el sector productivo para optimizar el consumo energético y reducir costos operativos.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap justify-content-center">
+                        <a href="{% url 'centros_public' %}" class="btn btn-hero btn-hero-primary">Conocer Centros</a>
+                        <a href="#" class="btn btn-hero btn-hero-outline">Sobre el Programa</a>
+                    </div>
                 </div>
             </div>
-            <div class="col-lg-6 d-none d-lg-block text-center">
-                <i class="bi bi-bar-chart-line-fill text-info" style="font-size: 15rem; opacity: 0.8;"></i>
+        </div>
+
+        <div class="carousel-item">
+            <img src="https://wallpapers.com/images/hd/renewable-energy-1900-x-717-wallpaper-05syegot92brw7kw.jpg" alt="Energía Renovable">
+            <div class="hero-overlay"></div>
+            <div class="carousel-caption">
+                <div class="container d-flex flex-column align-items-center">
+                    <span class="badge bg-success bg-opacity-75 border border-light mb-3 px-3 py-2 rounded-pill text-uppercase ls-1">Transición Energética Justa</span>
+                    <h1 class="hero-title">Hacia una Industria Descarbonizada</h1>
+                    <p class="hero-text">
+                        Estrategias de medición inteligente y fuentes no convencionales para transformar la matriz energética del país.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap justify-content-center">
+                        <a href="{% url 'login' %}" class="btn btn-hero btn-hero-primary">Acceder al Portal</a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</section>
 
-<section class="py-5 bg-white">
+        <div class="carousel-item">
+            <img src="https://img.freepik.com/fotos-premium/rutas-luz-calle-contra-cielo-noche_1048944-1924970.jpg?semt=ais_hybrid&w=740&q=80" alt="Tecnología y Datos">
+            <div class="hero-overlay"></div>
+            <div class="carousel-caption">
+                <div class="container d-flex flex-column align-items-center">
+                    <span class="badge bg-info bg-opacity-75 border border-light mb-3 px-3 py-2 rounded-pill text-uppercase ls-1">Inteligencia de Datos</span>
+                    <h1 class="hero-title">Tecnología al Servicio de la Energía</h1>
+                    <p class="hero-text">
+                        Plataforma centralizada que integra a las mejores universidades para auditar y gestionar indicadores clave en tiempo real.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap justify-content-center">
+                        <a href="#" class="btn btn-hero btn-hero-outline">Ver Impacto Nacional</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Anterior</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Siguiente</span>
+    </button>
+</div>
+
+<section class="position-relative px-3" style="margin-top: -100px; z-index: 20; padding-bottom: 3rem;">
     <div class="container">
-        <div class="row g-4 text-center">
-            <div class="col-md-4">
-                <div class="p-4 border rounded-3 bg-light h-100">
-                    <i class="bi bi-buildings fs-1 text-primary mb-3"></i>
-                    <h2 class="fw-bold text-dark">{{ kpi_centros }}</h2>
-                    <p class="text-muted mb-0">Universidades Aliadas</p>
+        <div class="row g-4 justify-content-center">
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-primary position-relative overflow-hidden hover-kpi">
+                    <div class="icon-box bg-gradient-primary text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+                        <i class="bi bi-buildings-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Red Académica</p>
+                        <div class="d-flex align-items-baseline">
+                            <h2 class="fw-bold text-dark mb-0 me-2">{{ kpi_centros }}</h2>
+                            <span class="text-primary fw-medium small">Centros PEVI</span>
+                        </div>
+                    </div>
+                    <i class="bi bi-buildings position-absolute end-0 bottom-0 text-primary opacity-10" style="font-size: 5rem; margin-bottom: -10px; margin-right: -10px; transform: rotate(-15deg);"></i>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="p-4 border rounded-3 bg-light h-100">
-                    <i class="bi bi-check-circle fs-1 text-success mb-3"></i>
-                    <h2 class="fw-bold text-dark">{{ kpi_proyectos }}+</h2>
-                    <p class="text-muted mb-0">Auditorías Realizadas</p>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-success position-relative overflow-hidden hover-kpi">
+                    <div class="icon-box bg-gradient-success text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+                        <i class="bi bi-clipboard-data-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Gestión Industrial</p>
+                        <div class="d-flex align-items-baseline">
+                            <h2 class="fw-bold text-dark mb-0 me-2">{{ kpi_proyectos }}+</h2>
+                            <span class="text-success fw-medium small">Proyectos</span>
+                        </div>
+                    </div>
+                    <i class="bi bi-clipboard-check position-absolute end-0 bottom-0 text-success opacity-10" style="font-size: 5rem; margin-bottom: -10px; margin-right: -10px; transform: rotate(-15deg);"></i>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="p-4 border rounded-3 bg-light h-100">
-                    <i class="bi bi-lightning-charge fs-1 text-warning mb-3"></i>
-                    <h2 class="fw-bold text-dark">Impacto</h2>
-                    <p class="text-muted mb-0">Real en la Industria</p>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-warning position-relative overflow-hidden hover-kpi">
+                    <div class="icon-box bg-gradient-warning text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+                        <i class="bi bi-lightning-charge-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Eficiencia Energética</p>
+                        <div class="d-flex align-items-baseline">
+                            <h2 class="fw-bold text-dark mb-0 me-2">Alta</h2>
+                            <span class="text-warning fw-bold small">Huella Reducida</span>
+                        </div>
+                    </div>
+                    <i class="bi bi-activity position-absolute end-0 bottom-0 text-warning opacity-10" style="font-size: 5rem; margin-bottom: -10px; margin-right: -10px; transform: rotate(-15deg);"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-white position-relative overflow-hidden">
+    <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, rgba(2,132,199,0.05) 0%, rgba(255,255,255,0) 70%); z-index: 0;"></div>
+
+    <div class="container position-relative z-1">
+        <div class="d-flex justify-content-between align-items-end mb-5">
+            <div>
+                <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">
+                    <i class="bi bi-newspaper me-1"></i> Actualidad
+                </h6>
+                <h2 class="fw-bold text-dark display-6">Novedades del Programa</h2>
+            </div>
+            <a href="#" class="btn btn-outline-dark rounded-pill px-4 fw-medium d-none d-md-inline-block">Ver todas las noticias</a>
+        </div>
+        
+        <div class="row g-4">
+            {% for noticia in noticias %}
+            <div class="col-lg-4 col-md-6">
+                <article class="card news-card h-100 border-0 shadow-sm">
+                    <div class="news-img-wrapper">
+                        {% if noticia.imagen_portada %}
+                            <img src="{{ noticia.imagen_portada.url }}" class="news-img" alt="{{ noticia.titulo }}">
+                        {% else %}
+                            <div class="news-placeholder">
+                                <i class="bi bi-card-image fs-1 text-white-50"></i>
+                            </div>
+                        {% endif %}
+                        <div class="date-badge">
+                            <span class="day">{{ noticia.fecha_publicacion|date:"d" }}</span>
+                            <span class="month">{{ noticia.fecha_publicacion|date:"M" }}</span>
+                        </div>
+                        <div class="news-overlay"></div>
+                    </div>
+
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="mb-2">
+                            <span class="badge bg-light text-primary border fw-medium px-2 py-1">Gestión Energética</span>
+                        </div>
+
+                        <h5 class="card-title fw-bold text-dark mb-3">
+                            <a href="#" class="text-decoration-none text-dark stretched-link">{{ noticia.titulo }}</a>
+                        </h5>
+                        
+                        <p class="card-text text-muted small line-clamp-3 mb-4 flex-grow-1">{{ noticia.resumen }}</p>
+                        
+                        <div class="news-footer border-top pt-3 mt-auto d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center small fw-bold me-2" style="width: 32px; height: 32px; font-size: 0.7rem;">PEVI</div>
+                                <span class="small text-muted fw-medium">Redacción PEVI</span>
+                            </div>
+                            <span class="read-more-link text-primary fw-bold small">
+                                Leer más <i class="bi bi-arrow-right ms-1 transition-icon"></i>
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="p-5 bg-light rounded-4 border border-dashed">
+                    <i class="bi bi-journal-x fs-1 text-muted mb-3"></i>
+                    <h5 class="fw-bold text-muted">No hay noticias publicadas aún.</h5>
+                    <p class="text-secondary small">Pronto publicaremos novedades sobre el programa.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4 d-md-none">
+            <a href="#" class="btn btn-outline-dark rounded-pill px-4 fw-medium w-100">Ver todas</a>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-white position-relative border-top">
+    <div class="container py-4">
+        <div class="row align-items-center gx-5">
+            <div class="col-lg-6 order-2 order-lg-1">
+                <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3 fw-bold">Sobre el Programa</span>
+                <h2 class="display-6 fw-bold text-dark mb-4">Ingeniería Aplicada para la Sostenibilidad Industrial</h2>
+                <p class="lead text-muted mb-4">
+                    El <strong>PEVI</strong> (Programa de Evaluación Industrial) es una estrategia nacional que vincula el conocimiento técnico de las universidades con las necesidades operativas de la industria.
+                </p>
+                
+                <ul class="list-unstyled mb-4">
+                    <li class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0 mt-1"><i class="bi bi-check-circle-fill text-success fs-5"></i></div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold text-dark mb-1">Diagnóstico Especializado</h6>
+                            <p class="text-muted small mb-0">Identificamos fugas, ineficiencias y desperdicios energéticos en sus procesos productivos.</p>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0 mt-1"><i class="bi bi-check-circle-fill text-success fs-5"></i></div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold text-dark mb-1">Tecnología y Medición</h6>
+                            <p class="text-muted small mb-0">Uso de analizadores de redes, cámaras termográficas y software de simulación.</p>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start">
+                        <div class="flex-shrink-0 mt-1"><i class="bi bi-check-circle-fill text-success fs-5"></i></div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold text-dark mb-1">Capital Humano</h6>
+                            <p class="text-muted small mb-0">Formación práctica de futuros ingenieros bajo supervisión experta.</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <a href="#" class="btn btn-outline-dark rounded-pill px-4 fw-medium">Conocer Marco Teórico</a>
+            </div>
+
+            <div class="col-lg-6 order-1 order-lg-2 mb-5 mb-lg-0">
+                <div class="position-relative ps-lg-4">
+                    <div class="rounded-4 overflow-hidden shadow-lg position-relative z-1">
+                        <img src="https://carreras.uas.edu.mx/images/ingenieria_energiasrenovables.jpg" alt="Ingeniero en planta" class="img-fluid w-100 object-fit-cover" style="height: 500px;">
+                        <div class="position-absolute bottom-0 start-0 bg-white p-4 m-4 rounded-3 shadow-lg border-start border-5 border-primary" style="max-width: 250px;">
+                            <p class="small text-muted mb-2 fw-bold text-uppercase">Objetivo Central</p>
+                            <h5 class="fw-bold text-dark mb-0">Reducir Costos & <br>Optimizar Energía</h5>
+                        </div>
+                    </div>
+                    <div class="position-absolute top-0 end-0 translate-middle-y me-n4 mt-4 z-0 d-none d-lg-block">
+                        <svg width="100" height="100" fill="none"><pattern id="dotPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" class="text-primary opacity-25" fill="currentColor" /></pattern><rect width="100" height="100" fill="url(#dotPattern)" /></svg>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="py-5 border-top">
-    <div class="container text-center">
-        <p class="text-uppercase text-muted fw-bold small ls-1 mb-4">Con el respaldo de</p>
-        <img src="{% static 'img/aliados.png' %}" class="img-fluid" style="max-height: 80px; opacity: 0.8;">
+<section class="py-5 bg-light">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">Paso a Paso</h6>
+            <h2 class="fw-bold text-dark display-6">Ruta de Eficiencia Energética</h2>
+            <p class="text-muted mx-auto" style="max-width: 600px;">
+                Un proceso estandarizado y transparente diseñado para conectar su empresa con la experiencia académica.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center position-relative">
+            <div class="d-none d-lg-block position-absolute top-50 start-0 w-100 border-top border-2 border-dashed border-primary opacity-25" style="z-index: 0; transform: translateY(-20px);"></div>
+
+            <div class="col-lg-3 col-md-6 position-relative z-1">
+                <div class="card h-100 border-0 bg-transparent text-center">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-plus-fill fs-2"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">1</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Registro de Empresa</h5>
+                    <p class="text-muted small">Cree su cuenta en el portal y registre las sedes productivas que requieren evaluación.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 position-relative z-1">
+                <div class="card h-100 border-0 bg-transparent text-center">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
+                            <i class="bi bi-building-check fs-2"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">2</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Asignación de Centro</h5>
+                    <p class="text-muted small">El sistema le asignará la universidad experta más cercana a su región.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 position-relative z-1">
+                <div class="card h-100 border-0 bg-transparent text-center">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
+                            <i class="bi bi-clipboard-data fs-2"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">3</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Visita y Auditoría</h5>
+                    <p class="text-muted small">Ingenieros expertos realizarán el levantamiento de información y mediciones en campo.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 position-relative z-1">
+                <div class="card h-100 border-0 bg-transparent text-center">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="rounded-circle bg-white border border-success text-success d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
+                            <i class="bi bi-file-earmark-check-fill fs-2"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">4</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Informe y Plan</h5>
+                    <p class="text-muted small">Reciba un informe técnico detallado con oportunidades de ahorro y plan de acción.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
+
+<section class="py-5 position-relative overflow-hidden bg-primary text-white">
+    <div class="position-absolute top-0 start-0 w-100 h-100 bg-gradient-primary-dark"></div>
+    <div class="position-absolute top-0 end-0 rounded-circle bg-white opacity-10" style="width: 400px; height: 400px; transform: translate(30%, -30%);"></div>
+    <div class="position-absolute bottom-0 start-0 rounded-circle bg-white opacity-10" style="width: 300px; height: 300px; transform: translate(-30%, 30%);"></div>
+
+    <div class="container position-relative z-1 py-4 text-center">
+        <h2 class="display-5 fw-bold mb-3">¿Listo para optimizar su consumo energético?</h2>
+        <p class="lead text-white-50 mb-5 mx-auto" style="max-width: 700px;">
+            Únase a las más de 100 empresas que ya han mejorado su competitividad y reducido su huella de carbono con el programa PEVI.
+        </p>
+        
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+            <a href="{% url 'login' %}" class="btn btn-light btn-lg rounded-pill px-5 fw-bold shadow-lg text-primary hover-scale">Registrar mi Empresa</a>
+            <a href="#" class="btn btn-outline-light btn-lg rounded-pill px-5 fw-bold hover-scale">Contactar Asesor</a>
+        </div>
+        
+        <p class="small text-white-50 mt-4 mb-0">* El programa cuenta con cupos limitados por región semestralmente.</p>
+    </div>
+</section>
+
+<section class="py-5 border-top bg-white">
+    <div class="container text-center">
+        <p class="text-uppercase text-muted fw-bold small ls-1 mb-5">Iniciativa respaldada por</p>
+        
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-5">
+            
+            <div class="ally-item">
+                <img src="{% static 'img/logo_upme.png' %}" alt="UPME" class="img-fluid ally-logo">
+            </div>
+
+            <div class="ally-item">
+                <img src="{% static 'img/logo_minenergia.png' %}" alt="MinEnergía" class="img-fluid ally-logo">
+            </div>
+
+            <div class="ally-item">
+                <img src="{% static 'img/logo_onudi.png' %}" alt="ONUDI" class="img-fluid ally-logo">
+            </div>
+
+            <div class="ally-item">
+                <img src="{% static 'img/logo_fenoge.png' %}" alt="FENOGE" class="img-fluid ally-logo">
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Utilidades */
+    .ls-1 { letter-spacing: 1px; }
+    .object-fit-cover { object-fit: cover; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bg-soft-primary { background-color: #e0f2fe; }
+    .bg-soft-success { background-color: #dcfce7; }
+    .bg-soft-warning { background-color: #fef3c7; }
+    .opacity-10 { opacity: 0.1 !important; }
+    .opacity-25 { opacity: 0.25; }
+
+    /* HERO CAROUSEL */
+    .carousel-item { height: 85vh; min-height: 600px; background-color: #000; position: relative; }
+    .carousel-item img { position: absolute; top: 0; left: 0; min-height: 100%; width: 100%; object-fit: cover; z-index: 1; }
+    .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(15, 23, 42, 0.3), rgba(15, 23, 42, 0.8)); z-index: 2; }
+    .carousel-caption { z-index: 3; position: absolute; left: 0; right: 0; top: 0; bottom: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-bottom: 3rem; }
+    .hero-title { font-size: 3.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 1.5rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); max-width: 900px; }
+    .hero-text { font-size: 1.25rem; font-weight: 400; max-width: 700px; margin-bottom: 2.5rem; text-shadow: 0 2px 5px rgba(0,0,0,0.5); color: rgba(255, 255, 255, 0.95); }
+    .btn-hero { padding: 0.8rem 2.5rem; font-weight: 600; border-radius: 50rem; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
+    .btn-hero-primary { background-color: #0284c7; border: 2px solid #0284c7; color: white; }
+    .btn-hero-primary:hover { background-color: #0369a1; border-color: #0369a1; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(2, 132, 199, 0.3); }
+    .btn-hero-outline { background-color: transparent; border: 2px solid white; color: white; }
+    .btn-hero-outline:hover { background-color: white; color: #0f172a; transform: translateY(-3px); }
+
+    /* WIDGETS KPI */
+    .kpi-widget { transition: transform 0.3s ease, box-shadow 0.3s ease; background: #ffffff; }
+    .icon-box { width: 60px; height: 60px; flex-shrink: 0; transition: transform 0.3s ease; }
+    .bg-gradient-primary { background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+    .bg-gradient-warning { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
+    .hover-kpi:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important; }
+    .hover-kpi:hover .icon-box { transform: scale(1.1) rotate(5deg); }
+
+    /* NEWS CARDS */
+    .news-card { border-radius: 16px; background: #fff; transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.3s ease; overflow: hidden; }
+    .news-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important; }
+    .news-img-wrapper { height: 220px; position: relative; overflow: hidden; }
+    .news-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1); }
+    .news-card:hover .news-img { transform: scale(1.08); }
+    .news-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%); display: flex; align-items: center; justify-content: center; }
+    .date-badge { position: absolute; top: 15px; left: 15px; background: rgba(255, 255, 255, 0.95); border-radius: 10px; padding: 6px 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); backdrop-filter: blur(4px); z-index: 10; min-width: 60px; }
+    .date-badge .day { display: block; font-size: 1.2rem; font-weight: 800; color: #0f172a; line-height: 1; }
+    .date-badge .month { display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 600; color: #64748b; letter-spacing: 0.5px; }
+    .news-card .card-title a { background-image: linear-gradient(to right, #0284c7, #0284c7); background-size: 0% 2px; background-repeat: no-repeat; background-position: left bottom; transition: background-size 0.3s ease; }
+    .news-card:hover .card-title a { background-size: 100% 2px; color: #0284c7 !important; }
+    .read-more-link { transition: color 0.2s; }
+    .transition-icon { display: inline-block; transition: transform 0.3s ease; }
+    .news-card:hover .transition-icon { transform: translateX(5px); }
+
+    /* CTA SECTION */
+    .bg-gradient-primary-dark { background: linear-gradient(135deg, #0f172a 0%, #0284c7 100%); }
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.05); }
+
+    /* ALIADOS LOGOS */
+    .ally-logo {
+        max-height: 60px; /* Tamaño controlado */
+        width: auto;
+        filter: grayscale(100%); /* Efecto blanco y negro inicial */
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+    .ally-logo:hover {
+        filter: grayscale(0%); /* A color al pasar el mouse */
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.2rem; }
+        .hero-text { font-size: 1rem; padding: 0 20px; }
+    }
+</style>
 
 {% endblock %}

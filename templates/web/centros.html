@@ -1,0 +1,140 @@
+{% extends 'layouts/base_public.html' %}
+{% load static %}
+
+{% block title %}Nuestra Red | PEVI Colombia{% endblock %}
+
+{% block content %}
+
+<section class="bg-dark py-5 position-relative overflow-hidden">
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, #0f172a 0%, #1e293b 100%); opacity: 1;"></div>
+    <div style="position: absolute; right: -50px; bottom: -50px; width: 300px; height: 300px; border: 20px solid rgba(255,255,255,0.03); border-radius: 50%;"></div>
+    
+    <div class="container position-relative z-1 text-center text-white mt-4">
+        <span class="badge border border-light rounded-pill px-3 py-2 mb-3 bg-white bg-opacity-10">Cobertura Nacional</span>
+        <h1 class="fw-bold display-5 mb-3">Red de Centros PEVI</h1>
+        <p class="lead text-white-50 mx-auto" style="max-width: 600px;">
+            Las mejores instituciones de educación superior del país unidas para impulsar la eficiencia energética en el sector industrial.
+        </p>
+    </div>
+</section>
+
+<section class="py-5 bg-light min-vh-100">
+    <div class="container">
+        
+        <div class="d-flex justify-content-center mb-5 flex-wrap gap-2" id="regionFilters">
+            <button class="btn btn-white shadow-sm rounded-pill px-4 active fw-medium filter-btn" data-filter="all">
+                Todos
+            </button>
+            {% for region in regiones %}
+            <button class="btn btn-white shadow-sm rounded-pill px-4 fw-medium filter-btn" data-filter="{{ region|slugify }}">
+                {{ region }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div class="row g-4">
+            {% for centro in centros %}
+            <div class="col-lg-3 col-md-4 col-sm-6 centro-item {{ centro.region|slugify }}">
+                
+                <div class="card h-100 border-0 shadow-sm hover-card bg-white position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
+                    
+                    <div class="card-body p-4 text-center d-flex flex-column align-items-center">
+                        
+                        <div class="logo-wrapper mb-4 d-flex align-items-center justify-content-center bg-light rounded-circle shadow-inner">
+                            {% if centro.logo %}
+                                <img src="{{ centro.logo.url }}" alt="{{ centro.nombre }}" class="img-fluid p-3" style="max-height: 80px;">
+                            {% else %}
+                                <i class="bi bi-bank2 fs-1 text-secondary opacity-50"></i>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold text-dark mb-1">{{ centro.nombre }}</h5>
+                        <p class="text-muted small mb-3 text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">
+                            <i class="bi bi-geo-alt-fill text-primary me-1"></i>{{ centro.region }}
+                        </p>
+
+                        <div class="mt-auto w-100">
+                            <hr class="border-light my-3">
+                            <a href="#" class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-medium">
+                                Ver Perfil
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">No hay centros registrados activos en este momento.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+
+<style>
+    .btn-white {
+        background-color: #fff;
+        color: #64748b;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .btn-white:hover, .btn-white.active {
+        background-color: #0284c7;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
+    }
+
+    .hover-card {
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+        border-radius: 16px;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08) !important;
+    }
+
+    .logo-wrapper {
+        width: 100px;
+        height: 100px;
+        /* Sombra interna para dar profundidad al hueco del logo */
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    }
+</style>
+
+<script>
+    // Script simple para filtrar sin recargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        const buttons = document.querySelectorAll('.filter-btn');
+        const items = document.querySelectorAll('.centro-item');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 1. Manejar estado activo de botones
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // 2. Filtrar elementos
+                const filterValue = btn.getAttribute('data-filter');
+
+                items.forEach(item => {
+                    if (filterValue === 'all' || item.classList.contains(filterValue)) {
+                        item.style.display = 'block';
+                        // Pequeña animación de entrada
+                        item.style.opacity = '0';
+                        setTimeout(() => item.style.opacity = '1', 50);
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+
+{% endblock %}
