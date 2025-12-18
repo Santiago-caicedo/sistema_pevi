@@ -1,0 +1,139 @@
+{% extends 'layouts/base_public.html' %}
+{% load static %}
+
+{% block title %}Biblioteca Técnica | PEVI Colombia{% endblock %}
+
+{% block content %}
+
+<section class="bg-dark py-5 position-relative overflow-hidden">
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 10% 20%, #1e293b 0%, #0f172a 90%);"></div>
+    <div class="position-absolute end-0 top-0 p-5 opacity-10">
+        <i class="bi bi-book-half text-white" style="font-size: 15rem; transform: rotate(15deg);"></i>
+    </div>
+    
+    <div class="container position-relative z-1 mt-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge border border-light rounded-pill px-3 py-2 mb-3 bg-white bg-opacity-10 text-uppercase ls-1">Centro de Conocimiento</span>
+                <h1 class="fw-bold display-5 text-white mb-3">Biblioteca Técnica</h1>
+                <p class="lead text-white-50 mb-4">
+                    Acceda a manuales, guías y normativa oficial para la implementación de medidas de eficiencia energética en su industria.
+                </p>
+                
+                <div class="bg-white p-2 rounded-pill shadow-lg d-flex" style="max-width: 500px;">
+                    <span class="input-group-text bg-transparent border-0 ps-3"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-0 shadow-none" placeholder="Buscar documentos, guías, normas...">
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold">Buscar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light min-vh-100">
+    <div class="container">
+        
+        <div class="d-flex gap-2 mb-5 overflow-auto pb-2">
+            <button class="btn btn-dark rounded-pill px-4 fw-medium active">Todo</button>
+            <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-medium text-muted">Energía Térmica</button>
+            <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-medium text-muted">Electrificación</button>
+            <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-medium text-muted">Gestión ISO 50001</button>
+        </div>
+
+        <div class="row g-4">
+            {% for doc in documentos %}
+            <div class="col-lg-4 col-md-6">
+                
+                <div class="card h-100 border-0 shadow-sm doc-card position-relative overflow-hidden">
+                    <div class="row g-0 h-100">
+                        <div class="col-4 bg-light d-flex align-items-center justify-content-center position-relative overflow-hidden group-hover-img">
+                            <img src="{% static 'img/' %}{{ doc.imagen }}" 
+                                 class="img-fluid shadow-sm doc-cover" 
+                                 alt="{{ doc.titulo }}"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            
+                            <div class="fallback-icon text-center" style="display: none;">
+                                <i class="bi bi-file-earmark-pdf text-danger fs-1"></i>
+                            </div>
+                        </div>
+
+                        <div class="col-8">
+                            <div class="card-body d-flex flex-column h-100 p-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-soft-primary text-primary border border-primary-subtle" style="font-size: 0.65rem;">
+                                        {{ doc.categoria }}
+                                    </span>
+                                </div>
+                                
+                                <h5 class="card-title fw-bold text-dark mb-2" style="font-size: 1.1rem; line-height: 1.4;">
+                                    {{ doc.titulo }}
+                                </h5>
+                                
+                                <p class="card-text text-muted small line-clamp-3 mb-3 flex-grow-1">
+                                    {{ doc.descripcion }}
+                                </p>
+                                
+                                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                                    <small class="text-muted fw-bold" style="font-size: 0.75rem;">
+                                        <i class="bi bi-building me-1"></i> {{ doc.autor }}
+                                    </small>
+                                    
+                                    <a href="{{ doc.link }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold stretched-link action-btn">
+                                        Leer <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</section>
+
+<style>
+    .ls-1 { letter-spacing: 1px; }
+    .bg-soft-primary { background-color: #e0f2fe; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    .doc-card {
+        border-radius: 12px;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+        background: white;
+    }
+
+    .doc-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08) !important;
+    }
+
+    /* Efecto Portada */
+    .doc-cover {
+        max-height: 140px;
+        width: auto;
+        transform: rotate(-3deg) translateX(5px);
+        transition: transform 0.3s ease;
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+    }
+
+    .doc-card:hover .doc-cover {
+        transform: rotate(0deg) scale(1.05);
+    }
+
+    .btn-white { background: white; }
+    .btn-white:hover { background: #f1f5f9; }
+
+    .action-btn {
+        transition: all 0.2s;
+    }
+    .doc-card:hover .action-btn {
+        background-color: #0f172a;
+        color: white;
+        border-color: #0f172a;
+    }
+</style>
+
+{% endblock %}
