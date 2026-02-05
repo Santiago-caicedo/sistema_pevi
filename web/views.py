@@ -85,8 +85,8 @@ def centros(request):
 
         centros_con_metricas.append({
             'centro': centro,
-            'total_energia_mwh': round(total_energia / 1000, 1),  # Convertir a MWh
-            'total_emisiones': round(total_emisiones, 1),
+            'total_energia_mwh': int(total_energia / 1000),  # Convertir a MWh
+            'total_emisiones': int(total_emisiones),
             'estados_json': json.dumps(list(estados_count.values())),
             'sectores': list(sectores),
             'años_labels': json.dumps(años_labels),
@@ -274,8 +274,8 @@ def resultados(request):
         'total_centros': total_centros,
         'total_empresas': total_empresas,
         'sectores_unicos': sectores_unicos,
-        'total_energia_mwh': round(total_energia_mwh, 1),
-        'total_emisiones_ton': round(total_emisiones_ton, 1),
+        'total_energia_mwh': int(total_energia_mwh),
+        'total_emisiones_ton': int(total_emisiones_ton),
 
         # Datos para mapa (JSON)
         'centros_mapa_json': json.dumps(centros_mapa),
@@ -283,12 +283,12 @@ def resultados(request):
         # Energía por tipo (JSON para gráfico)
         'energia_por_tipo_labels': json.dumps(['Electricidad', 'Gas Natural', 'Carbón', 'Fuel Oil', 'Biomasa', 'GLP']),
         'energia_por_tipo_data': json.dumps([
-            round(energia_electricidad / 1000, 1),
-            round(energia_gas_natural / 1000, 1),
-            round(energia_carbon / 1000, 1),
-            round(energia_fuel_oil / 1000, 1),
-            round(energia_biomasa / 1000, 1),
-            round(energia_glp / 1000, 1),
+            int(energia_electricidad / 1000),
+            int(energia_gas_natural / 1000),
+            int(energia_carbon / 1000),
+            int(energia_fuel_oil / 1000),
+            int(energia_biomasa / 1000),
+            int(energia_glp / 1000),
         ]),
 
         # Evolución temporal

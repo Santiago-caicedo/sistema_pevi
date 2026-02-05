@@ -150,7 +150,7 @@ def dashboard(request):
         'lista_proyectos': proyectos.order_by('-updated_at')[:10], # Top 10 recientes
         'kpi_total': total_proyectos,
         'kpi_activos': activos,
-        'kpi_energia': round(total_kwh),
+        'kpi_energia': int(total_kwh),
         'saludo': saludo,
         'rol_label': rol_label,
         
@@ -546,8 +546,8 @@ def detalle_proyecto(request, proyecto_id):
 
             if energia_fuente > 0:
                 chart_labels.append(nombre)
-                chart_data_energia.append(round(energia_fuente))
-                chart_data_costos.append(round(fuente.costo_total_anual))
+                chart_data_energia.append(int(energia_fuente))
+                chart_data_costos.append(int(fuente.costo_total_anual))
                 chart_colors.append(color_map.get(nombre, '#cccccc'))
 
     # 3. MBTU (Millones de BTU)
@@ -579,11 +579,11 @@ def detalle_proyecto(request, proyecto_id):
         'gas_propano': gas_propano,
         
         # KPIs Numéricos
-        'kpi_emisiones': round(total_emisiones, 2),
-        'kpi_energia': round(total_energia),
-        'kpi_costo': round(total_costo),
+        'kpi_emisiones': int(total_emisiones),
+        'kpi_energia': int(total_energia),
+        'kpi_costo': int(total_costo),
         'kpi_ides': round(indicador_ides, 4),
-        'kpi_elec_kwh': round(total_kwh_electrico),
+        'kpi_elec_kwh': int(total_kwh_electrico),
         'kpi_term_mbtu': round(mbtu_termico, 2),
 
         # Datos Gráficos JSON

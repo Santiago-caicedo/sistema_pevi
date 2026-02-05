@@ -136,7 +136,7 @@ def dashboard_estrategico(request):
             'energia_elec': round(p_kwh_elec),
             'energia_term': round(p_kwh_term),
             'costo': round(p_costo),
-            'emisiones': round(p_emis, 2),
+            'emisiones': int(p_emis),
             'ides': p_ides
         })
 
@@ -199,12 +199,12 @@ def dashboard_estrategico(request):
 
         # KPIs Globales (Tarjetas Superiores)
         'kpi_proyectos': len(tabla_proyectos),
-        'kpi_energia_total': round(global_kwh_electrico + global_kwh_termico),
-        'kpi_costo_total': round(global_costo_total),
-        'kpi_emisiones': round(global_emisiones_total, 2),
+        'kpi_energia_total': int(global_kwh_electrico + global_kwh_termico),
+        'kpi_costo_total': int(global_costo_total),
+        'kpi_emisiones': int(global_emisiones_total),
         
         # Desglose Técnico (Tarjeta Balance)
-        'kpi_elec_kwh': round(global_kwh_electrico),
+        'kpi_elec_kwh': int(global_kwh_electrico),
         'kpi_term_mbtu': round(mbtu_term, 2),
 
         # Tabla Detallada
@@ -321,11 +321,11 @@ def dashboard_nacional(request):
                 'objeto': p,
                 'empresa': p.empresa.razon_social,
                 'lider': p.lider_proyecto.get_full_name() if p.lider_proyecto else "-",
-                'produccion': round(p.produccion_total),
+                'produccion': int(p.produccion_total),
                 'unidad_prod': p.unidad_produccion,
-                'energia_total': round(p_kwh_elec + p_kwh_term),
-                'costo': round(p_costo),
-                'emisiones': round(p_emis, 2),
+                'energia_total': int(p_kwh_elec + p_kwh_term),
+                'costo': int(p_costo),
+                'emisiones': int(p_emis),
                 'ides': p_ides
             })
 
@@ -347,10 +347,10 @@ def dashboard_nacional(request):
         # Actualizar Contexto con Datos de Detalle
         context.update({
             'kpi_proyectos': len(tabla_proyectos),
-            'kpi_energia': round(global_kwh_electrico + global_kwh_termico),
-            'kpi_costo': round(global_costo_total),
-            'kpi_emisiones': round(global_emisiones_total, 2),
-            'kpi_elec_kwh': round(global_kwh_electrico),
+            'kpi_energia': int(global_kwh_electrico + global_kwh_termico),
+            'kpi_costo': int(global_costo_total),
+            'kpi_emisiones': int(global_emisiones_total),
+            'kpi_elec_kwh': int(global_kwh_electrico),
             'kpi_term_mbtu': round(global_kwh_termico * FACTOR_MBTU, 2),
             'tabla_proyectos': tabla_proyectos,
             'chart_labels': json.dumps(chart_labels),
@@ -386,9 +386,9 @@ def dashboard_nacional(request):
                 'nombre': c.nombre,
                 'region': c.region,
                 'proyectos': c_qty,
-                'energia': round(c_energia),
-                'emisiones': round(c_emisiones, 2),
-                'promedio_kwh': round(c_energia / c_qty) if c_qty > 0 else 0
+                'energia': int(c_energia),
+                'emisiones': int(c_emisiones),
+                'promedio_kwh': int(c_energia / c_qty) if c_qty > 0 else 0
             })
 
         # Datos Comparativos
@@ -400,8 +400,8 @@ def dashboard_nacional(request):
         context.update({
             'kpi_centros': centros.count(),
             'kpi_proyectos': nac_proyectos,
-            'kpi_energia': round(nac_energia),
-            'kpi_emisiones': round(nac_emisiones, 2),
+            'kpi_energia': int(nac_energia),
+            'kpi_emisiones': int(nac_emisiones),
             'tabla_centros': data_centros,
             'chart_labels': json.dumps(chart_labels),
             'chart_data_energia': json.dumps(chart_data_energia),
