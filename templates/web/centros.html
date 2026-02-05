@@ -408,65 +408,15 @@
                 </div>
             </div>
 
-            <!-- Script para gráficos de este centro -->
+            <!-- Datos para gráficos (se inicializan al abrir el modal) -->
             <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Gráfico de Estados
-                    const ctxEstados{{ centro.id }} = document.getElementById('chartEstados{{ centro.id }}');
-                    if (ctxEstados{{ centro.id }}) {
-                        new Chart(ctxEstados{{ centro.id }}, {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Borrador', 'En Ejecución', 'Finalizados'],
-                                datasets: [{
-                                    data: {{ item.estados_json|safe }},
-                                    backgroundColor: ['#94a3b8', '#0ea5e9', '#22c55e'],
-                                    borderWidth: 0,
-                                    cutout: '65%'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
-                                    }
-                                }
-                            }
-                        });
-                    }
-
-                    // Gráfico de Años
-                    const ctxAños{{ centro.id }} = document.getElementById('chartAños{{ centro.id }}');
-                    if (ctxAños{{ centro.id }}) {
-                        new Chart(ctxAños{{ centro.id }}, {
-                            type: 'bar',
-                            data: {
-                                labels: {{ item.años_labels|safe }},
-                                datasets: [{
-                                    label: 'Proyectos',
-                                    data: {{ item.años_data|safe }},
-                                    backgroundColor: '{{ centro.color_primario|default:"#0284c7" }}',
-                                    borderRadius: 6,
-                                    barThickness: 30
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                                    x: { grid: { display: false } }
-                                },
-                                plugins: {
-                                    legend: { display: false }
-                                }
-                            }
-                        });
-                    }
-                });
+                window.centroData = window.centroData || {};
+                window.centroData['{{ centro.id }}'] = {
+                    estados: {{ item.estados_json|safe }},
+                    añosLabels: {{ item.años_labels|safe }},
+                    añosData: {{ item.años_data|safe }},
+                    color: '{{ centro.color_primario|default:"#0284c7" }}'
+                };
             </script>
             {% endwith %}
             {% empty %}
@@ -729,7 +679,7 @@
             });
         });
 
-        // Animación de entrada del modal
+        // Animación de entrada del modal e inicialización de gráficos
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('show.bs.modal', function() {
                 const modalContent = this.querySelector('.modal-content');
@@ -751,6 +701,73 @@
                     duration: 500,
                     easing: 'easeOutQuart'
                 });
+            });
+
+            // Inicializar gráficos cuando el modal esté completamente visible
+            modal.addEventListener('shown.bs.modal', function() {
+                const modalId = this.id;
+                const centroId = modalId.replace('modalCentro', '');
+                const data = window.centroData && window.centroData[centroId];
+
+                if (!data) return;
+
+                // Evitar re-inicializar si ya existen
+                const canvasEstados = document.getElementById('chartEstados' + centroId);
+                const canvasAños = document.getElementById('chartAños' + centroId);
+
+                // Gráfico de Estados (doughnut)
+                if (canvasEstados && !canvasEstados.chartInstance) {
+                    canvasEstados.chartInstance = new Chart(canvasEstados, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Borrador', 'En Ejecución', 'Finalizados'],
+                            datasets: [{
+                                data: data.estados,
+                                backgroundColor: ['#94a3b8', '#0ea5e9', '#22c55e'],
+                                borderWidth: 0,
+                                cutout: '65%'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico de Años (barras)
+                if (canvasAños && !canvasAños.chartInstance) {
+                    canvasAños.chartInstance = new Chart(canvasAños, {
+                        type: 'bar',
+                        data: {
+                            labels: data.añosLabels,
+                            datasets: [{
+                                label: 'Proyectos',
+                                data: data.añosData,
+                                backgroundColor: data.color,
+                                borderRadius: 6,
+                                barThickness: 30
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                                x: { grid: { display: false } }
+                            },
+                            plugins: {
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
             });
         });
     });
