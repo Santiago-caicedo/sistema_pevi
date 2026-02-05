@@ -516,6 +516,7 @@
 
         // 1. DOUGHNUT (kWh)
         const ctxEnergia = document.getElementById('chartEnergia').getContext('2d');
+        const totalEnergia = dataEnergia.reduce((a, b) => a + b, 0);
         new Chart(ctxEnergia, {
             type: 'doughnut',
             data: {
@@ -532,7 +533,14 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'right', labels: { font: { family: "'Inter', sans-serif", size: 11 } } },
-                    tooltip: { callbacks: { label: function(c) { return (c.label || '') + ': ' + c.raw.toLocaleString() + ' kWh'; } } }
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                const porcentaje = ((c.raw / totalEnergia) * 100).toFixed(1);
+                                return c.label + ': ' + c.raw.toLocaleString() + ' kWh (' + porcentaje + '%)';
+                            }
+                        }
+                    }
                 },
                 cutout: '65%'
             }
