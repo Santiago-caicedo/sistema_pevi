@@ -516,34 +516,27 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'centros_public' %}">
-                            <i class="bi bi-building me-1"></i>Centros PEVI
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'biblioteca' %}">Biblioteca</a>
+                        <a class="nav-link" href="{% url 'centros_public' %}">Resultados</a>
                     </li>
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Recursos
+                            Información de Interés
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'biblioteca' %}">Biblioteca Técnica</a></li>
                             <li><a class="dropdown-item" href="#">Mapas e indicadores</a></li>
                             <li><a class="dropdown-item" href="#">Reportes</a></li>
-                            
                         </ul>
                     </li>
 
-                    
+
                 </ul>
 
                 <!-- Logo derecha, botón portal y búsqueda -->
                 <div class="header-right">
                     <a href="{% url 'login' %}" class="btn-portal">
-                        <i class="bi bi-box-arrow-in-right"></i>
-                        Ingresar al portal
+                        Acceso Interno
                     </a>
                     <a href="#" class="simec-logo">
                         <img src="{% static 'img/logo_2.png' %}" alt="PEVI">

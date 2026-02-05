@@ -50,7 +50,9 @@
                         <div class="small text-muted">{{ emp.contacto_email }}</div>
                     </td>
                     <td class="text-end pe-4">
-                        <button class="btn btn-light btn-sm border text-muted"><i class="bi bi-pencil"></i></button>
+                        <a href="{% url 'editar_empresa' emp.id %}" class="btn btn-light btn-sm border text-muted" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
                     </td>
                 </tr>
                 {% empty %}

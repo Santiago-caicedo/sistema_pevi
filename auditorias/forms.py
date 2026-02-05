@@ -26,11 +26,26 @@ class EstiloBootstrapMixin:
 class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
         model = Empresa
-        # Excluimos 'centro' porque se asigna automáticamente en la vista
-        exclude = ['centro']
+        fields = '__all__'
         widgets = {
             'direccion': forms.Textarea(attrs={'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+                # Superadmin/Nacional: Mostrar selector de centro (obligatorio)
+                from gestion.models import CentroPevi
+                self.fields['centro'].queryset = CentroPevi.objects.filter(activo=True)
+                self.fields['centro'].required = True
+            elif user.centro_pevi:
+                # Director de Centro: Ocultar campo, se asigna automáticamente
+                self.fields['centro'].widget = forms.HiddenInput()
+                self.fields['centro'].initial = user.centro_pevi
+                self.fields['centro'].required = False
 
 class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:

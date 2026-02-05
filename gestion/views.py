@@ -255,7 +255,7 @@ def lista_proyectos(request):
 # ==============================================================================
 
 @login_required
-@solo_directivos
+@solo_lideres
 def lista_empresas(request):
     user = request.user
 
@@ -270,21 +270,48 @@ def lista_empresas(request):
     return render(request, 'gestion/lista_empresas.html', {'empresas': empresas})
 
 @login_required
-@solo_directivos
+@solo_lideres
 def crear_empresa(request):
     if request.method == 'POST':
-        form = EmpresaForm(request.POST)
+        form = EmpresaForm(request.POST, user=request.user)
         if form.is_valid():
             empresa = form.save(commit=False)
-            # AISLAMIENTO: Asignar centro del creador automáticamente
-            if request.user.centro_pevi:
+            # AISLAMIENTO: Asignar centro del creador si no viene del formulario
+            if not empresa.centro and request.user.centro_pevi:
                 empresa.centro = request.user.centro_pevi
             empresa.save()
             messages.success(request, "Empresa registrada exitosamente.")
             return redirect('lista_empresas')
     else:
-        form = EmpresaForm()
-    return render(request, 'gestion/empresa_form.html', {'form': form})
+        form = EmpresaForm(user=request.user)
+    return render(request, 'gestion/empresa_form.html', {'form': form, 'titulo': 'Registrar Empresa'})
+
+
+@login_required
+@solo_lideres
+def editar_empresa(request, empresa_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+
+    # Validar acceso: Solo puede editar si es del mismo centro, nacional o superadmin
+    if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+        if empresa.centro != request.user.centro_pevi:
+            raise PermissionDenied("No tienes permiso para editar esta empresa.")
+
+    if request.method == 'POST':
+        form = EmpresaForm(request.POST, instance=empresa, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Empresa '{empresa.razon_social}' actualizada.")
+            return redirect('lista_empresas')
+    else:
+        form = EmpresaForm(instance=empresa, user=request.user)
+
+    return render(request, 'gestion/empresa_form.html', {
+        'form': form,
+        'titulo': f'Editar: {empresa.razon_social}',
+        'empresa': empresa
+    })
+
 
 @login_required
 @solo_directivos

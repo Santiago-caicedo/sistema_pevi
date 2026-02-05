@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from gestion.views import (
-    cambiar_estado_proyecto, crear_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf,
+    cambiar_estado_proyecto, crear_empresa, editar_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf,
     lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento,
     # Panel de Control Superadmin
     control_panel, control_centros_lista, control_centro_crear, control_centro_editar, control_centro_eliminar,
@@ -33,6 +33,7 @@ urlpatterns = [
     # --- EMPRESAS ---
     path('app/empresas/', lista_empresas, name='lista_empresas'),
     path('app/empresas/nueva/', crear_empresa, name='crear_empresa'),
+    path('app/empresas/<int:empresa_id>/editar/', editar_empresa, name='editar_empresa'),
 
     # --- PROYECTOS ---
     path('app/proyectos/', lista_proyectos, name='lista_proyectos'),
