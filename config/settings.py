@@ -133,8 +133,8 @@ AUTH_USER_MODEL = 'gestion.Usuario'
 
 
 # Redirección tras login/logout
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'dashboard'      # Redirige a /app/ después de login
+LOGOUT_REDIRECT_URL = 'home_public'   # Redirige a / (home público) después de logout
 
 
 AUTHENTICATION_BACKENDS = [
