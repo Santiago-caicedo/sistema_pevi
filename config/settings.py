@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config, Csv
+from django.contrib.messages import constants as messages
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -136,6 +137,14 @@ AUTH_USER_MODEL = 'gestion.Usuario'
 LOGIN_REDIRECT_URL = 'dashboard'      # Redirige a /app/ después de login
 LOGOUT_REDIRECT_URL = 'login'   # Redirige al login después de logout
 
+# Mapeo de tags de mensajes para Bootstrap
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}
 
 AUTHENTICATION_BACKENDS = [
     'gestion.backends.EmailOrUsernameModelBackend',  # Nuestro backend personalizado
