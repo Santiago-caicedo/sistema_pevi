@@ -2,7 +2,11 @@ from django.contrib import admin
 from django.urls import path, include
 from gestion.views import (
     cambiar_estado_proyecto, crear_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf,
-    lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento
+    lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento,
+    # Panel de Control Superadmin
+    control_panel, control_centros_lista, control_centro_crear, control_centro_editar, control_centro_eliminar,
+    control_usuarios_lista, control_usuario_crear, control_usuario_editar, control_usuario_eliminar,
+    control_noticias_lista, control_noticia_crear, control_noticia_editar, control_noticia_eliminar
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -53,6 +57,29 @@ urlpatterns = [
 
     # --- MÉTRICAS ---
     path('app/metricas/', include('metricas.urls')),
+
+    # ===========================================================================
+    # PANEL DE CONTROL SUPERADMIN - Prefijo /app/control/
+    # ===========================================================================
+    path('app/control/', control_panel, name='control_panel'),
+
+    # --- Centros PEVI ---
+    path('app/control/centros/', control_centros_lista, name='control_centros_lista'),
+    path('app/control/centros/nuevo/', control_centro_crear, name='control_centro_crear'),
+    path('app/control/centros/<int:centro_id>/editar/', control_centro_editar, name='control_centro_editar'),
+    path('app/control/centros/<int:centro_id>/eliminar/', control_centro_eliminar, name='control_centro_eliminar'),
+
+    # --- Usuarios ---
+    path('app/control/usuarios/', control_usuarios_lista, name='control_usuarios_lista'),
+    path('app/control/usuarios/nuevo/', control_usuario_crear, name='control_usuario_crear'),
+    path('app/control/usuarios/<int:usuario_id>/editar/', control_usuario_editar, name='control_usuario_editar'),
+    path('app/control/usuarios/<int:usuario_id>/eliminar/', control_usuario_eliminar, name='control_usuario_eliminar'),
+
+    # --- Noticias ---
+    path('app/control/noticias/', control_noticias_lista, name='control_noticias_lista'),
+    path('app/control/noticias/nueva/', control_noticia_crear, name='control_noticia_crear'),
+    path('app/control/noticias/<int:noticia_id>/editar/', control_noticia_editar, name='control_noticia_editar'),
+    path('app/control/noticias/<int:noticia_id>/eliminar/', control_noticia_eliminar, name='control_noticia_eliminar'),
 ]
 
 # Serving de archivos estáticos y media en desarrollo local

@@ -1,0 +1,249 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ titulo }} | Panel de Control{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block page_subtitle %}Complete la información del Centro PEVI{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <a href="{% url 'control_centros_lista' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Centros
+    </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+
+            <!-- Identificación -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-card-heading me-2 text-primary"></i>Identificación</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-medium">Nombre Completo *</label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}<div class="text-danger small">{{ form.nombre.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Siglas</label>
+                            {{ form.nombre_corto }}
+                            <small class="text-muted">Ej: UNAL, UIS</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Código UPME *</label>
+                            {{ form.codigo_interno }}
+                            {% if form.codigo_interno.errors %}<div class="text-danger small">{{ form.codigo_interno.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Año de Vinculación</label>
+                            {{ form.año_vinculacion }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ubicación -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2 text-danger"></i>Ubicación</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Región *</label>
+                            {{ form.region }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Ciudad</label>
+                            {{ form.ciudad }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Dirección</label>
+                            {{ form.direccion }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Latitud</label>
+                            {{ form.latitud }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Longitud</label>
+                            {{ form.longitud }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacto -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-envelope me-2 text-success"></i>Contacto</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email de Contacto</label>
+                            {{ form.email_contacto }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Teléfono</label>
+                            {{ form.telefono }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Sitio Web</label>
+                            {{ form.sitio_web }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Redes Sociales -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-share me-2 text-info"></i>Redes Sociales</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium"><i class="bi bi-linkedin me-1"></i>LinkedIn</label>
+                            {{ form.linkedin }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium"><i class="bi bi-twitter-x me-1"></i>Twitter/X</label>
+                            {{ form.twitter }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium"><i class="bi bi-instagram me-1"></i>Instagram</label>
+                            {{ form.instagram }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Director -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-person-badge me-2 text-warning"></i>Director del Centro</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Nombre del Director</label>
+                            {{ form.director_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Cargo Académico</label>
+                            {{ form.director_cargo }}
+                            <small class="text-muted">Ej: PhD. Ingeniería Mecánica</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email del Director</label>
+                            {{ form.director_email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Foto del Director</label>
+                            {{ form.director_foto }}
+                            {% if centro.director_foto %}
+                            <small class="text-muted d-block mt-1">Actual: {{ centro.director_foto.name }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-file-text me-2 text-secondary"></i>Descripción</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Descripción del Centro</label>
+                            {{ form.descripcion }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-medium">Especialidades</label>
+                            {{ form.especialidades }}
+                            <small class="text-muted">Ej: Térmica, Eléctrica, Renovables</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Estudiantes Formados</label>
+                            {{ form.estudiantes_formados }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Columna Lateral -->
+        <div class="col-lg-4">
+
+            <!-- Estado y Branding -->
+            <div class="card-modern mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-palette me-2 text-primary"></i>Estado y Branding</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.activo }}
+                            <label class="form-check-label fw-medium ms-2" for="{{ form.activo.id_for_label }}">Centro Activo</label>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Color Institucional</label>
+                        <div class="d-flex align-items-center gap-2">
+                            {{ form.color_primario }}
+                            <span class="text-muted small">{{ centro.color_primario|default:"#1E40AF" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Logo Institucional</label>
+                        {{ form.logo }}
+                        {% if centro.logo %}
+                        <div class="mt-2 p-2 bg-light rounded text-center">
+                            <img src="{{ centro.logo.url }}" alt="Logo actual" class="img-fluid" style="max-height: 60px;">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Imagen de Portada</label>
+                        {{ form.imagen_portada }}
+                        {% if centro.imagen_portada %}
+                        <div class="mt-2">
+                            <img src="{{ centro.imagen_portada.url }}" alt="Portada actual" class="img-fluid rounded">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                            <i class="bi bi-check-lg me-2"></i>{{ accion }}
+                        </button>
+                        <a href="{% url 'control_centros_lista' %}" class="btn btn-outline-secondary rounded-pill">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+{% endblock %}

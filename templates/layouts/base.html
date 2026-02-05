@@ -223,8 +223,13 @@
             {% endif %}
             
             {% if user.is_superuser %}
+            <div class="sidebar-heading">Super Admin</div>
+            <a href="{% url 'control_panel' %}"
+               class="nav-link {% if 'control' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-sliders"></i> Panel de Control
+            </a>
             <a href="/admin/" target="_blank" class="nav-link">
-                <i class="bi bi-gear"></i> Sistema (Django)
+                <i class="bi bi-gear"></i> Django Admin
             </a>
             {% endif %}
         </div>

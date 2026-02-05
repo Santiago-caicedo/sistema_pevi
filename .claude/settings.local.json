@@ -5,7 +5,9 @@
       "Bash(tree:*)",
       "Bash(du:*)",
       "Bash(python manage.py:*)",
-      "Bash(python3 manage.py makemigrations:*)"
+      "Bash(python3 manage.py makemigrations:*)",
+      "Bash(python3 manage.py:*)",
+      "Bash(cmd.exe /c \"python manage.py check\")"
     ]
   }
 }

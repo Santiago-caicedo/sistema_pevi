@@ -32,18 +32,73 @@ def centros(request):
     """
     Directorio público de universidades con métricas calculadas.
     """
-    # Agrupamos por Centro y contamos sus proyectos finalizados
-    lista_centros = CentroPevi.objects.filter(activo=True).annotate(
-        total_proyectos=Count('proyectoauditoria'),
-        # Si tienes un campo de energía en el proyecto, podrías sumarlo así:
-        # total_energia=Sum('proyectoauditoria__consumo_total_kwh') 
-    ).order_by('-total_proyectos') # Los que más auditan salen primero
-    
+    from auditorias.models import Empresa
+    import json
+
+    # Obtenemos los centros activos
+    lista_centros = CentroPevi.objects.filter(activo=True).order_by('nombre')
+
+    # Regiones únicas para el filtro
     regiones = CentroPevi.objects.filter(activo=True).values_list('region', flat=True).distinct()
-    
+
+    # Total de proyectos para el hero
+    total_proyectos = ProyectoAuditoria.objects.count()
+
+    # Calcular métricas detalladas por cada centro
+    centros_con_metricas = []
+    for centro in lista_centros:
+        proyectos = ProyectoAuditoria.objects.filter(centro=centro)
+        proyectos_finalizados = proyectos.filter(estado='FINALIZADO')
+
+        # Métricas de energía y emisiones
+        total_energia = 0.0
+        total_emisiones = 0.0
+        for p in proyectos_finalizados:
+            total_energia += p.get_total_kwh()
+            total_emisiones += p.get_total_emisiones()
+
+        # Distribución por estado para gráfico
+        estados_count = {
+            'borrador': proyectos.filter(estado='BORRADOR').count(),
+            'ejecucion': proyectos.filter(estado='EJECUCION').count(),
+            'finalizado': proyectos_finalizados.count(),
+        }
+
+        # Sectores industriales únicos
+        sectores = Empresa.objects.filter(
+            auditorias__centro=centro
+        ).values_list('sector_productivo', flat=True).distinct()[:5]
+
+        # Proyectos por año (últimos 5 años)
+        from django.db.models.functions import ExtractYear
+        proyectos_por_año_qs = proyectos.annotate(
+            año=ExtractYear('fecha_inicio')
+        ).values('año').annotate(
+            total=Count('id')
+        ).order_by('año')
+
+        # Convertir a lista y tomar los últimos 5
+        proyectos_por_año = list(proyectos_por_año_qs)[-5:]
+
+        años_labels = [str(p['año']) for p in proyectos_por_año if p['año']]
+        años_data = [p['total'] for p in proyectos_por_año if p['año']]
+
+        centros_con_metricas.append({
+            'centro': centro,
+            'total_energia_mwh': round(total_energia / 1000, 1),  # Convertir a MWh
+            'total_emisiones': round(total_emisiones, 1),
+            'estados_json': json.dumps(list(estados_count.values())),
+            'sectores': list(sectores),
+            'años_labels': json.dumps(años_labels),
+            'años_data': json.dumps(años_data),
+            'proyectos_finalizados': proyectos_finalizados.count(),
+        })
+
     context = {
-        'centros': lista_centros,
-        'regiones': regiones
+        'centros': centros_con_metricas,
+        'regiones': regiones,
+        'total_proyectos': total_proyectos,
+        'total_centros': lista_centros.count(),
     }
     return render(request, 'web/centros.html', context)
 

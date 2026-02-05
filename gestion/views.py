@@ -23,7 +23,10 @@ from auditorias.forms import (
 )
 
 # Decoradores de Seguridad Personalizados
-from .decorators import acceso_staff, solo_directivos, solo_lideres
+from .decorators import acceso_staff, solo_directivos, solo_lideres, solo_superadmin
+
+# Modelo de Noticias
+from web.models import Noticia
 
 # ==============================================================================
 #  CONFIGURACIÓN GLOBAL
@@ -768,5 +771,278 @@ def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
             messages.success(request, "Proyecto Finalizado y Cerrado exitosamente.")
         else:
             messages.info(request, "Estado del proyecto actualizado.")
-            
+
     return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+
+
+# ==============================================================================
+#  6. PANEL DE CONTROL SUPERADMIN
+#  Seguridad: Solo Superusuarios (is_superuser=True)
+# ==============================================================================
+
+@login_required
+@solo_superadmin
+def control_panel(request):
+    """
+    Dashboard principal del Panel de Control del Superadmin.
+    Muestra estadísticas globales y accesos rápidos.
+    """
+    context = {
+        'total_centros': CentroPevi.objects.count(),
+        'centros_activos': CentroPevi.objects.filter(activo=True).count(),
+        'total_usuarios': Usuario.objects.count(),
+        'total_noticias': Noticia.objects.count(),
+        'total_proyectos': ProyectoAuditoria.objects.count(),
+        'total_empresas': Empresa.objects.count(),
+
+        # Últimos registros
+        'ultimos_centros': CentroPevi.objects.order_by('-id')[:5],
+        'ultimos_usuarios': Usuario.objects.order_by('-date_joined')[:5],
+        'ultimas_noticias': Noticia.objects.order_by('-fecha_publicacion')[:5],
+    }
+    return render(request, 'control/panel.html', context)
+
+
+# --- CRUD CENTROS PEVI ---
+
+@login_required
+@solo_superadmin
+def control_centros_lista(request):
+    """Lista todos los Centros PEVI."""
+    centros = CentroPevi.objects.all().order_by('nombre')
+    return render(request, 'control/centros_lista.html', {'centros': centros})
+
+
+@login_required
+@solo_superadmin
+def control_centro_crear(request):
+    """Crea un nuevo Centro PEVI."""
+    from .forms import CentroPeviForm
+
+    if request.method == 'POST':
+        form = CentroPeviForm(request.POST, request.FILES)
+        if form.is_valid():
+            centro = form.save()
+            messages.success(request, f"Centro '{centro.nombre}' creado exitosamente.")
+            return redirect('control_centros_lista')
+    else:
+        form = CentroPeviForm()
+
+    return render(request, 'control/centro_form.html', {
+        'form': form,
+        'titulo': 'Crear Centro PEVI',
+        'accion': 'Crear'
+    })
+
+
+@login_required
+@solo_superadmin
+def control_centro_editar(request, centro_id):
+    """Edita un Centro PEVI existente."""
+    from .forms import CentroPeviForm
+
+    centro = get_object_or_404(CentroPevi, id=centro_id)
+
+    if request.method == 'POST':
+        form = CentroPeviForm(request.POST, request.FILES, instance=centro)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Centro '{centro.nombre}' actualizado.")
+            return redirect('control_centros_lista')
+    else:
+        form = CentroPeviForm(instance=centro)
+
+    return render(request, 'control/centro_form.html', {
+        'form': form,
+        'titulo': f'Editar: {centro.nombre_corto or centro.nombre}',
+        'accion': 'Guardar Cambios',
+        'centro': centro
+    })
+
+
+@login_required
+@solo_superadmin
+def control_centro_eliminar(request, centro_id):
+    """Elimina un Centro PEVI (con confirmación POST)."""
+    centro = get_object_or_404(CentroPevi, id=centro_id)
+
+    if request.method == 'POST':
+        nombre = centro.nombre
+        centro.delete()
+        messages.success(request, f"Centro '{nombre}' eliminado permanentemente.")
+        return redirect('control_centros_lista')
+
+    return render(request, 'control/confirmar_eliminar.html', {
+        'objeto': centro,
+        'tipo': 'Centro PEVI',
+        'nombre': centro.nombre,
+        'url_cancelar': 'control_centros_lista'
+    })
+
+
+# --- CRUD USUARIOS ---
+
+@login_required
+@solo_superadmin
+def control_usuarios_lista(request):
+    """Lista todos los usuarios del sistema."""
+    usuarios = Usuario.objects.select_related('centro_pevi').order_by('-date_joined')
+    return render(request, 'control/usuarios_lista.html', {'usuarios': usuarios})
+
+
+@login_required
+@solo_superadmin
+def control_usuario_crear(request):
+    """Crea un nuevo usuario con rol y centro asignados."""
+    from .forms import UsuarioAdminForm
+
+    if request.method == 'POST':
+        form = UsuarioAdminForm(request.POST)
+        if form.is_valid():
+            usuario = form.save(commit=False)
+            usuario.set_password(form.cleaned_data['password'])
+            usuario.save()
+            messages.success(request, f"Usuario '{usuario.username}' creado exitosamente.")
+            return redirect('control_usuarios_lista')
+    else:
+        form = UsuarioAdminForm()
+
+    return render(request, 'control/usuario_form.html', {
+        'form': form,
+        'titulo': 'Crear Usuario',
+        'accion': 'Crear'
+    })
+
+
+@login_required
+@solo_superadmin
+def control_usuario_editar(request, usuario_id):
+    """Edita un usuario existente."""
+    from .forms import UsuarioAdminEditForm
+
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+
+    if request.method == 'POST':
+        form = UsuarioAdminEditForm(request.POST, instance=usuario)
+        if form.is_valid():
+            usuario = form.save(commit=False)
+            # Si se proporciona nueva contraseña
+            nueva_password = form.cleaned_data.get('nueva_password')
+            if nueva_password:
+                usuario.set_password(nueva_password)
+            usuario.save()
+            messages.success(request, f"Usuario '{usuario.username}' actualizado.")
+            return redirect('control_usuarios_lista')
+    else:
+        form = UsuarioAdminEditForm(instance=usuario)
+
+    return render(request, 'control/usuario_form.html', {
+        'form': form,
+        'titulo': f'Editar: {usuario.username}',
+        'accion': 'Guardar Cambios',
+        'usuario': usuario
+    })
+
+
+@login_required
+@solo_superadmin
+def control_usuario_eliminar(request, usuario_id):
+    """Elimina un usuario (con confirmación POST)."""
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+
+    # Prevenir auto-eliminación
+    if usuario == request.user:
+        messages.error(request, "No puedes eliminarte a ti mismo.")
+        return redirect('control_usuarios_lista')
+
+    if request.method == 'POST':
+        nombre = usuario.username
+        usuario.delete()
+        messages.success(request, f"Usuario '{nombre}' eliminado permanentemente.")
+        return redirect('control_usuarios_lista')
+
+    return render(request, 'control/confirmar_eliminar.html', {
+        'objeto': usuario,
+        'tipo': 'Usuario',
+        'nombre': f"{usuario.get_full_name()} ({usuario.username})",
+        'url_cancelar': 'control_usuarios_lista'
+    })
+
+
+# --- CRUD NOTICIAS ---
+
+@login_required
+@solo_superadmin
+def control_noticias_lista(request):
+    """Lista todas las noticias."""
+    noticias = Noticia.objects.order_by('-fecha_publicacion')
+    return render(request, 'control/noticias_lista.html', {'noticias': noticias})
+
+
+@login_required
+@solo_superadmin
+def control_noticia_crear(request):
+    """Crea una nueva noticia."""
+    from .forms import NoticiaAdminForm
+
+    if request.method == 'POST':
+        form = NoticiaAdminForm(request.POST, request.FILES)
+        if form.is_valid():
+            noticia = form.save(commit=False)
+            noticia.autor = request.user
+            noticia.save()
+            messages.success(request, f"Noticia '{noticia.titulo}' publicada.")
+            return redirect('control_noticias_lista')
+    else:
+        form = NoticiaAdminForm()
+
+    return render(request, 'control/noticia_form.html', {
+        'form': form,
+        'titulo': 'Crear Noticia',
+        'accion': 'Publicar'
+    })
+
+
+@login_required
+@solo_superadmin
+def control_noticia_editar(request, noticia_id):
+    """Edita una noticia existente."""
+    from .forms import NoticiaAdminForm
+
+    noticia = get_object_or_404(Noticia, id=noticia_id)
+
+    if request.method == 'POST':
+        form = NoticiaAdminForm(request.POST, request.FILES, instance=noticia)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Noticia '{noticia.titulo}' actualizada.")
+            return redirect('control_noticias_lista')
+    else:
+        form = NoticiaAdminForm(instance=noticia)
+
+    return render(request, 'control/noticia_form.html', {
+        'form': form,
+        'titulo': f'Editar: {noticia.titulo[:30]}...',
+        'accion': 'Guardar Cambios',
+        'noticia': noticia
+    })
+
+
+@login_required
+@solo_superadmin
+def control_noticia_eliminar(request, noticia_id):
+    """Elimina una noticia (con confirmación POST)."""
+    noticia = get_object_or_404(Noticia, id=noticia_id)
+
+    if request.method == 'POST':
+        titulo = noticia.titulo
+        noticia.delete()
+        messages.success(request, f"Noticia '{titulo}' eliminada.")
+        return redirect('control_noticias_lista')
+
+    return render(request, 'control/confirmar_eliminar.html', {
+        'objeto': noticia,
+        'tipo': 'Noticia',
+        'nombre': noticia.titulo,
+        'url_cancelar': 'control_noticias_lista'
+    })

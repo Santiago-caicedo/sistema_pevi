@@ -88,3 +88,119 @@ class UsuarioEditarForm(EstiloBootstrapMixin, forms.ModelForm):
             if rol not in [Usuario.ROL_PROFESOR, Usuario.ROL_ESTUDIANTE]:
                 raise ValidationError("Intento de escalada de privilegios bloqueado.")
         return rol
+
+
+# ==============================================================================
+#  FORMULARIOS PANEL DE CONTROL SUPERADMIN
+# ==============================================================================
+
+from .models import CentroPevi
+from web.models import Noticia
+
+
+class CentroPeviForm(EstiloBootstrapMixin, forms.ModelForm):
+    """Formulario completo para gestionar Centros PEVI."""
+
+    class Meta:
+        model = CentroPevi
+        fields = [
+            # Identificación
+            'nombre', 'nombre_corto', 'codigo_interno', 'activo',
+            # Branding
+            'logo', 'imagen_portada', 'color_primario',
+            # Ubicación
+            'region', 'ciudad', 'direccion', 'latitud', 'longitud',
+            # Contacto
+            'email_contacto', 'telefono', 'sitio_web',
+            # Redes
+            'linkedin', 'twitter', 'instagram',
+            # Descripción
+            'descripcion', 'especialidades', 'año_vinculacion',
+            # Director
+            'director_nombre', 'director_cargo', 'director_foto', 'director_email',
+            # Métricas
+            'estudiantes_formados',
+        ]
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'rows': 4}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'color_primario': forms.TextInput(attrs={'type': 'color', 'class': 'form-control form-control-color'}),
+        }
+
+
+class UsuarioAdminForm(EstiloBootstrapMixin, forms.ModelForm):
+    """Formulario para crear usuarios desde el Panel de Control (Superadmin)."""
+
+    password = forms.CharField(
+        label="Contraseña",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        min_length=8
+    )
+    password_confirm = forms.CharField(
+        label="Confirmar Contraseña",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'username', 'first_name', 'last_name', 'email',
+            'centro_pevi', 'rol', 'cargo',
+            'is_active', 'is_staff', 'is_superuser'
+        ]
+        widgets = {
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+
+        if password and password_confirm and password != password_confirm:
+            raise ValidationError("Las contraseñas no coinciden.")
+
+        return cleaned_data
+
+
+class UsuarioAdminEditForm(EstiloBootstrapMixin, forms.ModelForm):
+    """Formulario para editar usuarios desde el Panel de Control."""
+
+    nueva_password = forms.CharField(
+        label="Nueva Contraseña (opcional)",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        required=False,
+        min_length=8,
+        help_text="Dejar vacío para mantener la contraseña actual."
+    )
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'username', 'first_name', 'last_name', 'email',
+            'centro_pevi', 'rol', 'cargo',
+            'is_active', 'is_staff', 'is_superuser'
+        ]
+        widgets = {
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class NoticiaAdminForm(EstiloBootstrapMixin, forms.ModelForm):
+    """Formulario para gestionar Noticias."""
+
+    class Meta:
+        model = Noticia
+        fields = ['titulo', 'slug', 'imagen_portada', 'resumen', 'contenido', 'publicada']
+        widgets = {
+            'resumen': forms.Textarea(attrs={'rows': 3}),
+            'contenido': forms.Textarea(attrs={'rows': 10}),
+            'publicada': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        help_texts = {
+            'slug': 'URL amigable. Ej: nueva-alianza-upme',
+        }

@@ -1,0 +1,119 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Usuarios | Panel de Control{% endblock %}
+{% block page_title %}Usuarios del Sistema{% endblock %}
+{% block page_subtitle %}Gestión de cuentas, roles y asignaciones{% endblock %}
+
+{% block content %}
+
+<!-- Alerta de Mensajes -->
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'control_panel' %}" class="btn btn-outline-secondary btn-sm rounded-pill me-2">
+            <i class="bi bi-arrow-left me-1"></i> Panel de Control
+        </a>
+    </div>
+    <a href="{% url 'control_usuario_crear' %}" class="btn btn-primary rounded-pill">
+        <i class="bi bi-plus-lg me-1"></i> Nuevo Usuario
+    </a>
+</div>
+
+<!-- Tabla de Usuarios -->
+<div class="card-modern">
+    <div class="card-body p-0">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Centro</th>
+                    <th>Estado</th>
+                    <th>Registro</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3 fw-bold"
+                                 style="width: 40px; height: 40px;">
+                                {{ usuario.first_name|slice:":1"|upper|default:usuario.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <span class="fw-bold">{{ usuario.get_full_name|default:usuario.username }}</span>
+                                <br><small class="text-muted">@{{ usuario.username }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ usuario.email|default:"-" }}</td>
+                    <td>
+                        {% if usuario.is_superuser %}
+                        <span class="badge bg-dark">Super Admin</span>
+                        {% else %}
+                        <span class="badge bg-soft-primary">{{ usuario.get_rol_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if usuario.centro_pevi %}
+                        <span class="fw-medium">{{ usuario.centro_pevi.nombre_corto|default:usuario.centro_pevi.nombre|truncatechars:15 }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if usuario.is_active %}
+                        <span class="badge bg-soft-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-soft-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ usuario.date_joined|date:"d/m/Y" }}</small>
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'control_usuario_editar' usuario.id %}"
+                           class="btn btn-sm btn-outline-primary rounded-pill me-1" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if usuario != request.user %}
+                        <a href="{% url 'control_usuario_eliminar' usuario.id %}"
+                           class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="No puedes eliminarte">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">No hay usuarios registrados</p>
+                        <a href="{% url 'control_usuario_crear' %}" class="btn btn-primary btn-sm mt-3 rounded-pill">
+                            <i class="bi bi-plus me-1"></i> Crear primer usuario
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

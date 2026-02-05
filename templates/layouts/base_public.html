@@ -277,28 +277,187 @@
             }
         }
 
-        /* --- FOOTER PEVI --- */
-        footer { 
-            background-color: #0b1c4a; 
-            color: white; 
-            padding: 40px 0 20px; 
-            margin-top: 60px; 
+        /* --- FOOTER PEVI PROFESIONAL --- */
+        .footer-main {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 60px 0 0;
+            margin-top: 80px;
+            position: relative;
         }
-        footer a { color: #b3b3b3; text-decoration: none; }
-        footer a:hover { color: white; }
+        .footer-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0ea5e9, #22c55e, #0ea5e9);
+        }
+        .footer-brand {
+            margin-bottom: 20px;
+        }
+        .footer-brand img {
+            height: 45px;
+            width: auto;
+            filter: brightness(0) invert(1);
+            opacity: 0.9;
+        }
+        .footer-description {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #94a3b8;
+            max-width: 320px;
+        }
         .footer-title {
             font-weight: 600;
-            margin-bottom: 10px;
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1.5px;
+            color: #ffffff;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 12px;
         }
-        .footer-logo img {
-            max-height: 45px;
-            width: auto;
+        .footer-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 30px;
+            height: 2px;
+            background: #0ea5e9;
         }
-        .footer-small {
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .footer-links a:hover {
+            color: #0ea5e9;
+            padding-left: 5px;
+        }
+        .footer-links a i {
             font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .footer-links a:hover i {
+            opacity: 1;
+        }
+        .footer-contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .footer-contact-item i {
+            color: #0ea5e9;
+            font-size: 18px;
+            margin-top: 2px;
+        }
+        .footer-contact-item a {
+            color: #e2e8f0;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .footer-contact-item a:hover {
+            color: #0ea5e9;
+        }
+        .footer-social {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .footer-social a:hover {
+            background: #0ea5e9;
+            border-color: #0ea5e9;
+            color: white;
+            transform: translateY(-3px);
+        }
+        .footer-partners {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .footer-partners img {
+            height: 35px;
+            width: auto;
+            filter: brightness(0) invert(1);
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        .footer-partners img:hover {
+            opacity: 1;
+        }
+        .footer-bottom {
+            background: rgba(0,0,0,0.2);
+            padding: 20px 0;
+            margin-top: 50px;
+        }
+        .footer-bottom-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .footer-copyright {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .footer-legal-links {
+            display: flex;
+            gap: 25px;
+        }
+        .footer-legal-links a {
+            font-size: 13px;
+            color: #64748b;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .footer-legal-links a:hover {
+            color: #0ea5e9;
+        }
+        @media (max-width: 768px) {
+            .footer-main {
+                padding: 40px 0 0;
+            }
+            .footer-bottom-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            .footer-legal-links {
+                justify-content: center;
+            }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -341,17 +500,7 @@
             
             <!-- Logo PEVI -->
             <a class="upme-logo" href="{% url 'home_public' %}">
-                <div class="upme-logo-icon">
-                    <img src="{% static 'img/logo_pevi.png' %}" alt="PEVI Colombia">
-                </div>
-                <div class="upme-logo-text">
-                    <span>PEVI</span>
-                    <div class="upme-logo-flag">
-                        <div class="flag-color flag-yellow"></div>
-                        <div class="flag-color flag-blue"></div>
-                        <div class="flag-color flag-red"></div>
-                    </div>
-                </div>
+                <img src="{% static 'img/pevi_horizontal.png' %}" alt="PEVI Colombia" style="height: 50px; width: auto;">
             </a>
 
             <!-- Botón móvil -->
@@ -363,39 +512,26 @@
             <div class="collapse navbar-collapse justify-content-center" id="navbarUpme">
                 <ul class="nav-upme">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{% url 'home_public' %}">Inicio</a>
+                        <a class="nav-link" href="{% url 'nosotros' %}">¿Quiénes Somos?</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'centros_public' %}">
+                            <i class="bi bi-building me-1"></i>Centros PEVI
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'biblioteca' %}">Biblioteca</a>
                     </li>
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Módulos PEVI
+                            Recursos
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Riesgo</a></li>
-                            <li><a class="dropdown-item" href="#">Exposición</a></li>
-                            <li><a class="dropdown-item" href="#">Sensibilidad</a></li>
-                            <li><a class="dropdown-item" href="#">Capacidad adaptativa</a></li>
-                        </ul>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="http://127.0.0.1:8000/web/nosotros/">¿Quiénes Somos?</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Mapas e indicadores</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Reportes</a>
-                    </li>
-
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            Documentación
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="http://127.0.0.1:8000/web/biblioteca/">Biblioteca Técnica</a></li>
+                            <li><a class="dropdown-item" href="#">Mapas e indicadores</a></li>
+                            <li><a class="dropdown-item" href="#">Reportes</a></li>
                             
                         </ul>
                     </li>
@@ -422,47 +558,243 @@
 
     {% block content %}{% endblock %}
 
-    <!-- FOOTER PEVI -->
-    <footer>
+    <!-- FOOTER PEVI PROFESIONAL -->
+    <footer class="footer-main">
         <div class="container">
-            <div class="row align-items-start mb-3">
-                <div class="col-md-4 mb-3 mb-md-0 footer-logo">
-                    <img src="{% static 'img/logo_2.png' %}" alt="PEVI Colombia">
-                    <p class="footer-small mt-2 mb-0">
-                        Plataforma de Evaluación de Vulnerabilidad e Impacto (PEVI) para el análisis del sector energético colombiano.
+            <div class="row g-4">
+                <!-- Columna 1: Marca y descripción -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-brand">
+                        <img src="{% static 'img/pevi_horizontal.png' %}" alt="PEVI Colombia">
+                    </div>
+                    <p class="footer-description">
+                        Programa de Evaluación Industrial para la eficiencia energética en Colombia. Impulsando la sostenibilidad y competitividad del sector productivo nacional.
                     </p>
+                    <div class="footer-social">
+                        <a href="#" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                        <a href="#" title="Twitter"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" title="YouTube"><i class="bi bi-youtube"></i></a>
+                        <a href="#" title="Instagram"><i class="bi bi-instagram"></i></a>
+                    </div>
                 </div>
-                <div class="col-md-4 mb-3 mb-md-0">
-                    <div class="footer-title">PEVI Colombia</div>
-                    <ul class="list-unstyled footer-small mb-0">
-                        <li><a href="#">Acerca de PEVI</a></li>
-                        <li><a href="#">Metodología</a></li>
-                        <li><a href="#">Términos y condiciones</a></li>
-                        <li><a href="#">Política de privacidad</a></li>
+
+                <!-- Columna 2: Enlaces rápidos -->
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="footer-title">Navegación</h5>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'home_public' %}"><i class="bi bi-chevron-right"></i>Inicio</a></li>
+                        <li><a href="{% url 'nosotros' %}"><i class="bi bi-chevron-right"></i>Quiénes Somos</a></li>
+                        <li><a href="{% url 'centros_public' %}"><i class="bi bi-chevron-right"></i>Centros PEVI</a></li>
+                        <li><a href="{% url 'biblioteca' %}"><i class="bi bi-chevron-right"></i>Biblioteca</a></li>
                     </ul>
                 </div>
-                <div class="col-md-4">
-                    <div class="footer-title">Contacto</div>
-                    <p class="footer-small mb-1">
-                        Soporte técnico y consultas sobre la plataforma PEVI.
-                    </p>
-                    <p class="footer-small mb-0">
-                        Correo: <a href="mailto:soporte@pevi-colombia.com">soporte@pevi-colombia.com</a><br>
-                        <span>Horario de atención: Lunes a Viernes 8:00 a.m. - 5:00 p.m.</span>
-                    </p>
+
+                <!-- Columna 3: Recursos -->
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="footer-title">Recursos</h5>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="bi bi-chevron-right"></i>Documentación</a></li>
+                        <li><a href="#"><i class="bi bi-chevron-right"></i>Metodología</a></li>
+                        <li><a href="#"><i class="bi bi-chevron-right"></i>Indicadores</a></li>
+                        <li><a href="{% url 'login' %}"><i class="bi bi-chevron-right"></i>Portal PEVI</a></li>
+                    </ul>
+                </div>
+
+                <!-- Columna 4: Contacto -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="footer-title">Contacto</h5>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>Bogotá D.C., Colombia<br>Carrera 50 No. 26-20</span>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-envelope-fill"></i>
+                        <a href="mailto:contacto@pevicolombia.com">contacto@pevicolombia.com</a>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-telephone-fill"></i>
+                        <span>(+57) 601 123 4567</span>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-clock-fill"></i>
+                        <span>Lunes a Viernes: 8:00 AM - 5:00 PM</span>
+                    </div>
                 </div>
             </div>
-            <div class="row mt-3 pt-3 border-top border-secondary">
-                <div class="col-12 text-center">
-                    <p class="footer-small mb-0">
-                        &copy; {% now "Y" %} PEVI Colombia. Todos los derechos reservados.
+        </div>
+
+        <!-- Footer Bottom -->
+        <div class="footer-bottom">
+            <div class="container">
+                <div class="footer-bottom-content">
+                    <p class="footer-copyright mb-0">
+                        &copy; {% now "Y" %} <strong>PEVI Colombia</strong>. Todos los derechos reservados.
                     </p>
+                    <div class="footer-legal-links">
+                        <a href="#">Términos de uso</a>
+                        <a href="#">Política de privacidad</a>
+                        <a href="#">Accesibilidad</a>
+                    </div>
                 </div>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+    <!-- Animaciones globales con Anime.js -->
+    <script>
+        // Utilidad: Intersection Observer para animaciones on-scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        // Animación de entrada para elementos con clase .animate-on-scroll
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const delay = el.dataset.delay || 0;
+                    const direction = el.dataset.direction || 'up';
+
+                    let translateY = direction === 'up' ? [40, 0] : [-40, 0];
+                    let translateX = direction === 'left' ? [40, 0] : direction === 'right' ? [-40, 0] : [0, 0];
+
+                    anime({
+                        targets: el,
+                        opacity: [0, 1],
+                        translateY: translateY,
+                        translateX: translateX,
+                        duration: 800,
+                        delay: parseInt(delay),
+                        easing: 'easeOutQuart'
+                    });
+
+                    scrollObserver.unobserve(el);
+                }
+            });
+        }, observerOptions);
+
+        // Animación de contadores numéricos
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const endValue = parseInt(el.dataset.count) || parseInt(el.textContent) || 0;
+                    const suffix = el.dataset.suffix || '';
+                    const prefix = el.dataset.prefix || '';
+
+                    anime({
+                        targets: el,
+                        innerHTML: [0, endValue],
+                        round: 1,
+                        duration: 2000,
+                        delay: 200,
+                        easing: 'easeOutExpo',
+                        update: function(anim) {
+                            el.innerHTML = prefix + Math.round(el.innerHTML) + suffix;
+                        }
+                    });
+
+                    counterObserver.unobserve(el);
+                }
+            });
+        }, observerOptions);
+
+        // Animación stagger para grids de cards
+        const staggerObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const container = entry.target;
+                    const items = container.querySelectorAll('.stagger-item');
+
+                    anime({
+                        targets: items,
+                        opacity: [0, 1],
+                        translateY: [30, 0],
+                        scale: [0.95, 1],
+                        delay: anime.stagger(100, {start: 200}),
+                        duration: 600,
+                        easing: 'easeOutQuart'
+                    });
+
+                    staggerObserver.unobserve(container);
+                }
+            });
+        }, observerOptions);
+
+        // Inicializar observadores cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos con animación de entrada
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                el.style.opacity = '0';
+                scrollObserver.observe(el);
+            });
+
+            // Contadores animados
+            document.querySelectorAll('.counter-animate').forEach(el => {
+                counterObserver.observe(el);
+            });
+
+            // Contenedores con stagger
+            document.querySelectorAll('.stagger-container').forEach(el => {
+                el.querySelectorAll('.stagger-item').forEach(item => {
+                    item.style.opacity = '0';
+                });
+                staggerObserver.observe(el);
+            });
+
+            // Hover effects mejorados para cards
+            document.querySelectorAll('.hover-animate').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    anime({
+                        targets: this,
+                        scale: 1.02,
+                        translateY: -8,
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                        duration: 300,
+                        easing: 'easeOutQuart'
+                    });
+
+                    // Animar icono interno si existe
+                    const icon = this.querySelector('.hover-icon');
+                    if (icon) {
+                        anime({
+                            targets: icon,
+                            scale: 1.2,
+                            rotate: '10deg',
+                            duration: 300,
+                            easing: 'easeOutQuart'
+                        });
+                    }
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    anime({
+                        targets: this,
+                        scale: 1,
+                        translateY: 0,
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        duration: 300,
+                        easing: 'easeOutQuart'
+                    });
+
+                    const icon = this.querySelector('.hover-icon');
+                    if (icon) {
+                        anime({
+                            targets: icon,
+                            scale: 1,
+                            rotate: '0deg',
+                            duration: 300,
+                            easing: 'easeOutQuart'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

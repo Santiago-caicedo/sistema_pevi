@@ -80,17 +80,17 @@
 
 <section class="position-relative px-3" style="margin-top: -100px; z-index: 20; padding-bottom: 3rem;">
     <div class="container">
-        <div class="row g-4 justify-content-center">
-            
-            <div class="col-lg-4 col-md-6">
-                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-primary position-relative overflow-hidden hover-kpi">
-                    <div class="icon-box bg-gradient-primary text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+        <div class="row g-4 justify-content-center stagger-container">
+
+            <div class="col-lg-4 col-md-6 stagger-item">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-primary position-relative overflow-hidden hover-animate">
+                    <div class="icon-box bg-gradient-primary text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4 hover-icon">
                         <i class="bi bi-buildings-fill fs-3"></i>
                     </div>
                     <div>
                         <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Red Académica</p>
                         <div class="d-flex align-items-baseline">
-                            <h2 class="fw-bold text-dark mb-0 me-2">{{ kpi_centros }}</h2>
+                            <h2 class="fw-bold text-dark mb-0 me-2 counter-animate" data-count="{{ kpi_centros }}">0</h2>
                             <span class="text-primary fw-medium small">Centros PEVI</span>
                         </div>
                     </div>
@@ -98,15 +98,15 @@
                 </div>
             </div>
 
-            <div class="col-lg-4 col-md-6">
-                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-success position-relative overflow-hidden hover-kpi">
-                    <div class="icon-box bg-gradient-success text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+            <div class="col-lg-4 col-md-6 stagger-item">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-success position-relative overflow-hidden hover-animate">
+                    <div class="icon-box bg-gradient-success text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4 hover-icon">
                         <i class="bi bi-clipboard-data-fill fs-3"></i>
                     </div>
                     <div>
                         <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Gestión Industrial</p>
                         <div class="d-flex align-items-baseline">
-                            <h2 class="fw-bold text-dark mb-0 me-2">{{ kpi_proyectos }}+</h2>
+                            <h2 class="fw-bold text-dark mb-0 me-2 counter-animate" data-count="{{ kpi_proyectos }}" data-suffix="+">0</h2>
                             <span class="text-success fw-medium small">Proyectos</span>
                         </div>
                     </div>
@@ -114,9 +114,9 @@
                 </div>
             </div>
 
-            <div class="col-lg-4 col-md-6">
-                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-warning position-relative overflow-hidden hover-kpi">
-                    <div class="icon-box bg-gradient-warning text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4">
+            <div class="col-lg-4 col-md-6 stagger-item">
+                <div class="kpi-widget bg-white p-4 shadow-lg rounded-4 h-100 d-flex align-items-center border-start border-5 border-warning position-relative overflow-hidden hover-animate">
+                    <div class="icon-box bg-gradient-warning text-white shadow-sm rounded-3 d-flex align-items-center justify-content-center me-4 hover-icon">
                         <i class="bi bi-lightning-charge-fill fs-3"></i>
                     </div>
                     <div>
@@ -139,19 +139,19 @@
 
     <div class="container position-relative z-1">
         <div class="d-flex justify-content-between align-items-end mb-5">
-            <div>
+            <div class="animate-on-scroll">
                 <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">
                     <i class="bi bi-newspaper me-1"></i> Actualidad
                 </h6>
                 <h2 class="fw-bold text-dark display-6">Novedades del Programa</h2>
             </div>
-            <a href="#" class="btn btn-outline-dark rounded-pill px-4 fw-medium d-none d-md-inline-block">Ver todas las noticias</a>
+            <a href="#" class="btn btn-outline-dark rounded-pill px-4 fw-medium d-none d-md-inline-block animate-on-scroll" data-delay="200">Ver todas las noticias</a>
         </div>
-        
-        <div class="row g-4">
+
+        <div class="row g-4 stagger-container">
             {% for noticia in noticias %}
-            <div class="col-lg-4 col-md-6">
-                <article class="card news-card h-100 border-0 shadow-sm">
+            <div class="col-lg-4 col-md-6 stagger-item">
+                <article class="card news-card h-100 border-0 shadow-sm hover-animate">
                     <div class="news-img-wrapper">
                         {% if noticia.imagen_portada %}
                             <img src="{{ noticia.imagen_portada.url }}" class="news-img" alt="{{ noticia.titulo }}">
@@ -211,8 +211,8 @@
     <div class="container py-4">
         <div class="row align-items-center gx-5">
             <div class="col-lg-6 order-2 order-lg-1">
-                <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3 fw-bold">Sobre el Programa</span>
-                <h2 class="display-6 fw-bold text-dark mb-4">Ingeniería Aplicada para la Sostenibilidad Industrial</h2>
+                <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3 fw-bold animate-on-scroll">Sobre el Programa</span>
+                <h2 class="display-6 fw-bold text-dark mb-4 animate-on-scroll" data-delay="100">Ingeniería Aplicada para la Sostenibilidad Industrial</h2>
                 <p class="lead text-muted mb-4">
                     El <strong>PEVI</strong> (Programa de Evaluación Industrial) es una estrategia nacional que vincula el conocimiento técnico de las universidades con las necesidades operativas de la industria.
                 </p>
@@ -264,7 +264,7 @@
 
 <section class="py-5 bg-light">
     <div class="container py-4">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 animate-on-scroll">
             <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">Paso a Paso</h6>
             <h2 class="fw-bold text-dark display-6">Ruta de Eficiencia Energética</h2>
             <p class="text-muted mx-auto" style="max-width: 600px;">
@@ -272,10 +272,10 @@
             </p>
         </div>
 
-        <div class="row g-4 justify-content-center position-relative">
+        <div class="row g-4 justify-content-center position-relative stagger-container">
             <div class="d-none d-lg-block position-absolute top-50 start-0 w-100 border-top border-2 border-dashed border-primary opacity-25" style="z-index: 0; transform: translateY(-20px);"></div>
 
-            <div class="col-lg-3 col-md-6 position-relative z-1">
+            <div class="col-lg-3 col-md-6 position-relative z-1 stagger-item">
                 <div class="card h-100 border-0 bg-transparent text-center">
                     <div class="d-flex justify-content-center mb-4">
                         <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
@@ -288,7 +288,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 position-relative z-1">
+            <div class="col-lg-3 col-md-6 position-relative z-1 stagger-item">
                 <div class="card h-100 border-0 bg-transparent text-center">
                     <div class="d-flex justify-content-center mb-4">
                         <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
@@ -301,7 +301,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 position-relative z-1">
+            <div class="col-lg-3 col-md-6 position-relative z-1 stagger-item">
                 <div class="card h-100 border-0 bg-transparent text-center">
                     <div class="d-flex justify-content-center mb-4">
                         <div class="rounded-circle bg-white border border-primary text-primary d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
@@ -314,7 +314,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 position-relative z-1">
+            <div class="col-lg-3 col-md-6 position-relative z-1 stagger-item">
                 <div class="card h-100 border-0 bg-transparent text-center">
                     <div class="d-flex justify-content-center mb-4">
                         <div class="rounded-circle bg-white border border-success text-success d-flex align-items-center justify-content-center shadow-sm position-relative" style="width: 80px; height: 80px;">
@@ -336,12 +336,12 @@
     <div class="position-absolute bottom-0 start-0 rounded-circle bg-white opacity-10" style="width: 300px; height: 300px; transform: translate(-30%, 30%);"></div>
 
     <div class="container position-relative z-1 py-4 text-center">
-        <h2 class="display-5 fw-bold mb-3">¿Listo para optimizar su consumo energético?</h2>
-        <p class="lead text-white-50 mb-5 mx-auto" style="max-width: 700px;">
-            Únase a las más de 100 empresas que ya han mejorado su competitividad y reducido su huella de carbono con el programa PEVI.
+        <h2 class="display-5 fw-bold mb-3 animate-on-scroll">¿Listo para optimizar su consumo energético?</h2>
+        <p class="lead text-white-50 mb-5 mx-auto animate-on-scroll" data-delay="100" style="max-width: 700px;">
+            Únase a las más de <span class="counter-animate" data-count="100" data-suffix="+">0</span> empresas que ya han mejorado su competitividad y reducido su huella de carbono con el programa PEVI.
         </p>
-        
-        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center animate-on-scroll" data-delay="200">
             <a href="{% url 'login' %}" class="btn btn-light btn-lg rounded-pill px-5 fw-bold shadow-lg text-primary hover-scale">Registrar mi Empresa</a>
             <a href="#" class="btn btn-outline-light btn-lg rounded-pill px-5 fw-bold hover-scale">Contactar Asesor</a>
         </div>
@@ -352,23 +352,23 @@
 
 <section class="py-5 border-top bg-white">
     <div class="container text-center">
-        <p class="text-uppercase text-muted fw-bold small ls-1 mb-5">Iniciativa respaldada por</p>
-        
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-5">
-            
-            <div class="ally-item">
+        <p class="text-uppercase text-muted fw-bold small ls-1 mb-5 animate-on-scroll">Iniciativa respaldada por</p>
+
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-5 stagger-container">
+
+            <div class="ally-item stagger-item">
                 <img src="{% static 'img/logo_upme.png' %}" alt="UPME" class="img-fluid ally-logo">
             </div>
 
-            <div class="ally-item">
+            <div class="ally-item stagger-item">
                 <img src="{% static 'img/logo_minenergia.png' %}" alt="MinEnergía" class="img-fluid ally-logo">
             </div>
 
-            <div class="ally-item">
+            <div class="ally-item stagger-item">
                 <img src="{% static 'img/logo_onudi.png' %}" alt="ONUDI" class="img-fluid ally-logo">
             </div>
 
-            <div class="ally-item">
+            <div class="ally-item stagger-item">
                 <img src="{% static 'img/logo_fenoge.png' %}" alt="FENOGE" class="img-fluid ally-logo">
             </div>
 

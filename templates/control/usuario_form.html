@@ -1,0 +1,176 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ titulo }} | Panel de Control{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block page_subtitle %}Configure la cuenta de usuario{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <a href="{% url 'control_usuarios_lista' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Usuarios
+    </a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+
+            <!-- Datos de Cuenta -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-person me-2 text-primary"></i>Datos de Cuenta</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Nombre de Usuario *</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Nombre</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Apellido</label>
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contraseña -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2 text-warning"></i>Contraseña</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    {% if usuario %}
+                    <!-- Modo Edición -->
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Nueva Contraseña (opcional)</label>
+                            {{ form.nueva_password }}
+                            <small class="text-muted">Dejar vacío para mantener la contraseña actual.</small>
+                            {% if form.nueva_password.errors %}<div class="text-danger small">{{ form.nueva_password.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Modo Creación -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Contraseña *</label>
+                            {{ form.password }}
+                            {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Confirmar Contraseña *</label>
+                            {{ form.password_confirm }}
+                            {% if form.password_confirm.errors %}<div class="text-danger small">{{ form.password_confirm.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Rol y Centro -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2 text-info"></i>Rol y Asignación</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Centro PEVI</label>
+                            {{ form.centro_pevi }}
+                            <small class="text-muted">Dejar vacío para usuarios globales (Nacionales).</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Rol *</label>
+                            {{ form.rol }}
+                            {% if form.rol.errors %}<div class="text-danger small">{{ form.rol.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Cargo</label>
+                            {{ form.cargo }}
+                            <small class="text-muted">Ej: Ingeniero de Proyectos, Coordinador PEVI</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Columna Lateral -->
+        <div class="col-lg-4">
+
+            <!-- Permisos -->
+            <div class="card-modern mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-key me-2 text-danger"></i>Permisos Especiales</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-medium ms-2" for="{{ form.is_active.id_for_label }}">
+                                Cuenta Activa
+                            </label>
+                        </div>
+                        <small class="text-muted">Desactivar para bloquear el acceso sin eliminar.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.is_staff }}
+                            <label class="form-check-label fw-medium ms-2" for="{{ form.is_staff.id_for_label }}">
+                                Acceso al Admin Django
+                            </label>
+                        </div>
+                        <small class="text-muted">Permite entrar a /admin/</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_superuser }}
+                            <label class="form-check-label fw-medium ms-2 text-danger" for="{{ form.is_superuser.id_for_label }}">
+                                Super Usuario
+                            </label>
+                        </div>
+                        <small class="text-danger">CUIDADO: Acceso total al sistema.</small>
+                    </div>
+
+                    <hr>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger small">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                            <i class="bi bi-check-lg me-2"></i>{{ accion }}
+                        </button>
+                        <a href="{% url 'control_usuarios_lista' %}" class="btn btn-outline-secondary rounded-pill">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+{% endblock %}

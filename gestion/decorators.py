@@ -39,3 +39,16 @@ def solo_lideres(view_func):
 # Todos menos externos (si los hubiera). Por ahora todos los roles internos.
 def acceso_staff(view_func):
     return role_required(['ESTUDIANTE', 'PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'])(view_func)
+
+
+# 4. SOLO SUPERADMIN (Panel de Control Total)
+def solo_superadmin(view_func):
+    """
+    Acceso exclusivo para superusuarios (is_superuser=True).
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        raise PermissionDenied("Acceso Denegado: Solo el Super Administrador puede acceder.")
+    return _wrapped_view

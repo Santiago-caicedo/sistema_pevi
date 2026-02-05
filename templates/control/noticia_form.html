@@ -1,0 +1,113 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ titulo }} | Panel de Control{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block page_subtitle %}Redacte el contenido de la noticia{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <a href="{% url 'control_noticias_lista' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Noticias
+    </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Columna Principal -->
+        <div class="col-lg-8">
+
+            <!-- Contenido Principal -->
+            <div class="card-modern mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2 text-primary"></i>Contenido</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Título *</label>
+                            {{ form.titulo }}
+                            {% if form.titulo.errors %}<div class="text-danger small">{{ form.titulo.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Slug (URL) *</label>
+                            {{ form.slug }}
+                            {% if form.slug.errors %}<div class="text-danger small">{{ form.slug.errors.0 }}</div>{% endif %}
+                            <small class="text-muted">URL amigable. Ej: nueva-alianza-upme-2025</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Resumen *</label>
+                            {{ form.resumen }}
+                            {% if form.resumen.errors %}<div class="text-danger small">{{ form.resumen.errors.0 }}</div>{% endif %}
+                            <small class="text-muted">Breve descripción que aparece en las tarjetas. Máximo 500 caracteres.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Contenido Completo *</label>
+                            {{ form.contenido }}
+                            {% if form.contenido.errors %}<div class="text-danger small">{{ form.contenido.errors.0 }}</div>{% endif %}
+                            <small class="text-muted">Cuerpo completo de la noticia.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Columna Lateral -->
+        <div class="col-lg-4">
+
+            <!-- Publicación -->
+            <div class="card-modern mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-send me-2 text-success"></i>Publicación</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.publicada }}
+                            <label class="form-check-label fw-medium ms-2" for="{{ form.publicada.id_for_label }}">
+                                Noticia Publicada
+                            </label>
+                        </div>
+                        <small class="text-muted">Desactivar para guardar como borrador.</small>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Imagen de Portada</label>
+                        {{ form.imagen_portada }}
+                        {% if noticia.imagen_portada %}
+                        <div class="mt-2">
+                            <img src="{{ noticia.imagen_portada.url }}" alt="Portada actual" class="img-fluid rounded">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger small mb-3">
+                        Por favor corrija los errores indicados.
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                            <i class="bi bi-check-lg me-2"></i>{{ accion }}
+                        </button>
+                        <a href="{% url 'control_noticias_lista' %}" class="btn btn-outline-secondary rounded-pill">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+{% endblock %}
