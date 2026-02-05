@@ -7,7 +7,10 @@
       "Bash(python manage.py:*)",
       "Bash(python3 manage.py makemigrations:*)",
       "Bash(python3 manage.py:*)",
-      "Bash(cmd.exe /c \"python manage.py check\")"
+      "Bash(cmd.exe /c \"python manage.py check\")",
+      "Bash(python -c:*)",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0, ''.''\\); from web.views import resultados; print\\(''View OK''\\)\")",
+      "Bash(python3:*)"
     ]
   }
 }

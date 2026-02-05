@@ -1,0 +1,616 @@
+{% extends 'layouts/base_public.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<section class="hero-results position-relative py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0284c7 100%);">
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"1\" fill=\"rgba(255,255,255,0.1)\"/></svg>') repeat; background-size: 30px;"></div>
+
+    <div class="container position-relative z-1 py-5">
+        <div class="text-center mb-5">
+            <span class="badge bg-white bg-opacity-20 text-white border border-white border-opacity-25 rounded-pill px-4 py-2 mb-3">
+                <i class="bi bi-bar-chart-line me-2"></i>Datos Anonimizados
+            </span>
+            <h1 class="display-4 fw-bold text-white mb-3">Resultados del Programa PEVI</h1>
+            <p class="lead text-white text-opacity-75 mx-auto" style="max-width: 700px;">
+                Impacto agregado de las auditorías energéticas realizadas por la red universitaria a nivel nacional.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-clipboard-data-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1 counter-animate" data-count="{{ total_proyectos }}">0</h2>
+                    <p class="small text-white text-opacity-75 mb-0">Auditorías Finalizadas</p>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-building-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1 counter-animate" data-count="{{ total_empresas }}">0</h2>
+                    <p class="small text-white text-opacity-75 mb-0">Empresas Beneficiadas</p>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1 counter-animate" data-count="{{ total_centros }}">0</h2>
+                    <p class="small text-white text-opacity-75 mb-0">Centros PEVI</p>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1">{{ total_energia_mwh|floatformat:0|intcomma }}</h2>
+                    <p class="small text-white text-opacity-75 mb-0">MWh Analizados</p>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-cloud-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1">{{ total_emisiones_ton|floatformat:0|intcomma }}</h2>
+                    <p class="small text-white text-opacity-75 mb-0">Ton CO2 Calculadas</p>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="kpi-card text-center p-4 rounded-4 h-100">
+                    <div class="kpi-icon mx-auto mb-3">
+                        <i class="bi bi-gear-wide-connected"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mb-1 counter-animate" data-count="{{ sectores_unicos }}">0</h2>
+                    <p class="small text-white text-opacity-75 mb-0">Sectores Industriales</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-geo-alt-fill text-primary me-2"></i>Cobertura Nacional
+                </h4>
+                <p class="text-muted mb-0">Distribución geográfica de los Centros PEVI participantes</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div id="mapa-colombia" style="height: 500px; background: #e2e8f0;"></div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">
+                <i class="bi bi-bar-chart-fill me-1"></i> Análisis Agregado
+            </h6>
+            <h2 class="fw-bold text-dark">Distribución del Consumo Energético</h2>
+            <p class="text-muted mx-auto" style="max-width: 600px;">
+                Datos consolidados de todas las auditorías finalizadas, clasificados por tipo de fuente y sector industrial.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h6 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-pie-chart-fill text-primary me-2"></i>Energía por Tipo de Fuente
+                        </h6>
+                        <p class="small text-muted mb-0">Distribución del consumo en MWh por fuente energética</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="chartEnergiaTipo"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h6 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-graph-up-arrow text-success me-2"></i>Evolución de Auditorías
+                        </h6>
+                        <p class="small text-muted mb-0">Número de proyectos finalizados por año</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="chartEvolucion"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h6 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-buildings text-warning me-2"></i>Proyectos por Sector Industrial
+                        </h6>
+                        <p class="small text-muted mb-0">Sectores productivos con mayor cantidad de auditorías</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="chartSectores"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h6 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-map-fill text-info me-2"></i>Distribución por Región
+                        </h6>
+                        <p class="small text-muted mb-0">Cobertura geográfica de las auditorías realizadas</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="chartRegiones"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h6 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-mortarboard-fill text-primary me-2"></i>Participación por Centro PEVI
+                        </h6>
+                        <p class="small text-muted mb-0">Número de auditorías realizadas por cada universidad</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="chart-container" style="height: 350px;">
+                            <canvas id="chartCentros"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient-dark text-white">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center">
+                        <div class="mb-4">
+                            <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-2 mb-3">
+                                <i class="bi bi-info-circle me-1"></i> Nota Metodológica
+                            </span>
+                            <h5 class="fw-bold mb-3">Datos Anonimizados</h5>
+                            <p class="text-white text-opacity-75 small mb-0">
+                                Toda la información presentada corresponde a datos agregados de las auditorías energéticas
+                                finalizadas. No se revelan nombres de empresas, ubicaciones específicas ni datos que
+                                permitan identificar a los participantes del programa.
+                            </p>
+                        </div>
+                        <hr class="border-white border-opacity-25 my-4">
+                        <div>
+                            <h6 class="fw-bold mb-2">
+                                <i class="bi bi-shield-check me-2"></i>Confidencialidad
+                            </h6>
+                            <p class="text-white text-opacity-75 small mb-0">
+                                Los datos de consumo y emisiones se presentan de forma consolidada para proteger
+                                la información comercial de las empresas participantes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-primary text-white position-relative overflow-hidden">
+    <div class="position-absolute top-0 end-0 rounded-circle bg-white opacity-10" style="width: 300px; height: 300px; transform: translate(30%, -30%);"></div>
+    <div class="container position-relative z-1 text-center">
+        <h3 class="fw-bold mb-3">¿Quiere que su empresa sea parte de estos resultados?</h3>
+        <p class="text-white text-opacity-75 mb-4 mx-auto" style="max-width: 600px;">
+            Únase al programa PEVI y optimice el consumo energético de su planta industrial con el respaldo de las mejores universidades del país.
+        </p>
+        <a href="{% url 'centros_public' %}" class="btn btn-light btn-lg rounded-pill px-5 fw-bold shadow">
+            <i class="bi bi-arrow-right me-2"></i>Conocer los Centros PEVI
+        </a>
+    </div>
+</section>
+
+<style>
+    .ls-1 { letter-spacing: 1px; }
+
+    .kpi-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: transform 0.3s ease, background 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.15);
+    }
+    .kpi-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .bg-gradient-dark {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+
+    .chart-container {
+        position: relative;
+        width: 100%;
+    }
+    .chart-container canvas {
+        max-height: 100%;
+    }
+
+    #mapa-colombia {
+        border-radius: 0;
+    }
+
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .leaflet-popup-content {
+        margin: 12px 16px;
+        font-family: inherit;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // =========================================================================
+    // MAPA DE COLOMBIA CON LEAFLET
+    // =========================================================================
+    const centrosData = {{ centros_mapa_json|safe }};
+
+    const map = L.map('mapa-colombia', {
+        scrollWheelZoom: false
+    }).setView([4.5709, -74.2973], 6);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    if (centrosData.length === 0) {
+        // Mostrar mensaje si no hay centros con coordenadas
+        const noDataDiv = document.createElement('div');
+        noDataDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-geo-alt fs-1 mb-2 d-block opacity-50"></i><p>Los centros aún no tienen coordenadas configuradas</p></div>';
+        noDataDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:rgba(255,255,255,0.9);padding:20px;border-radius:10px;';
+        document.getElementById('mapa-colombia').appendChild(noDataDiv);
+    }
+
+    centrosData.forEach(function(centro) {
+        const markerHtml = `
+            <div style="
+                background: ${centro.color};
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: 3px solid white;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 12px;
+            ">${centro.proyectos}</div>
+        `;
+
+        const customIcon = L.divIcon({
+            html: markerHtml,
+            className: 'custom-marker',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+        });
+
+        L.marker([centro.lat, centro.lng], { icon: customIcon })
+            .addTo(map)
+            .bindPopup(`
+                <div class="text-center">
+                    <strong class="d-block mb-1" style="font-size: 14px;">${centro.nombre}</strong>
+                    <span class="text-muted small d-block mb-2">${centro.region}</span>
+                    <span class="badge bg-primary">${centro.proyectos} Auditorías</span>
+                </div>
+            `);
+    });
+
+    // =========================================================================
+    // CONFIGURACIÓN GLOBAL DE CHART.JS
+    // =========================================================================
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+    const coloresPrimarios = [
+        '#0284c7', '#059669', '#d97706', '#dc2626',
+        '#7c3aed', '#db2777', '#0891b2', '#65a30d'
+    ];
+
+    const coloresGradiente = [
+        'rgba(2, 132, 199, 0.8)',
+        'rgba(5, 150, 105, 0.8)',
+        'rgba(217, 119, 6, 0.8)',
+        'rgba(220, 38, 38, 0.8)',
+        'rgba(124, 58, 237, 0.8)',
+        'rgba(219, 39, 119, 0.8)'
+    ];
+
+    // =========================================================================
+    // GRÁFICO: ENERGÍA POR TIPO
+    // =========================================================================
+    const energiaData = {{ energia_por_tipo_data|safe }};
+    const energiaLabels = {{ energia_por_tipo_labels|safe }};
+    const tieneEnergia = energiaData.some(v => v > 0);
+
+    if (tieneEnergia) {
+        new Chart(document.getElementById('chartEnergiaTipo'), {
+            type: 'doughnut',
+            data: {
+                labels: energiaLabels,
+                datasets: [{
+                    data: energiaData,
+                    backgroundColor: coloresGradiente,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { padding: 15, font: { size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.toLocaleString() + ' MWh';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // Mostrar gráfico vacío con mensaje
+        const ctx = document.getElementById('chartEnergiaTipo').getContext('2d');
+        ctx.font = '14px Inter, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sin datos de energía registrados', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+
+    // =========================================================================
+    // GRÁFICO: EVOLUCIÓN TEMPORAL
+    // =========================================================================
+    const añosLabels = {{ años_labels|safe }};
+    const añosData = {{ años_data|safe }};
+
+    new Chart(document.getElementById('chartEvolucion'), {
+        type: 'line',
+        data: {
+            labels: añosLabels,
+            datasets: [{
+                label: 'Auditorías',
+                data: añosData,
+                borderColor: '#0284c7',
+                backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#0284c7',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // =========================================================================
+    // GRÁFICO: SECTORES INDUSTRIALES
+    // =========================================================================
+    new Chart(document.getElementById('chartSectores'), {
+        type: 'bar',
+        data: {
+            labels: sectoresLabels,
+            datasets: [{
+                label: 'Proyectos',
+                data: sectoresData,
+                backgroundColor: coloresPrimarios,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+
+    // =========================================================================
+    // GRÁFICO: REGIONES
+    // =========================================================================
+    const regionesLabels = {{ regiones_labels|safe }};
+    const regionesData = {{ regiones_data|safe }};
+
+    new Chart(document.getElementById('chartRegiones'), {
+        type: 'polarArea',
+        data: {
+            labels: regionesLabels,
+            datasets: [{
+                data: regionesData,
+                backgroundColor: coloresGradiente
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { padding: 12, font: { size: 11 } }
+                }
+            },
+            scales: {
+                r: {
+                    ticks: { display: false },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            }
+        }
+    });
+
+    // =========================================================================
+    // GRÁFICO: CENTROS PEVI
+    // =========================================================================
+    const centrosLabels = {{ centros_labels|safe }};
+    const centrosDataChart = {{ centros_data|safe }};
+
+    new Chart(document.getElementById('chartCentros'), {
+        type: 'bar',
+        data: {
+            labels: centrosLabels,
+            datasets: [{
+                label: 'Auditorías',
+                data: centrosDataChart,
+                backgroundColor: 'rgba(2, 132, 199, 0.8)',
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 10 },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            }
+        }
+    });
+
+    // =========================================================================
+    // ANIMACIÓN DE CONTADORES
+    // =========================================================================
+    const counters = document.querySelectorAll('.counter-animate');
+    const observerOptions = { threshold: 0.5 };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const counter = entry.target;
+                const target = parseInt(counter.getAttribute('data-count')) || 0;
+                const suffix = counter.getAttribute('data-suffix') || '';
+
+                if (target === 0) {
+                    counter.textContent = '0' + suffix;
+                    observer.unobserve(counter);
+                    return;
+                }
+
+                let current = 0;
+                const increment = Math.max(1, Math.ceil(target / 50));
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        counter.textContent = target.toLocaleString() + suffix;
+                        clearInterval(timer);
+                    } else {
+                        counter.textContent = current.toLocaleString() + suffix;
+                    }
+                }, 30);
+                observer.unobserve(counter);
+            }
+        });
+    }, observerOptions);
+
+    counters.forEach(counter => observer.observe(counter));
+});
+</script>
+
+{% endblock %}
