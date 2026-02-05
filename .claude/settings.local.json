@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(du:*)"
+      "Bash(du:*)",
+      "Bash(python manage.py:*)",
+      "Bash(python3 manage.py makemigrations:*)"
     ]
   }
 }

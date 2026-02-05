@@ -242,6 +242,27 @@ Energía (kWh) = Energía (kJ) / 3600
 
 ---
 
+## Almacenamiento de Archivos (Híbrido Local/S3)
+
+El sistema detecta automáticamente el entorno basado en `DEBUG`:
+
+| Entorno | DEBUG | Almacenamiento | Archivos |
+|---------|-------|----------------|----------|
+| **Desarrollo** | `True` | Sistema de archivos local | `/static/`, `/media/` |
+| **Producción** | `False` | AWS S3 | `vadomdata/pevi/static/`, `vadomdata/pevi/media/` |
+
+### Variables de entorno para S3
+
+```bash
+# .env producción
+DEBUG=False
+S3_CLIENT_PREFIX=pevi   # Carpeta en el bucket S3
+```
+
+> Las credenciales AWS se obtienen automáticamente del IAM Role del EC2.
+
+---
+
 ## Comandos Útiles
 
 ```bash
@@ -255,8 +276,12 @@ python manage.py createsuperuser
 # Shell interactivo
 python manage.py shell
 
-# Colectar estáticos (producción)
+# Colectar estáticos (desarrollo - guarda en ./staticfiles/)
 python manage.py collectstatic
+
+# Colectar estáticos (producción - sube a S3)
+# Asegúrate de tener DEBUG=False en .env
+python manage.py collectstatic --noinput
 
 # Ejecutar servidor de desarrollo
 python manage.py runserver

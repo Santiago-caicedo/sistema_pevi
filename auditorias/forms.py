@@ -26,7 +26,8 @@ class EstiloBootstrapMixin:
 class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
         model = Empresa
-        fields = '__all__'
+        # Excluimos 'centro' porque se asigna automáticamente en la vista
+        exclude = ['centro']
         widgets = {
             'direccion': forms.Textarea(attrs={'rows': 2}),
         }
@@ -35,7 +36,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
         model = ProyectoAuditoria
         fields = [
-            'nombre_proyecto', 'empresa', 'fecha_inicio', 'fecha_cierre_estimada', 
+            'nombre_proyecto', 'empresa', 'fecha_inicio', 'fecha_cierre_estimada',
             'lider_proyecto', 'equipo'
         ]
         widgets = {
@@ -43,13 +44,35 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
             'fecha_cierre_estimada': forms.DateInput(attrs={'type': 'date'}),
             'equipo': forms.SelectMultiple(attrs={'size': '5'}),
         }
-    
+
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None) 
+        from gestion.models import Usuario
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        if user and user.centro_pevi:
-            # Aquí podrías filtrar queryset si fuera necesario
-            pass 
+
+        # AISLAMIENTO DE CENTROS: Filtrar todo por centro del usuario
+        if user:
+            if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+                # Nacional ve todo (para casos excepcionales de asignación)
+                pass
+            elif user.centro_pevi:
+                # Director Centro y Profesor: Solo ven recursos de su centro
+
+                # Filtrar empresas por centro
+                self.fields['empresa'].queryset = Empresa.objects.filter(
+                    centro=user.centro_pevi
+                )
+
+                # Filtrar líderes por centro
+                self.fields['lider_proyecto'].queryset = Usuario.objects.filter(
+                    centro_pevi=user.centro_pevi,
+                    rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL']
+                )
+
+                # Filtrar equipo por centro
+                self.fields['equipo'].queryset = Usuario.objects.filter(
+                    centro_pevi=user.centro_pevi
+                ) 
 
 class ProduccionForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:

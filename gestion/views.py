@@ -254,7 +254,16 @@ def lista_proyectos(request):
 @login_required
 @solo_directivos
 def lista_empresas(request):
-    empresas = Empresa.objects.all().order_by('razon_social')
+    user = request.user
+
+    # AISLAMIENTO DE CENTROS: Cada centro solo ve sus empresas
+    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+        empresas = Empresa.objects.all().order_by('razon_social')
+    elif user.centro_pevi:
+        empresas = Empresa.objects.filter(centro=user.centro_pevi).order_by('razon_social')
+    else:
+        empresas = Empresa.objects.none()
+
     return render(request, 'gestion/lista_empresas.html', {'empresas': empresas})
 
 @login_required
@@ -263,7 +272,11 @@ def crear_empresa(request):
     if request.method == 'POST':
         form = EmpresaForm(request.POST)
         if form.is_valid():
-            form.save()
+            empresa = form.save(commit=False)
+            # AISLAMIENTO: Asignar centro del creador automáticamente
+            if request.user.centro_pevi:
+                empresa.centro = request.user.centro_pevi
+            empresa.save()
             messages.success(request, "Empresa registrada exitosamente.")
             return redirect('lista_empresas')
     else:
@@ -360,14 +373,33 @@ def crear_proyecto(request):
         form = ProyectoForm(request.POST, user=request.user)
         if form.is_valid():
             proyecto = form.save(commit=False)
+
             # Asignar centro del creador
             if request.user.centro_pevi:
                 proyecto.centro = request.user.centro_pevi
             elif not proyecto.centro_id and not request.user.is_superuser:
-                 raise PermissionDenied("Error de asignación de Centro. Contacte soporte.")
-            
+                raise PermissionDenied("Error de asignación de Centro. Contacte soporte.")
+
+            # VALIDACIÓN DE AISLAMIENTO: Verificar que líder sea del mismo centro
+            if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+                lider = form.cleaned_data.get('lider_proyecto')
+                if lider and lider.centro_pevi != request.user.centro_pevi:
+                    messages.error(request, "No puede asignar un líder de otro centro.")
+                    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
+
             proyecto.save()
-            form.save_m2m() # Guardar equipo
+
+            # VALIDACIÓN DE AISLAMIENTO: Verificar que equipo sea del mismo centro
+            if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+                equipo = form.cleaned_data.get('equipo')
+                if equipo:
+                    for miembro in equipo:
+                        if miembro.centro_pevi != request.user.centro_pevi:
+                            proyecto.delete()  # Rollback
+                            messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
+                            return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
+
+            form.save_m2m()  # Guardar equipo
             messages.success(request, "Proyecto iniciado correctamente.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     else:
@@ -378,17 +410,32 @@ def crear_proyecto(request):
 @solo_lideres
 def editar_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
-    
+
     # Validar propiedad
     es_propietario = (proyecto.lider_proyecto == request.user)
     es_director_suyo = (request.user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == request.user.centro_pevi)
-    
-    if not (es_propietario or es_director_suyo or request.user.is_superuser):
+    es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
+
+    if not (es_propietario or es_director_suyo or es_nacional):
         raise PermissionDenied("Solo el líder o director pueden editar la estructura del proyecto.")
 
     if request.method == 'POST':
         form = ProyectoForm(request.POST, instance=proyecto, user=request.user)
         if form.is_valid():
+            # VALIDACIÓN DE AISLAMIENTO: Verificar que líder y equipo sean del mismo centro
+            if not es_nacional:
+                lider = form.cleaned_data.get('lider_proyecto')
+                if lider and lider.centro_pevi != request.user.centro_pevi:
+                    messages.error(request, "No puede asignar un líder de otro centro.")
+                    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
+
+                equipo = form.cleaned_data.get('equipo')
+                if equipo:
+                    for miembro in equipo:
+                        if miembro.centro_pevi != request.user.centro_pevi:
+                            messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
+                            return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
+
             form.save()
             form.save_m2m()
             messages.success(request, "Proyecto actualizado.")

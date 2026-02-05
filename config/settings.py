@@ -122,11 +122,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -142,17 +137,9 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'dashboard'
 
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-
 AUTHENTICATION_BACKENDS = [
-    'gestion.backends.EmailOrUsernameModelBackend', # Nuestro backend personalizado
-    'django.contrib.auth.backends.ModelBackend',    # El default (por seguridad/fallback)
+    'gestion.backends.EmailOrUsernameModelBackend',  # Nuestro backend personalizado
+    'django.contrib.auth.backends.ModelBackend',     # El default (por seguridad/fallback)
 ]
 
 
@@ -161,3 +148,59 @@ CSRF_TRUSTED_ORIGINS = [
     'https://pevicolombia.com',
     'https://www.pevicolombia.com',
 ]
+
+
+# ==============================================================================
+# STATIC & MEDIA FILES - Configuración Híbrida (Local vs S3)
+# ==============================================================================
+
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+if DEBUG:
+    # -------------------------------------------------------------------------
+    # MODO DESARROLLO (LOCAL)
+    # -------------------------------------------------------------------------
+    STATIC_URL = '/static/'
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+
+else:
+    # -------------------------------------------------------------------------
+    # MODO PRODUCCIÓN (AWS S3)
+    # -------------------------------------------------------------------------
+    from storages.backends.s3boto3 import S3Boto3Storage
+
+    # Configuración AWS (credenciales via IAM Role del EC2)
+    AWS_STORAGE_BUCKET_NAME = 'vadomdata'
+    AWS_S3_REGION_NAME = 'us-east-1'
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False  # URLs públicas sin firma
+
+    # Prefijo del cliente (carpeta en S3)
+    S3_PREFIX = config('S3_CLIENT_PREFIX', default='pevi')
+
+    # Storage personalizado para estáticos
+    class StaticStorage(S3Boto3Storage):
+        location = f'{S3_PREFIX}/static'
+        default_acl = None
+
+    # Storage personalizado para media (archivos subidos)
+    class MediaStorage(S3Boto3Storage):
+        location = f'{S3_PREFIX}/media'
+        default_acl = None
+
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/static/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/media/'
+
+    STORAGES = {
+        "default": {"BACKEND": "config.settings.MediaStorage"},
+        "staticfiles": {"BACKEND": "config.settings.StaticStorage"},
+    }

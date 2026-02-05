@@ -6,13 +6,24 @@ from django.core.validators import FileExtensionValidator
 class Empresa(models.Model):
     """
     Información estática de la empresa cliente.
+    AISLAMIENTO: Cada empresa pertenece a un centro específico.
     """
+    # Relación con Centro (AISLAMIENTO DE DATOS)
+    centro = models.ForeignKey(
+        CentroPevi,
+        on_delete=models.PROTECT,
+        related_name="empresas",
+        verbose_name="Centro PEVI",
+        null=True,  # Temporalmente null para migración de datos existentes
+        blank=True
+    )
+
     razon_social = models.CharField(max_length=200, verbose_name="Razón Social")
     nit = models.CharField(max_length=20, unique=True, verbose_name="NIT")
     sector_productivo = models.CharField(max_length=100, help_text="Ej: Alimentos, Metalmecánica, Textil")
     direccion = models.CharField(max_length=255)
     ciudad = models.CharField(max_length=100)
-    
+
     # Datos de contacto
     contacto_nombre = models.CharField(max_length=150, verbose_name="Nombre Contacto")
     contacto_email = models.EmailField(verbose_name="Email Contacto")
