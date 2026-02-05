@@ -154,3 +154,10 @@ AUTHENTICATION_BACKENDS = [
     'gestion.backends.EmailOrUsernameModelBackend', # Nuestro backend personalizado
     'django.contrib.auth.backends.ModelBackend',    # El default (por seguridad/fallback)
 ]
+
+
+# CSRF Trusted Origins (requerido para Django 4.0+ con HTTPS)
+CSRF_TRUSTED_ORIGINS = [
+    'https://pevicolombia.com',
+    'https://www.pevicolombia.com',
+]
