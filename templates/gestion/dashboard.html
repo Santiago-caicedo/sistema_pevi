@@ -130,7 +130,7 @@
                         {% endif %}
                     </td>
                     <td class="font-monospace text-secondary">
-                        {{ p.get_total_kwh|intcomma }}
+                        {{ p.get_total_kwh|floatformat:0|intcomma }}
                     </td>
                     <td class="text-muted small">
                         {{ p.updated_at|date:"d M, Y" }}

@@ -237,7 +237,7 @@
                 <div class="mb-4 border-start border-2 border-warning ps-3">
                     <div class="d-flex justify-content-between">
                         <span class="text-muted small">Consumo:</span>
-                        <span class="fw-bold small">{{ electricidad.consumo_anual|intcomma }} kWh</span>
+                        <span class="fw-bold small">{{ electricidad.consumo_anual|floatformat:0|intcomma }} kWh</span>
                     </div>
                     <div class="d-flex justify-content-between mt-1">
                         <span class="text-muted small">Costo:</span>
@@ -273,7 +273,7 @@
                     </div>
                     <div class="d-flex justify-content-between mt-1">
                         <span class="text-muted small">Energía:</span>
-                        <span class="fw-bold small">{{ gas_natural.consumo_anual_kwh|intcomma }} kWh</span>
+                        <span class="fw-bold small">{{ gas_natural.consumo_anual_kwh|floatformat:0|intcomma }} kWh</span>
                     </div>
                 </div>
                 <div class="d-grid gap-2">
@@ -305,7 +305,7 @@
                     </div>
                     <div class="d-flex justify-content-between mt-1">
                         <span class="text-muted small">Emisiones:</span>
-                        <span class="fw-bold small text-danger">{{ carbon_mineral.emisiones_totales|intcomma }} TonCO2</span>
+                        <span class="fw-bold small text-danger">{{ carbon_mineral.emisiones_totales|floatformat:0|intcomma }} TonCO2</span>
                     </div>
                 </div>
                 <div class="d-grid gap-2">
@@ -337,7 +337,7 @@
                     </div>
                     <div class="d-flex justify-content-between mt-1">
                         <span class="text-muted small">Energía:</span>
-                        <span class="fw-bold small">{{ fuel_oil.consumo_anual_kwh|intcomma }} kWh</span>
+                        <span class="fw-bold small">{{ fuel_oil.consumo_anual_kwh|floatformat:0|intcomma }} kWh</span>
                     </div>
                 </div>
                 <div class="d-grid gap-2">
@@ -401,7 +401,7 @@
                     </div>
                     <div class="d-flex justify-content-between mt-1">
                         <span class="text-muted small">Energía:</span>
-                        <span class="fw-bold small">{{ gas_propano.consumo_anual_kwh|intcomma }} kWh</span>
+                        <span class="fw-bold small">{{ gas_propano.consumo_anual_kwh|floatformat:0|intcomma }} kWh</span>
                     </div>
                 </div>
                 <div class="d-grid gap-2">
