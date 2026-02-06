@@ -272,13 +272,28 @@
 
             if (outputKwhAnual && valPC > 0) {
                 // Es Combustible -> Aplicar fórmula física
-                let factorFisico = 1.0;
-                const titulo = "{{ titulo_energia|lower }}"; 
-                if (titulo.includes("fuel") || titulo.includes("diesel")) factorFisico = 0.00378541;
-                else if (titulo.includes("carbon") || titulo.includes("biomasa")) factorFisico = 1000.0;
+                let factorUnidad = 1.0;   // Conversión de unidad de consumo
+                let factorEnergia = 1.0;  // Conversión de MJ a kJ (si aplica)
 
-                let kwhMes = (valConsumoMes * factorFisico * valPC) / 3600;
-                let kwhAnio = (valConsumoAnio * factorFisico * valPC) / 3600;
+                const titulo = "{{ titulo_energia|lower }}";
+
+                if (titulo.includes("carbon")) {
+                    factorUnidad = 1000.0;  // Ton → kg
+                    factorEnergia = 1000.0; // MJ → kJ
+                } else if (titulo.includes("biomasa")) {
+                    factorUnidad = 1000.0;  // Ton → kg
+                    factorEnergia = 1.0;    // Ya está en kJ
+                } else if (titulo.includes("fuel") || titulo.includes("diesel")) {
+                    factorUnidad = 1.0;     // Galones (sin conversión)
+                    factorEnergia = 1000.0; // MJ → kJ
+                } else if (titulo.includes("propano") || titulo.includes("glp")) {
+                    factorUnidad = 1.0;     // kg (sin conversión)
+                    factorEnergia = 1000.0; // MJ → kJ
+                }
+                // Gas Natural: factorUnidad=1.0, factorEnergia=1.0 (m³, kJ/m³)
+
+                let kwhMes = (valConsumoMes * factorUnidad * valPC * factorEnergia) / 3600;
+                let kwhAnio = (valConsumoAnio * factorUnidad * valPC * factorEnergia) / 3600;
 
                 // Actualizamos la variable con el valor convertido
                 kwhAnualParaEmisiones = kwhAnio;

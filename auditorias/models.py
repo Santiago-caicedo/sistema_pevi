@@ -216,35 +216,41 @@ class CombustibleBase(FuenteEnergiaBase):
 
     def save(self, *args, **kwargs):
         # CÁLCULO AUTOMÁTICO DE ENERGÍA (kWh)
-        # Fórmula Base: Energía (kJ) = Cantidad * PC
+        # Fórmula: Energía (kJ) = Cantidad × FactorUnidad × PC × FactorEnergia
         # Energía (kWh) = Energía (kJ) / 3600
-        
-        factor_conversion_unidad = 1.0
-        
-        # CASO ESPECIAL: Fuel Oil (Entra en Galones, PC en kJ/m3)
-        # 1 Galón = 0.00378541 m3
-        if self._meta.model_name == 'fueloil':
-             factor_conversion_unidad = 0.00378541
-        
-        # CASO ESPECIAL: Carbón/Biomasa (Entra en Toneladas, PC en kJ/kg)
-        # 1 Tonelada = 1000 kg
-        elif self._meta.model_name in ['carbonmineral', 'biomasa']:
-            factor_conversion_unidad = 1000.0
-            
-        # Gas Natural entra en m3 y PC en kJ/m3 -> Factor 1.0
-        # GLP entra en kg y PC en kJ/kg -> Factor 1.0
+
+        factor_unidad = 1.0    # Conversión de unidad de consumo
+        factor_energia = 1.0   # Conversión de MJ a kJ (si PC está en MJ)
+
+        if self._meta.model_name == 'carbonmineral':
+            # Carbón: Ton → kg, PC en MJ/kg
+            factor_unidad = 1000.0
+            factor_energia = 1000.0
+        elif self._meta.model_name == 'biomasa':
+            # Biomasa: Ton → kg, PC en kJ/kg
+            factor_unidad = 1000.0
+            factor_energia = 1.0
+        elif self._meta.model_name == 'fueloil':
+            # Fuel Oil: Galones (sin conversión), PC en MJ/usgal
+            factor_unidad = 1.0
+            factor_energia = 1000.0
+        elif self._meta.model_name == 'gaspropano':
+            # GLP: kg (sin conversión), PC en MJ/kg
+            factor_unidad = 1.0
+            factor_energia = 1000.0
+        # Gas Natural: m³ (sin conversión), PC en kJ/m³ → factores = 1.0
 
         if self.consumo_anual_orig and self.poder_calorifico:
             # 1. Calculamos energía total en kJ
-            energia_kj = (self.consumo_anual_orig * factor_conversion_unidad) * self.poder_calorifico
-            
+            energia_kj = (self.consumo_anual_orig * factor_unidad) * self.poder_calorifico * factor_energia
+
             # 2. Convertimos a kWh (1 kWh = 3600 kJ)
             self.consumo_anual_kwh = energia_kj / 3600
-            
+
             # 3. Calculamos indicador de costo
             if self.costo_total_anual and self.consumo_anual_kwh > 0:
                 self.costo_kwh_equivalente = self.costo_total_anual / self.consumo_anual_kwh
-        
+
         super().save(*args, **kwargs)
         
     def get_kwh_equivalente(self):
