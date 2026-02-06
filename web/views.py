@@ -108,16 +108,61 @@ def resultados(request):
     """
     Página pública de resultados con datos ANONIMIZADOS.
     Muestra métricas agregadas, mapa interactivo y gráficos.
+    Soporta filtros por año, región y sector.
     """
     from auditorias.models import Empresa, Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
     from django.db.models.functions import ExtractYear
     import json
 
     # =========================================================================
-    # TODOS LOS PROYECTOS (para mostrar datos aunque no estén finalizados)
+    # FILTROS DESDE GET PARAMS
+    # =========================================================================
+    filtro_año = request.GET.get('año', '')
+    filtro_region = request.GET.get('region', '')
+    filtro_sector = request.GET.get('sector', '')
+
+    # =========================================================================
+    # OPCIONES PARA LOS FILTROS (sin filtrar)
+    # =========================================================================
+    años_disponibles = list(
+        ProyectoAuditoria.objects.annotate(
+            año=ExtractYear('fecha_inicio')
+        ).values_list('año', flat=True).distinct().order_by('-año')
+    )
+    años_disponibles = [a for a in años_disponibles if a]  # Eliminar None
+
+    regiones_disponibles = list(
+        CentroPevi.objects.filter(activo=True).values_list('region', flat=True).distinct().order_by('region')
+    )
+    regiones_disponibles = [r for r in regiones_disponibles if r]
+
+    sectores_disponibles = list(
+        Empresa.objects.filter(auditorias__isnull=False).values_list(
+            'sector_productivo', flat=True
+        ).distinct().order_by('sector_productivo')
+    )
+    sectores_disponibles = [s for s in sectores_disponibles if s]
+
+    # =========================================================================
+    # PROYECTOS BASE (aplicar filtros)
     # =========================================================================
     proyectos = ProyectoAuditoria.objects.all()
     centros = CentroPevi.objects.filter(activo=True)
+
+    # Aplicar filtro de año
+    if filtro_año:
+        try:
+            proyectos = proyectos.filter(fecha_inicio__year=int(filtro_año))
+        except ValueError:
+            pass
+
+    # Aplicar filtro de región
+    if filtro_region:
+        proyectos = proyectos.filter(centro__region=filtro_region)
+
+    # Aplicar filtro de sector
+    if filtro_sector:
+        proyectos = proyectos.filter(empresa__sector_productivo=filtro_sector)
 
     # =========================================================================
     # KPIs GLOBALES ANONIMIZADOS
@@ -277,6 +322,15 @@ def resultados(request):
         'total_energia_mwh': int(total_energia_mwh),
         'total_emisiones_ton': int(total_emisiones_ton),
 
+        # Filtros (opciones y valores actuales)
+        'años_disponibles': años_disponibles,
+        'regiones_disponibles': regiones_disponibles,
+        'sectores_disponibles': sectores_disponibles,
+        'filtro_año': filtro_año,
+        'filtro_region': filtro_region,
+        'filtro_sector': filtro_sector,
+        'hay_filtros': bool(filtro_año or filtro_region or filtro_sector),
+
         # Datos para mapa (JSON)
         'centros_mapa_json': json.dumps(centros_mapa),
 
@@ -306,6 +360,14 @@ def resultados(request):
         # Centros
         'centros_labels': json.dumps(centros_labels),
         'centros_data': json.dumps(centros_valores),
+
+        # Datos para exportación
+        'energia_electricidad_mwh': int(energia_electricidad / 1000),
+        'energia_gas_natural_mwh': int(energia_gas_natural / 1000),
+        'energia_carbon_mwh': int(energia_carbon / 1000),
+        'energia_fuel_oil_mwh': int(energia_fuel_oil / 1000),
+        'energia_biomasa_mwh': int(energia_biomasa / 1000),
+        'energia_glp_mwh': int(energia_glp / 1000),
     }
 
     return render(request, 'web/resultados.html', context)

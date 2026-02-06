@@ -34,6 +34,16 @@
                 </select>
             </div>
 
+            <div class="col-md-2">
+                <select name="fase" class="form-select form-select-sm border-light bg-light fw-medium text-secondary" onchange="this.form.submit()">
+                    <option value="">-- Fase --</option>
+                    <option value="FASE_1" {% if filtro_actual_fase == 'FASE_1' %}selected{% endif %}>Fase 1</option>
+                    <option value="FASE_2" {% if filtro_actual_fase == 'FASE_2' %}selected{% endif %}>Fase 2</option>
+                    <option value="FASE_3" {% if filtro_actual_fase == 'FASE_3' %}selected{% endif %}>Fase 3</option>
+                    <option value="FASE_4" {% if filtro_actual_fase == 'FASE_4' %}selected{% endif %}>Fase 4</option>
+                </select>
+            </div>
+
             {% if es_vista_nacional %}
             <div class="col-md-3">
                 <select name="centro" class="form-select form-select-sm border-light bg-light fw-medium text-secondary" onchange="this.form.submit()">
@@ -75,7 +85,7 @@
                 </a>
                 {% endif %}
                 
-                {% if filtro_actual_q or filtro_actual_estado or filtro_actual_centro or filtro_actual_lider %}
+                {% if filtro_actual_q or filtro_actual_estado or filtro_actual_fase or filtro_actual_centro or filtro_actual_lider %}
                 <a href="{% url 'lista_proyectos' %}" class="btn btn-light btn-sm rounded-circle border ms-1" title="Limpiar Filtros">
                     <i class="bi bi-x-lg text-muted"></i>
                 </a>
@@ -143,13 +153,20 @@
                     {% endif %}
 
                     <td>
-                        {% if p.estado == 'FINALIZADO' %}
-                            <span class="badge bg-soft-success text-success border border-success-subtle rounded-pill px-3">Finalizado</span>
-                        {% elif p.estado == 'EJECUCION' %}
-                            <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3">En Ejecución</span>
-                        {% else %}
-                            <span class="badge bg-soft-secondary text-secondary border rounded-pill px-3">{{ p.get_estado_display }}</span>
-                        {% endif %}
+                        <div class="d-flex flex-column gap-1">
+                            {% if p.estado == 'FINALIZADO' %}
+                                <span class="badge bg-soft-success text-success border border-success-subtle rounded-pill px-3">Finalizado</span>
+                            {% elif p.estado == 'EJECUCION' %}
+                                <span class="badge bg-soft-primary text-primary border border-primary-subtle rounded-pill px-3">En Ejecución</span>
+                            {% else %}
+                                <span class="badge bg-soft-secondary text-secondary border rounded-pill px-3">{{ p.get_estado_display }}</span>
+                            {% endif %}
+                            {% if p.fase %}
+                                <span class="badge bg-dark text-white rounded-pill px-2" style="font-size: 0.65rem;">
+                                    <i class="bi bi-flag-fill me-1"></i>{{ p.get_fase_display }}
+                                </span>
+                            {% endif %}
+                        </div>
                     </td>
 
                     <td class="text-end pe-4">

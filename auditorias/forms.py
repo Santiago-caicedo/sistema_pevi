@@ -51,13 +51,16 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
         model = ProyectoAuditoria
         fields = [
-            'nombre_proyecto', 'empresa', 'fecha_inicio', 'fecha_cierre_estimada',
+            'nombre_proyecto', 'empresa', 'fase', 'fecha_inicio', 'fecha_cierre_estimada',
             'lider_proyecto', 'equipo'
         ]
         widgets = {
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
             'fecha_cierre_estimada': forms.DateInput(attrs={'type': 'date'}),
             'equipo': forms.SelectMultiple(attrs={'size': '5'}),
+        }
+        labels = {
+            'fase': 'Fase del Programa (Opcional)',
         }
 
     def __init__(self, *args, **kwargs):

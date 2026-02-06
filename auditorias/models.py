@@ -43,6 +43,13 @@ class ProyectoAuditoria(models.Model):
         ('FINALIZADO', 'Finalizado'),
     ]
 
+    FASES = [
+        ('FASE_1', 'Fase 1'),
+        ('FASE_2', 'Fase 2'),
+        ('FASE_3', 'Fase 3'),
+        ('FASE_4', 'Fase 4'),
+    ]
+
     # Relaciones
     centro = models.ForeignKey(CentroPevi, on_delete=models.PROTECT, verbose_name="Centro Responsable")
     empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name="auditorias")
@@ -67,7 +74,14 @@ class ProyectoAuditoria(models.Model):
     fecha_inicio = models.DateField()
     fecha_cierre_estimada = models.DateField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='BORRADOR')
-    
+    fase = models.CharField(
+        max_length=10,
+        choices=FASES,
+        null=True,
+        blank=True,
+        verbose_name="Fase del Programa"
+    )
+
     # Contexto Productivo (Para calcular indicadores de intensidad energética después)
     produccion_total = models.FloatField(
         help_text="Producción total en el periodo evaluado", 

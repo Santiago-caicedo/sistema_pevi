@@ -27,9 +27,15 @@
                 <i class="bi bi-pencil me-1"></i> Borrador
             </span>
         {% endif %}
-        
+
+        {% if proyecto.fase %}
+        <span class="badge rounded-pill bg-dark text-white px-3 py-2">
+            <i class="bi bi-flag-fill me-1"></i> {{ proyecto.get_fase_display }}
+        </span>
+        {% endif %}
+
         <div class="vr text-muted"></div>
-        
+
         <small class="text-muted">
             <i class="bi bi-calendar3 me-1"></i> Inicio: <strong>{{ proyecto.fecha_inicio|date:"d M, Y" }}</strong>
         </small>

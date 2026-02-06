@@ -217,6 +217,7 @@ def lista_proyectos(request):
     # 2. PROCESAMIENTO DE FILTROS
     filtro_q = request.GET.get('q')
     filtro_estado = request.GET.get('estado')
+    filtro_fase = request.GET.get('fase')
     filtro_lider = request.GET.get('lider')
     filtro_centro = request.GET.get('centro')
 
@@ -225,6 +226,9 @@ def lista_proyectos(request):
 
     if filtro_estado:
         proyectos = proyectos.filter(estado=filtro_estado)
+
+    if filtro_fase:
+        proyectos = proyectos.filter(fase=filtro_fase)
 
     # Filtro Líder (Funciona también para filtrarse a sí mismo)
     if filtro_lider and (user.es_directivo or user.is_superuser):
@@ -243,6 +247,7 @@ def lista_proyectos(request):
         
         'filtro_actual_q': filtro_q or '',
         'filtro_actual_estado': filtro_estado or '',
+        'filtro_actual_fase': filtro_fase or '',
         'filtro_actual_lider': int(filtro_lider) if filtro_lider else '',
         'filtro_actual_centro': int(filtro_centro) if filtro_centro else '',
     }
