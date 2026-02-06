@@ -200,7 +200,7 @@ class CombustibleBase(FuenteEnergiaBase):
     consumo_anual_orig = models.FloatField(verbose_name="Consumo Anual (Ud. Original)")
     
     # Datos Técnicos
-    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)", help_text="Unidad Estandarizada: kJ/m³ (Gases/Líq) o kJ/kg (Sólidos)")
+    poder_calorifico = models.FloatField(verbose_name="Poder Calorífico (PC)")
     unidad_pc = models.CharField(max_length=20, default="Estándar", editable=False)
     
     # Consumo Convertido (Las columnas 'Consumo kWh.GN/mes' del Excel)

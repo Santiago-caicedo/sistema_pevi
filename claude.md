@@ -6,6 +6,8 @@ Sistema web de gestión de auditorías energéticas para el programa PEVI (Progr
 
 **Stack tecnológico:** Django 5.2.8 + PostgreSQL + Bootstrap 5 + Chart.js + WeasyPrint
 
+**Producción:** https://pevicolombia.com (AWS EC2 + S3)
+
 ---
 
 ## Quick Start
@@ -35,38 +37,40 @@ python manage.py runserver
 ```
 sistema_pevi/
 ├── config/                    # Configuración Django
-│   ├── settings.py           # Config global (BD, apps, middleware)
+│   ├── settings.py           # Config global (BD, apps, middleware, S3)
 │   ├── urls.py               # Enrutamiento principal
 │   └── wsgi.py               # Punto de entrada WSGI
 │
 ├── gestion/                   # APP CORE: Usuarios, Proyectos, Dashboard
 │   ├── models.py             # Usuario (AbstractUser), CentroPevi
-│   ├── views.py              # 16 vistas principales (28KB)
+│   ├── views.py              # 36 vistas principales (~1100 líneas)
 │   ├── forms.py              # Formularios con validación de seguridad
 │   ├── decorators.py         # Control de acceso RBAC
 │   └── backends.py           # Auth por email O username
 │
 ├── auditorias/                # APP: Datos de Auditorías Energéticas
 │   ├── models.py             # Empresa, ProyectoAuditoria, 6 fuentes energéticas
-│   └── forms.py              # Formularios de registro energético
+│   ├── forms.py              # Formularios de registro energético
+│   └── management/commands/  # Comandos personalizados
+│       └── recalcular_kwh.py # Recalcula kWh de registros existentes
 │
 ├── metricas/                  # APP: Dashboards de BI
 │   └── views.py              # dashboard_estrategico, dashboard_nacional
 │
 ├── web/                       # APP: Sitio Público
 │   ├── models.py             # Noticia
-│   └── views.py              # home, nosotros, centros, biblioteca
+│   └── views.py              # home, nosotros, centros, biblioteca, resultados
 │
-├── templates/                 # Templates Jinja2 (20 archivos)
-│   ├── layouts/              # base.html, base_public.html
-│   ├── gestion/              # Dashboard, CRUD, listados
+├── templates/                 # Templates Django (~25 archivos)
+│   ├── layouts/              # base.html (app), base_public.html (web)
+│   ├── gestion/              # Dashboard, CRUD, listados, informes PDF
 │   ├── metricas/             # Dashboards BI
-│   ├── registration/         # Login
-│   └── web/                  # Landing page
+│   ├── registration/         # Login (fondo oscuro animado)
+│   └── web/                  # Landing page, centros con modals
 │
-├── static/                    # Archivos estáticos
-├── media/                     # Archivos subidos
-└── requirements.txt           # 19 dependencias Python
+├── static/                    # Archivos estáticos (CSS, JS, imágenes)
+├── media/                     # Archivos subidos (documentos de proyectos)
+└── requirements.txt           # Dependencias Python
 ```
 
 ---
@@ -77,6 +81,7 @@ sistema_pevi/
 
 ```
 CentroPevi (1) ─────┬────> (N) Usuario
+                    ├────> (N) Empresa (aislamiento por centro)
                     └────> (N) ProyectoAuditoria
 
 Usuario (1) ────────┬────> (N) ProyectoAuditoria [lider_proyecto]
@@ -97,10 +102,10 @@ ProyectoAuditoria (1) ──┬─> (1) Electricidad
 
 | Rol | Código | Permisos |
 |-----|--------|----------|
-| Director Nacional | `DIRECTOR_NACIONAL` | Acceso total, visión país |
-| Director Centro | `DIRECTOR_CENTRO` | Gestión de su centro |
-| Profesor | `PROFESOR` | Lidera proyectos |
-| Estudiante | `ESTUDIANTE` | Participa en equipos |
+| Director Nacional | `DIRECTOR_NACIONAL` | Acceso total, visión país, tablero nacional |
+| Director Centro | `DIRECTOR_CENTRO` | Gestión de su centro, métricas BI |
+| Profesor | `PROFESOR` | Lidera proyectos, gestiona empresas |
+| Estudiante | `ESTUDIANTE` | Participa en equipos asignados |
 
 ### Estados de Proyecto
 
@@ -110,87 +115,120 @@ BORRADOR → EJECUCION → REVISION → FINALIZADO
 
 ---
 
+## Conversión de Energía (Crítico)
+
+El sistema convierte combustibles a kWh equivalente en `CombustibleBase.save()`:
+
+### Fórmula General
+```python
+Energía (kJ) = consumo_orig × factor_unidad × poder_calorífico × factor_energia
+Energía (kWh) = Energía (kJ) / 3600
+```
+
+### Unidades por Tipo de Energético
+
+| Energético | Consumo | Poder Calorífico | Factor Emisión | factor_unidad | factor_energia |
+|------------|---------|------------------|----------------|---------------|----------------|
+| **Electricidad** | kWh | N/A | kgCO2/kWh | - | - |
+| **Gas Natural** | m³ | kJ/m³ | kgCO2/m³ | 1.0 | 1.0 |
+| **Carbón Mineral** | Ton | MJ/kg | kgCO2/Ton | 1000 (→kg) | 1000 (MJ→kJ) |
+| **Fuel Oil** | Gal | MJ/usgal | kgCO2/Gal | 1.0 | 1000 (MJ→kJ) |
+| **Biomasa** | Ton | kJ/kg | kgCO2/Ton | 1000 (→kg) | 1.0 |
+| **Gas Propano (GLP)** | kg | MJ/kg | kgCO2/kg | 1.0 | 1000 (MJ→kJ) |
+
+### Cálculo de Emisiones
+```python
+# Las emisiones se calculan sobre el consumo ORIGINAL, NO sobre kWh
+Emisiones (TonCO2) = (consumo_anual_orig × factor_emision) / 1000
+```
+
+### Comando para Recalcular Datos Existentes
+```bash
+# Ver cambios sin aplicar
+python manage.py recalcular_kwh --dry-run
+
+# Aplicar corrección a todos los registros
+python manage.py recalcular_kwh
+```
+
+---
+
 ## Archivos Clave por Funcionalidad
 
 ### Autenticación y Seguridad
 - `gestion/backends.py` - Login por email O username
 - `gestion/decorators.py` - `@solo_directivos`, `@solo_lideres`, `@acceso_staff`
-- `gestion/forms.py` - Validación anti-escalada de privilegios
+- `gestion/forms.py` - Validación anti-escalada de privilegios en `UsuarioForm.clean_rol()`
 
 ### Lógica de Negocio Principal
-- `gestion/views.py:73-85` - `verificar_acceso_proyecto()` - Control de acceso por proyecto
-- `gestion/views.py:34-71` - `FORM_MAPPING` - Configuración de formularios energéticos
-- `auditorias/models.py:206-237` - `CombustibleBase.save()` - Conversión automática a kWh
+- `gestion/views.py` - `verificar_acceso_proyecto()` - Control de acceso por proyecto
+- `gestion/views.py` - `FORM_MAPPING` - Configuración de formularios energéticos
+- `auditorias/models.py` - `CombustibleBase.save()` - Conversión automática a kWh
+
+### Registro de Energía
+- `auditorias/forms.py` - `RegistroEnergiaForm` - Intercepta comas en números (1,200 → 1200)
+- `templates/gestion/registro_energia_form.html` - Formulario con cálculo JS en tiempo real
 
 ### Dashboards y BI
-- `metricas/views.py:14-221` - `dashboard_estrategico()` - BI con filtros
-- `metricas/views.py:225-410` - `dashboard_nacional()` - Visión consolidada
+- `metricas/views.py` - `dashboard_estrategico()` - BI con filtros por estado/fecha
+- `metricas/views.py` - `dashboard_nacional()` - Visión consolidada país
 
 ### Generación de PDF
-- `gestion/views.py:609-694` - `generar_informe_pdf()` - Reportes con WeasyPrint
+- `gestion/views.py` - `generar_informe_pdf()` - Reportes con WeasyPrint
 - `templates/gestion/informe_pdf.html` - Template del informe
+
+### Sitio Público
+- `web/views.py` - Vistas públicas (home, nosotros, centros, biblioteca, resultados)
+- `templates/web/centros.html` - Modals con gráficos Chart.js por centro
 
 ---
 
 ## Rutas Principales
 
 ```python
+# ==================== APP INTERNA ====================
+
 # Dashboard y listados
-/                                    → dashboard
-/proyectos/                          → lista_proyectos
-/proyectos/<id>/                     → detalle_proyecto
+/app/                                → dashboard
+/app/proyectos/                      → lista_proyectos
+/app/proyectos/<id>/                 → detalle_proyecto
 
 # CRUD Proyectos
-/proyectos/nuevo/                    → crear_proyecto
-/proyectos/<id>/editar/              → editar_proyecto
-/proyectos/<id>/estado/<estado>/     → cambiar_estado_proyecto
+/app/proyectos/nuevo/                → crear_proyecto
+/app/proyectos/<id>/editar/          → editar_proyecto
+/app/proyectos/<id>/estado/<estado>/ → cambiar_estado_proyecto
 
 # Registro de energía (bitácora)
-/proyectos/<id>/registro/produccion/           → registrar_produccion
-/proyectos/<id>/registro/<tipo_energia>/       → registrar_consumo
+/app/proyectos/<id>/registro/produccion/         → registrar_produccion
+/app/proyectos/<id>/registro/<tipo_energia>/     → registrar_consumo
 # tipo_energia: electricidad, gas_natural, carbon, fuel_oil, biomasa, gas_propano
 
-# Documentos
-/proyectos/<id>/documentos/subir/    → subir_documento
-
-# Informes
-/proyectos/<id>/informe/pdf/         → generar_informe_pdf
+# Documentos e Informes
+/app/proyectos/<id>/documentos/subir/  → subir_documento
+/app/proyectos/<id>/informe/pdf/       → generar_informe_pdf
 
 # Gestión administrativa
-/empresas/                           → lista_empresas
-/empresas/nueva/                     → crear_empresa
-/equipo/                             → lista_usuarios
-/equipo/nuevo/                       → crear_usuario
-/equipo/<id>/editar/                 → editar_usuario
+/app/empresas/                       → lista_empresas
+/app/empresas/nueva/                 → crear_empresa
+/app/equipo/                         → lista_usuarios
+/app/equipo/nuevo/                   → crear_usuario
+/app/equipo/<id>/editar/             → editar_usuario
 
-# Métricas BI
-/metricas/estrategico/               → dashboard_estrategico
-/metricas/nacional/                  → dashboard_nacional
+# Métricas BI (solo directivos)
+/app/metricas/estrategico/           → dashboard_estrategico
+/app/metricas/nacional/              → dashboard_nacional
 
-# Sitio público
-/web/                                → home_public
-/web/nosotros/                       → nosotros
-/web/centros/                        → centros_public
-/web/biblioteca/                     → biblioteca
-```
+# Super Admin
+/app/control/                        → control_panel
+/admin/                              → Django Admin
 
----
+# ==================== SITIO PÚBLICO ====================
 
-## Conversión de Energía
-
-El sistema convierte automáticamente combustibles a kWh equivalente:
-
-```python
-# Fórmula en CombustibleBase.save()
-Energía (kJ) = consumo_orig × factor_conversión × poder_calorífico
-Energía (kWh) = Energía (kJ) / 3600
-
-# Factores de conversión por tipo:
-- Gas Natural: 1.0 (m³ directo)
-- Carbón/Biomasa: 1000 (Ton → kg)
-- Fuel Oil: 0.00378541 (Gal → m³)
-- GLP: 1.0 (kg directo)
-- Electricidad: Sin conversión (ya en kWh)
+/                                    → home_public (landing)
+/nosotros/                           → nosotros
+/centros/                            → centros_public (con modals)
+/biblioteca/                         → biblioteca
+/resultados/                         → resultados
 ```
 
 ---
@@ -210,16 +248,22 @@ Energía (kWh) = Energía (kJ) / 3600
 # Validación en clean_rol() bloquea intentos de crear Directores
 ```
 
+### Aislamiento de Datos por Centro
+- Empresas filtradas por `centro` del usuario
+- Proyectos filtrados por `centro` del usuario
+- Usuarios filtrados por `centro_pevi` del usuario
+- Director Nacional y Superuser ven todo
+
 ---
 
 ## Indicadores Clave (KPIs)
 
 | KPI | Fórmula | Uso |
 |-----|---------|-----|
-| Energía Total | Σ(kWh eléctricos + kWh térmicos) | Dashboard |
+| Energía Total | Σ(kWh eléctricos + kWh térmicos) | Dashboard, matriz |
 | IDES | Energía_Total / Producción_Total | Desempeño energético |
-| Emisiones | Σ(factor_emisión × cantidad) | Huella de carbono |
-| Costo Normalizado | Costo_Total / Energía_Total | Comparativas |
+| Emisiones | Σ(consumo_orig × factor_emisión) / 1000 | Huella de carbono (TonCO2) |
+| Costo Normalizado | Costo_Total / Energía_kWh | Comparativas ($/kWh) |
 
 ---
 
@@ -227,66 +271,68 @@ Energía (kWh) = Energía (kJ) / 3600
 
 - **Framework CSS:** Bootstrap 5.3.0 (CDN)
 - **Iconos:** Bootstrap Icons 1.11.0
-- **Gráficas:** Chart.js (dona, barras)
+- **Gráficas:** Chart.js 4.4.1 (dona con porcentajes, barras)
 - **Fuente:** Inter (Google Fonts)
-- **Templates:** Jinja2 (Django Template Language)
-- **JavaScript:** Mínimo, solo Chart.js y Bootstrap
+- **Templates:** Django Template Language (Jinja2-like)
 
-**Paleta de colores:**
+### Paleta de Colores
 ```css
---sidebar-bg: #0f172a;        /* Azul oscuro */
---sidebar-active: #38bdf8;    /* Cyan */
---primary-brand: #0284c7;     /* Azul */
---body-bg: #f1f5f9;           /* Gris claro */
+--sidebar-bg: #0f172a;        /* Azul oscuro (slate-900) */
+--sidebar-active: #38bdf8;    /* Cyan (sky-400) */
+--primary-brand: #0284c7;     /* Azul (sky-600) */
+--body-bg: #f1f5f9;           /* Gris claro (slate-100) */
 ```
+
+### Clases CSS Personalizadas
+- `.card-modern` - Tarjetas con sombra suave
+- `.table-modern` - Tablas estilizadas
+- `.badge-soft` / `.bg-soft-*` - Badges con colores suaves
+- `.hover-lift` - Efecto elevación al hover
 
 ---
 
 ## Almacenamiento de Archivos (Híbrido Local/S3)
 
-El sistema detecta automáticamente el entorno basado en `DEBUG`:
-
-| Entorno | DEBUG | Almacenamiento | Archivos |
-|---------|-------|----------------|----------|
-| **Desarrollo** | `True` | Sistema de archivos local | `/static/`, `/media/` |
+| Entorno | DEBUG | Almacenamiento | Rutas |
+|---------|-------|----------------|-------|
+| **Desarrollo** | `True` | Sistema local | `/static/`, `/media/` |
 | **Producción** | `False` | AWS S3 | `vadomdata/pevi/static/`, `vadomdata/pevi/media/` |
 
-### Variables de entorno para S3
-
+### Variables de Entorno (.env)
 ```bash
-# .env producción
-DEBUG=False
-S3_CLIENT_PREFIX=pevi   # Carpeta en el bucket S3
-```
+# Desarrollo
+DEBUG=True
 
-> Las credenciales AWS se obtienen automáticamente del IAM Role del EC2.
+# Producción
+DEBUG=False
+S3_CLIENT_PREFIX=pevi
+# Credenciales AWS via IAM Role del EC2
+```
 
 ---
 
 ## Comandos Útiles
 
 ```bash
-# Migraciones
+# === DESARROLLO ===
+python manage.py runserver
+python manage.py shell
+python manage.py createsuperuser
+
+# === MIGRACIONES ===
 python manage.py makemigrations
 python manage.py migrate
 
-# Crear superusuario
-python manage.py createsuperuser
+# === ESTÁTICOS ===
+python manage.py collectstatic          # Desarrollo (./staticfiles/)
+python manage.py collectstatic --noinput # Producción (S3)
 
-# Shell interactivo
-python manage.py shell
+# === MANTENIMIENTO ===
+python manage.py recalcular_kwh --dry-run  # Ver cambios en kWh
+python manage.py recalcular_kwh            # Aplicar corrección
 
-# Colectar estáticos (desarrollo - guarda en ./staticfiles/)
-python manage.py collectstatic
-
-# Colectar estáticos (producción - sube a S3)
-# Asegúrate de tener DEBUG=False en .env
-python manage.py collectstatic --noinput
-
-# Ejecutar servidor de desarrollo
-python manage.py runserver
-
-# Admin Django: http://localhost:8000/admin/
+# === ADMIN ===
+# http://localhost:8000/admin/
 ```
 
 ---
@@ -294,21 +340,56 @@ python manage.py runserver
 ## Notas de Desarrollo
 
 ### Al modificar modelos
-1. Hacer `makemigrations` para la app afectada
+1. `python manage.py makemigrations <app>`
 2. Revisar la migración generada
-3. Aplicar con `migrate`
+3. `python manage.py migrate`
+4. Si solo cambias lógica en `save()`, no necesitas migración
 
 ### Al agregar vistas
-1. Aplicar decorador de seguridad apropiado (`@login_required`, `@acceso_staff`, etc.)
-2. Usar `verificar_acceso_proyecto()` si es operación sobre proyecto
-3. Pasar `user=request.user` a formularios que requieran validación jerárquica
+1. Aplicar decorador de seguridad (`@login_required`, `@acceso_staff`, etc.)
+2. Usar `verificar_acceso_proyecto()` para operaciones sobre proyectos
+3. Pasar `user=request.user` a formularios que validen jerarquía
 
 ### Al agregar fuentes energéticas
 1. Crear modelo heredando de `CombustibleBase` o `FuenteEnergiaBase`
-2. Crear formulario heredando de `RegistroEnergiaForm`
-3. Agregar entrada en `FORM_MAPPING` (gestion/views.py)
-4. Agregar lógica de agregación en dashboards
+2. Definir `factor_unidad` y `factor_energia` en `save()` del modelo padre
+3. Crear formulario heredando de `RegistroEnergiaForm`
+4. Agregar entrada en `FORM_MAPPING` (gestion/views.py)
+5. Actualizar JavaScript en `registro_energia_form.html`
+6. Agregar lógica de agregación en dashboards
 
 ### Formularios con números
-- Usar `RegistroEnergiaForm` como base (intercepta comas automáticamente)
-- Campos numéricos usan TextInput para permitir formato visual
+- Heredar de `RegistroEnergiaForm` (intercepta comas automáticamente)
+- Campos numéricos usan `TextInput` para permitir formato visual
+- JavaScript calcula en tiempo real los campos derivados
+
+### Chart.js en Modals
+- Inicializar gráficos en evento `shown.bs.modal`, no en `DOMContentLoaded`
+- Destruir instancia anterior antes de crear nueva (`chart.destroy()`)
+
+### Notificaciones (Messages)
+- Configurado `MESSAGE_TAGS` en settings.py para Bootstrap
+- Block de mensajes en `templates/layouts/base.html`
+- Usar `messages.success()`, `messages.error()`, etc. en vistas
+
+---
+
+## Despliegue en Producción
+
+```bash
+# En el servidor EC2
+cd /path/to/sistema_pevi
+git pull origin main
+
+# Si hay cambios en modelos:
+python manage.py migrate
+
+# Si hay cambios en estáticos:
+python manage.py collectstatic --noinput
+
+# Si hay cambios en conversión de energía:
+python manage.py recalcular_kwh
+
+# Reiniciar servicio
+sudo systemctl restart gunicorn
+```

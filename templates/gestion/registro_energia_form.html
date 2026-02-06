@@ -85,7 +85,7 @@
                     <div class="row g-4 mb-4">
                         <div class="col-md-5">
                             <label class="form-label fw-medium small text-secondary text-uppercase">
-                                Poder Calorífico ({% if tipo_fisica == 'volumen' %}kJ/m³{% else %}kJ/kg{% endif %})
+                                Poder Calorífico ({% if tipo_energia == 'gas_natural' %}kJ/m³{% elif tipo_energia == 'carbon' %}MJ/kg{% elif tipo_energia == 'fuel_oil' %}MJ/usgal{% elif tipo_energia == 'biomasa' %}kJ/kg{% elif tipo_energia == 'gas_propano' %}MJ/kg{% else %}kJ/kg{% endif %})
                             </label>
                             <div class="input-group">
                                 {{ form.poder_calorifico }}
@@ -167,8 +167,8 @@
             </div>
             <div class="modal-body p-4 bg-light">
                 <p class="small text-muted mb-3">
-                    Selecciona la unidad original de tu factura. El sistema la convertirá a 
-                    {% if tipo_fisica == 'volumen' %}<strong>kJ/m³</strong>{% else %}<strong>kJ/kg</strong>{% endif %}.
+                    Selecciona la unidad original de tu factura. El sistema la convertirá a
+                    <strong>{% if tipo_energia == 'gas_natural' %}kJ/m³{% elif tipo_energia == 'carbon' %}MJ/kg{% elif tipo_energia == 'fuel_oil' %}MJ/usgal{% elif tipo_energia == 'biomasa' %}kJ/kg{% elif tipo_energia == 'gas_propano' %}MJ/kg{% else %}kJ/kg{% endif %}</strong>.
                 </p>
                 
                 <div class="mb-3">
@@ -199,7 +199,7 @@
                 </div>
 
                 <div class="bg-white p-3 rounded border text-center">
-                    <small class="text-muted d-block mb-1">Resultado ({% if tipo_fisica == 'volumen' %}kJ/m³{% else %}kJ/kg{% endif %})</small>
+                    <small class="text-muted d-block mb-1">Resultado ({% if tipo_energia == 'gas_natural' %}kJ/m³{% elif tipo_energia == 'carbon' %}MJ/kg{% elif tipo_energia == 'fuel_oil' %}MJ/usgal{% elif tipo_energia == 'biomasa' %}kJ/kg{% elif tipo_energia == 'gas_propano' %}MJ/kg{% else %}kJ/kg{% endif %})</small>
                     <h4 class="fw-bold text-success mb-0" id="display_resultado">0.00</h4>
                     <input type="hidden" id="calc_resultado">
                 </div>
@@ -275,22 +275,22 @@
                 let factorUnidad = 1.0;   // Conversión de unidad de consumo
                 let factorEnergia = 1.0;  // Conversión de MJ a kJ (si aplica)
 
-                const titulo = "{{ titulo_energia|lower }}";
+                const tipoEnergia = "{{ tipo_energia }}";
 
-                if (titulo.includes("carbon")) {
+                if (tipoEnergia === "carbon") {
                     factorUnidad = 1000.0;  // Ton → kg
                     factorEnergia = 1000.0; // MJ → kJ
-                } else if (titulo.includes("biomasa")) {
+                } else if (tipoEnergia === "biomasa") {
                     factorUnidad = 1000.0;  // Ton → kg
                     factorEnergia = 1.0;    // Ya está en kJ
-                } else if (titulo.includes("fuel") || titulo.includes("diesel")) {
+                } else if (tipoEnergia === "fuel_oil") {
                     factorUnidad = 1.0;     // Galones (sin conversión)
                     factorEnergia = 1000.0; // MJ → kJ
-                } else if (titulo.includes("propano") || titulo.includes("glp")) {
+                } else if (tipoEnergia === "gas_propano") {
                     factorUnidad = 1.0;     // kg (sin conversión)
                     factorEnergia = 1000.0; // MJ → kJ
                 }
-                // Gas Natural: factorUnidad=1.0, factorEnergia=1.0 (m³, kJ/m³)
+                // gas_natural: factorUnidad=1.0, factorEnergia=1.0 (m³, kJ/m³)
 
                 let kwhMes = (valConsumoMes * factorUnidad * valPC * factorEnergia) / 3600;
                 let kwhAnio = (valConsumoAnio * factorUnidad * valPC * factorEnergia) / 3600;
@@ -358,8 +358,17 @@
         const u = document.getElementById('calc_unidad').value;
         const v = parseFloat(document.getElementById('calc_valor').value);
         if(isNaN(v)) return alert("Valor inválido");
+
+        // Factores de conversión a kJ
         const f = {'kcal_m3': 4.184, 'MJ_m3': 1000, 'kWh_m3': 3600, 'BTU_ft3': 37.258, 'therm_CCF': 37258.9, 'kcal_kg': 4.184, 'MJ_kg': 1000, 'kWh_kg': 3600, 'BTU_lb': 2.326};
         let r = f[u] ? v * f[u] : 0;
+
+        // Para tipos que usan MJ, dividimos por 1000
+        const tipoEnergia = "{{ tipo_energia }}";
+        if (tipoEnergia === "carbon" || tipoEnergia === "fuel_oil" || tipoEnergia === "gas_propano") {
+            r = r / 1000;  // Convertir kJ a MJ
+        }
+
         document.getElementById('calc_resultado').value = r.toFixed(2);
         document.getElementById('display_resultado').innerText = r.toLocaleString('en-US', {minimumFractionDigits: 2});
     }

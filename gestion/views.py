@@ -638,6 +638,7 @@ def registrar_consumo(request, proyecto_id, tipo_energia):
         'proyecto': proyecto,
         'form': form,
         'titulo_energia': config['titulo'],
+        'tipo_energia': tipo_energia,  # Para JS: carbon, fuel_oil, gas_propano, etc.
         'icono': config['icono'],
         'tipo_fisica': config.get('tipo_fisica', 'masa'),
         'es_edicion': registro_existente is not None
