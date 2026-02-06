@@ -45,6 +45,20 @@
                         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                     {% endif %}
 
+                    {% if tipo_energia == 'biomasa' %}
+                    <h6 class="text-uppercase text-primary fw-bold mb-3 border-bottom pb-2">
+                        <i class="bi bi-tree me-2"></i>Tipo de Biomasa
+                    </h6>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium small text-secondary text-uppercase">{{ form.tipo.label }}</label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}<div class="text-danger small">{{ form.tipo.errors.0 }}</div>{% endif %}
+                            <div class="form-text small">Ej: Bagazo, Cascarilla de arroz, Madera, etc.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <h6 class="text-uppercase text-primary fw-bold mb-3 border-bottom pb-2">
                         <i class="bi bi-speedometer me-2"></i>1. Datos de Consumo
                     </h6>
