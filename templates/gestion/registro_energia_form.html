@@ -299,10 +299,11 @@
                 if(valConsumoAnio > 0) outputCostoKwh.value = formatNumber((valCostoAnio/valConsumoAnio).toFixed(2));
             }
 
-            // E. Cálculo de Emisiones (CORREGIDO)
-            // Fórmula: (Consumo Eq. Anual kWh * Factor) / 1000
-            let valEmisiones = (kwhAnualParaEmisiones * valFactor) / 1000;
-            
+            // E. Cálculo de Emisiones
+            // Fórmula: (Consumo Anual en UNIDAD ORIGINAL * Factor de Emisión) / 1000
+            // El factor está en kgCO2/Unidad, dividimos por 1000 para obtener TonCO2
+            let valEmisiones = (valConsumoAnio * valFactor) / 1000;
+
             if (inputEmisiones) inputEmisiones.value = formatNumber(valEmisiones.toFixed(3));
         }
 
