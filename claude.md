@@ -8,6 +8,8 @@ Sistema web de gestión de auditorías energéticas para el programa PEVI (Progr
 
 **Producción:** https://pevicolombia.com (AWS EC2 + S3)
 
+**Centros PEVI:** Universidad del Atlántico, UAO, U. de Vigo, UTP, UFPS
+
 ---
 
 ## Quick Start
@@ -65,7 +67,7 @@ sistema_pevi/
 │   ├── layouts/              # base.html (app), base_public.html (web)
 │   ├── gestion/              # Dashboard, CRUD, listados, informes PDF
 │   ├── metricas/             # Dashboards BI
-│   ├── registration/         # Login (fondo oscuro animado)
+│   ├── registration/         # Login (5 logos universidades)
 │   └── web/                  # Landing page, centros con modals
 │
 ├── static/                    # Archivos estáticos (CSS, JS, imágenes)
@@ -107,10 +109,12 @@ ProyectoAuditoria (1) ──┬─> (1) Electricidad
 | Profesor | `PROFESOR` | Lidera proyectos, gestiona empresas |
 | Estudiante | `ESTUDIANTE` | Participa en equipos asignados |
 
-### Estados de Proyecto
+### Estados y Fases de Proyecto
 
 ```
-BORRADOR → EJECUCION → REVISION → FINALIZADO
+Estados: BORRADOR → EJECUCION → REVISION → FINALIZADO
+
+Fases (opcional): FASE_1, FASE_2, FASE_3, FASE_4
 ```
 
 ---
@@ -169,6 +173,14 @@ python manage.py recalcular_kwh
 - `auditorias/forms.py` - `RegistroEnergiaForm` - Intercepta comas en números (1,200 → 1200)
 - `templates/gestion/registro_energia_form.html` - Formulario con cálculo JS en tiempo real
 
+### Expediente de Proyecto (Detalle)
+- `gestion/views.py` - `detalle_proyecto()` - KPIs y datos para 4 gráficos
+- `templates/gestion/proyecto_detalle.html` - 4 gráficos Chart.js:
+  1. Matriz de Consumo (kWh) - doughnut
+  2. Huella de Carbono (TonCO2) - doughnut
+  3. Balance Térmico (MBTU) - barras
+  4. Distribución de Costos - barras
+
 ### Dashboards y BI
 - `metricas/views.py` - `dashboard_estrategico()` - BI con filtros por estado/fecha
 - `metricas/views.py` - `dashboard_nacional()` - Visión consolidada país
@@ -180,6 +192,7 @@ python manage.py recalcular_kwh
 ### Sitio Público
 - `web/views.py` - Vistas públicas (home, nosotros, centros, biblioteca, resultados)
 - `templates/web/centros.html` - Modals con gráficos Chart.js por centro
+- `templates/web/resultados.html` - Filtros (año, región, sector) + exportar CSV/PDF
 
 ---
 
@@ -190,8 +203,8 @@ python manage.py recalcular_kwh
 
 # Dashboard y listados
 /app/                                → dashboard
-/app/proyectos/                      → lista_proyectos
-/app/proyectos/<id>/                 → detalle_proyecto
+/app/proyectos/                      → lista_proyectos (filtros: estado, fase, centro, líder)
+/app/proyectos/<id>/                 → detalle_proyecto (4 gráficos + bitácora)
 
 # CRUD Proyectos
 /app/proyectos/nuevo/                → crear_proyecto
@@ -228,7 +241,7 @@ python manage.py recalcular_kwh
 /nosotros/                           → nosotros
 /centros/                            → centros_public (con modals)
 /biblioteca/                         → biblioteca
-/resultados/                         → resultados
+/resultados/                         → resultados (filtros + exportar)
 ```
 
 ---
@@ -355,13 +368,14 @@ python manage.py recalcular_kwh            # Aplicar corrección
 2. Definir `factor_unidad` y `factor_energia` en `save()` del modelo padre
 3. Crear formulario heredando de `RegistroEnergiaForm`
 4. Agregar entrada en `FORM_MAPPING` (gestion/views.py)
-5. Actualizar JavaScript en `registro_energia_form.html`
-6. Agregar lógica de agregación en dashboards
+5. Actualizar JavaScript en `registro_energia_form.html` (factores por tipo)
+6. Agregar lógica de agregación en dashboards y gráficos
 
 ### Formularios con números
 - Heredar de `RegistroEnergiaForm` (intercepta comas automáticamente)
 - Campos numéricos usan `TextInput` para permitir formato visual
 - JavaScript calcula en tiempo real los campos derivados
+- Variable `tipo_energia` (no `titulo_energia`) para detectar factores
 
 ### Chart.js en Modals
 - Inicializar gráficos en evento `shown.bs.modal`, no en `DOMContentLoaded`

@@ -522,6 +522,7 @@ def detalle_proyecto(request, proyecto_id):
     chart_labels = []
     chart_data_energia = []
     chart_data_costos = []
+    chart_data_emisiones = []
     chart_colors = []
 
     color_map = {
@@ -534,14 +535,14 @@ def detalle_proyecto(request, proyecto_id):
         if fuente:
             total_emisiones += fuente.emisiones_totales
             total_costo += fuente.costo_total_anual
-            
+
             # Polimorfismo: Obtener kWh
             energia_fuente = 0
-            if hasattr(fuente, 'consumo_anual_kwh'): 
+            if hasattr(fuente, 'consumo_anual_kwh'):
                 energia_fuente = fuente.consumo_anual_kwh
-            elif hasattr(fuente, 'consumo_anual'): 
+            elif hasattr(fuente, 'consumo_anual'):
                 energia_fuente = fuente.consumo_anual
-            
+
             total_energia += energia_fuente
 
             if nombre == 'Electricidad':
@@ -553,6 +554,7 @@ def detalle_proyecto(request, proyecto_id):
                 chart_labels.append(nombre)
                 chart_data_energia.append(int(energia_fuente))
                 chart_data_costos.append(int(fuente.costo_total_anual))
+                chart_data_emisiones.append(round(fuente.emisiones_totales, 2))
                 chart_colors.append(color_map.get(nombre, '#cccccc'))
 
     # 3. MBTU (Millones de BTU)
@@ -595,6 +597,7 @@ def detalle_proyecto(request, proyecto_id):
         'chart_labels': json.dumps(chart_labels),
         'chart_data_energia': json.dumps(chart_data_energia),
         'chart_data_costos': json.dumps(chart_data_costos),
+        'chart_data_emisiones': json.dumps(chart_data_emisiones),
         'chart_colors': json.dumps(chart_colors),
         'chart_data_mbtu': json.dumps(chart_data_mbtu),
         
