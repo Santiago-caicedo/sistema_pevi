@@ -54,7 +54,7 @@
                                 <i class="bi bi-lightning-charge-fill"></i>
                             </div>
                             <div class="stat-content">
-                                <span class="stat-number-lg counter-animate" data-count="{{ total_energia_mwh|floatformat:0 }}">0</span>
+                                <span class="stat-number-lg counter-animate" data-count="{{ total_energia_mwh|floatformat:0 }}">{{ total_energia_mwh|floatformat:0|intcomma }}</span>
                                 <span class="stat-unit">MWh</span>
                                 <p class="stat-label mb-0">Energía Total Analizada</p>
                             </div>
@@ -71,7 +71,7 @@
                                 <i class="bi bi-globe-americas"></i>
                             </div>
                             <div class="stat-content">
-                                <span class="stat-number-lg counter-animate" data-count="{{ total_emisiones_ton|floatformat:0 }}">0</span>
+                                <span class="stat-number-lg counter-animate" data-count="{{ total_emisiones_ton|floatformat:0 }}">{{ total_emisiones_ton|floatformat:0|intcomma }}</span>
                                 <span class="stat-unit">TonCO₂</span>
                                 <p class="stat-label mb-0">Huella de Carbono Medida</p>
                             </div>
@@ -87,28 +87,28 @@
                 <div class="col-6 col-md-3 col-lg-2">
                     <div class="stat-card-mini">
                         <div class="stat-mini-icon"><i class="bi bi-clipboard-check-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_proyectos }}">0</div>
+                        <div class="stat-mini-number counter-animate" data-count="{{ total_proyectos }}">{{ total_proyectos|intcomma }}</div>
                         <div class="stat-mini-label">Auditorías</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3 col-lg-2">
                     <div class="stat-card-mini">
                         <div class="stat-mini-icon"><i class="bi bi-building-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_empresas }}">0</div>
+                        <div class="stat-mini-number counter-animate" data-count="{{ total_empresas }}">{{ total_empresas|intcomma }}</div>
                         <div class="stat-mini-label">Empresas</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3 col-lg-2">
                     <div class="stat-card-mini">
                         <div class="stat-mini-icon"><i class="bi bi-mortarboard-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_centros }}">0</div>
+                        <div class="stat-mini-number counter-animate" data-count="{{ total_centros }}">{{ total_centros|intcomma }}</div>
                         <div class="stat-mini-label">Universidades</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3 col-lg-2">
                     <div class="stat-card-mini">
                         <div class="stat-mini-icon"><i class="bi bi-gear-wide-connected"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ sectores_unicos }}">0</div>
+                        <div class="stat-mini-number counter-animate" data-count="{{ sectores_unicos }}">{{ sectores_unicos|intcomma }}</div>
                         <div class="stat-mini-label">Sectores</div>
                     </div>
                 </div>
