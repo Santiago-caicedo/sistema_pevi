@@ -585,11 +585,25 @@ def detalle_proyecto(request, proyecto_id):
     total_ahorro_energia = 0.0
     total_ahorro_costo = 0.0
     total_ahorro_emisiones = 0.0
-    for _, fuente in fuentes_map:
+
+    # Datos para gráfico de cascada (waterfall)
+    waterfall_labels = ['Consumo Actual']
+    waterfall_reducciones = []  # Lista de reducciones por fuente
+
+    for nombre, fuente in fuentes_map:
         if fuente:
-            total_ahorro_energia += fuente.get_ahorro_energia_potencial()
+            ahorro_energia = fuente.get_ahorro_energia_potencial()
+            total_ahorro_energia += ahorro_energia
             total_ahorro_costo += fuente.get_ahorro_costo_potencial()
             total_ahorro_emisiones += fuente.get_ahorro_emisiones_potencial()
+
+            # Solo agregar al waterfall si tiene reducción
+            if ahorro_energia > 0:
+                waterfall_labels.append(nombre)
+                waterfall_reducciones.append(round(ahorro_energia))
+
+    waterfall_labels.append('Consumo Proyectado')
+    consumo_proyectado = total_energia - total_ahorro_energia
 
     context = {
         'proyecto': proyecto,
@@ -626,6 +640,12 @@ def detalle_proyecto(request, proyecto_id):
         'total_ahorro_energia': total_ahorro_energia,
         'total_ahorro_costo': total_ahorro_costo,
         'total_ahorro_emisiones': total_ahorro_emisiones,
+
+        # Datos para Waterfall Chart
+        'waterfall_labels': json.dumps(waterfall_labels),
+        'waterfall_reducciones': json.dumps(waterfall_reducciones),
+        'waterfall_total_actual': int(total_energia),
+        'waterfall_total_proyectado': int(consumo_proyectado),
     }
 
     return render(request, 'gestion/proyecto_detalle.html', context)

@@ -439,6 +439,74 @@
     <span class="text-muted small">Define metas de reducción para cada energético</span>
 </div>
 
+<!-- Resumen de Impacto -->
+{% if total_ahorro_energia > 0 %}
+<div class="row g-4 mb-4">
+    <!-- KPIs de Ahorro -->
+    <div class="col-lg-5">
+        <div class="card-modern p-4 bg-white shadow-sm h-100">
+            <h6 class="fw-bold text-dark mb-4">
+                <i class="bi bi-arrow-down-circle text-success me-2"></i>Impacto Potencial
+            </h6>
+
+            <!-- Comparativa Visual Grande -->
+            <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+                <div class="text-center flex-grow-1">
+                    <span class="text-muted small d-block">Consumo Actual</span>
+                    <span class="fs-4 fw-bold text-dark">{{ kpi_energia|intcomma }}</span>
+                    <span class="text-muted small">kWh</span>
+                </div>
+                <div class="px-3">
+                    <i class="bi bi-arrow-right fs-4 text-success"></i>
+                </div>
+                <div class="text-center flex-grow-1">
+                    <span class="text-muted small d-block">Consumo Proyectado</span>
+                    <span class="fs-4 fw-bold text-success">{{ waterfall_total_proyectado|intcomma }}</span>
+                    <span class="text-muted small">kWh</span>
+                </div>
+            </div>
+
+            <!-- KPIs en fila -->
+            <div class="row g-3">
+                <div class="col-4">
+                    <div class="text-center p-3 rounded-3 bg-light">
+                        <i class="bi bi-lightning-charge text-warning fs-4 d-block mb-1"></i>
+                        <span class="fw-bold text-dark d-block">{{ total_ahorro_energia|floatformat:0|intcomma }}</span>
+                        <span class="text-muted" style="font-size: 0.7rem;">kWh ahorro</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-center p-3 rounded-3 bg-light">
+                        <i class="bi bi-currency-dollar text-success fs-4 d-block mb-1"></i>
+                        <span class="fw-bold text-dark d-block">{{ total_ahorro_costo|floatformat:0|intcomma }}</span>
+                        <span class="text-muted" style="font-size: 0.7rem;">COP ahorro</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="text-center p-3 rounded-3 bg-light">
+                        <i class="bi bi-cloud-minus text-info fs-4 d-block mb-1"></i>
+                        <span class="fw-bold text-dark d-block">{{ total_ahorro_emisiones|floatformat:1 }}</span>
+                        <span class="text-muted" style="font-size: 0.7rem;">TonCO₂</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Reducción por Fuente -->
+    <div class="col-lg-7">
+        <div class="card-modern p-4 bg-white shadow-sm h-100">
+            <h6 class="fw-bold text-dark mb-3">
+                <i class="bi bi-bar-chart-fill text-primary me-2"></i>Reducción por Fuente Energética
+            </h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartReduccion"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="card-modern p-0 overflow-hidden bg-white shadow-sm mb-5">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -1071,6 +1139,97 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+
+        // 4. GRÁFICO DE REDUCCIÓN POR FUENTE
+        const canvasReduccion = document.getElementById('chartReduccion');
+        if (canvasReduccion) {
+            const reduccionLabels = {{ waterfall_labels|safe }};
+            const reduccionValores = {{ waterfall_reducciones|safe }};
+
+            // Filtrar solo las fuentes con reducción (quitar "Consumo Actual" y "Consumo Proyectado")
+            const fuentesLabels = reduccionLabels.slice(1, -1);
+            const fuentesValores = reduccionValores;
+
+            if (fuentesLabels.length > 0) {
+                const ctxReduccion = canvasReduccion.getContext('2d');
+                new Chart(ctxReduccion, {
+                    type: 'bar',
+                    data: {
+                        labels: fuentesLabels,
+                        datasets: [{
+                            label: 'Reducción (kWh)',
+                            data: fuentesValores,
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(5, 150, 105, 0.8)',
+                                'rgba(4, 120, 87, 0.8)',
+                                'rgba(6, 95, 70, 0.8)',
+                                'rgba(20, 83, 45, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgb(34, 197, 94)',
+                                'rgb(16, 185, 129)',
+                                'rgb(5, 150, 105)',
+                                'rgb(4, 120, 87)',
+                                'rgb(6, 95, 70)',
+                                'rgb(20, 83, 45)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            barThickness: 35
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: '#f1f5f9' },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) {
+                                            return (value / 1000000).toFixed(1) + 'M';
+                                        } else if (value >= 1000) {
+                                            return (value / 1000).toFixed(0) + 'K';
+                                        }
+                                        return value;
+                                    }
+                                }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { font: { weight: 'bold', size: 11 } }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Ahorro: ' + context.raw.toLocaleString() + ' kWh';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Mostrar mensaje si no hay reducciones
+                const ctx = canvasReduccion.getContext('2d');
+                ctx.font = '14px Inter, sans-serif';
+                ctx.fillStyle = '#94a3b8';
+                ctx.textAlign = 'center';
+                ctx.fillText('Define metas de reducción en la tabla', canvasReduccion.width / 2, canvasReduccion.height / 2);
+            }
+        }
     });
 </script>
 {% endblock %}
