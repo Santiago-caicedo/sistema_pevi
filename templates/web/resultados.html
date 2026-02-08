@@ -128,7 +128,7 @@
                         {% if filtro_año %}<span class="filter-tag"><i class="bi bi-calendar3"></i> {{ filtro_año }}</span>{% endif %}
                         {% if filtro_region %}<span class="filter-tag"><i class="bi bi-geo-alt"></i> {{ filtro_region }}</span>{% endif %}
                         {% if filtro_sector %}<span class="filter-tag"><i class="bi bi-building"></i> {{ filtro_sector }}</span>{% endif %}
-                        <a href="{% url 'resultados' %}" class="filter-clear" title="Limpiar filtros"><i class="bi bi-x-lg"></i></a>
+                        <a href="{% url 'resultados_public' %}" class="filter-clear" title="Limpiar filtros"><i class="bi bi-x-lg"></i></a>
                     </div>
                     {% endif %}
                 </div>
