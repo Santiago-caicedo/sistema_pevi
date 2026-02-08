@@ -581,6 +581,16 @@ def detalle_proyecto(request, proyecto_id):
     if proyecto.produccion_total:
         produccion_display = round(proyecto.produccion_total)
 
+    # 6. Totales de Ahorro Potencial (Oportunidades de Mejora)
+    total_ahorro_energia = 0.0
+    total_ahorro_costo = 0.0
+    total_ahorro_emisiones = 0.0
+    for _, fuente in fuentes_map:
+        if fuente:
+            total_ahorro_energia += fuente.get_ahorro_energia_potencial()
+            total_ahorro_costo += fuente.get_ahorro_costo_potencial()
+            total_ahorro_emisiones += fuente.get_ahorro_emisiones_potencial()
+
     context = {
         'proyecto': proyecto,
         'produccion_display': produccion_display,
@@ -611,13 +621,66 @@ def detalle_proyecto(request, proyecto_id):
         
         # Permisos frontend
         'puede_editar_estructura': (request.user.rol != 'ESTUDIANTE'),
+
+        # Oportunidades de Mejora
+        'total_ahorro_energia': total_ahorro_energia,
+        'total_ahorro_costo': total_ahorro_costo,
+        'total_ahorro_emisiones': total_ahorro_emisiones,
     }
-    
+
     return render(request, 'gestion/proyecto_detalle.html', context)
 
 # ==============================================================================
 #  5. VISTAS OPERATIVAS (Registros, Archivos, PDF)
 # ==============================================================================
+
+@login_required
+@acceso_staff
+def guardar_reduccion(request, proyecto_id):
+    """Guarda el porcentaje de reducción objetivo para un energético."""
+    if request.method != 'POST':
+        return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+
+    if not verificar_acceso_proyecto(request.user, proyecto):
+        raise PermissionDenied("No tienes permiso para modificar este proyecto.")
+
+    tipo_energia = request.POST.get('tipo_energia')
+    porcentaje = request.POST.get('porcentaje', 0)
+
+    try:
+        porcentaje = float(porcentaje)
+        porcentaje = max(0, min(100, porcentaje))  # Limitar entre 0 y 100
+    except (ValueError, TypeError):
+        porcentaje = 0
+
+    # Mapeo de tipos a modelos
+    from auditorias.models import Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
+
+    modelo_map = {
+        'electricidad': Electricidad,
+        'gas_natural': GasNatural,
+        'carbon': CarbonMineral,
+        'fuel_oil': FuelOil,
+        'biomasa': Biomasa,
+        'gas_propano': GasPropano,
+    }
+
+    ModelClass = modelo_map.get(tipo_energia)
+    if ModelClass:
+        registro = ModelClass.objects.filter(proyecto=proyecto).first()
+        if registro:
+            registro.porcentaje_reduccion = porcentaje
+            registro.save()
+            messages.success(request, f"Meta de reducción actualizada a {porcentaje}%.")
+        else:
+            messages.error(request, "No existe registro para este energético.")
+    else:
+        messages.error(request, "Tipo de energético no válido.")
+
+    return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
 
 @login_required
 @acceso_staff

@@ -175,7 +175,7 @@ class FuenteEnergiaBase(models.Model):
     Ahora TODO es editable.
     """
     proyecto = models.ForeignKey(ProyectoAuditoria, on_delete=models.CASCADE, related_name="%(class)s_related")
-    
+
     # --- 1. DATOS ECONÓMICOS (Manuales) ---
     costo_unitario = models.FloatField(verbose_name="Costo Unitario Promedio", help_text="COP/Unidad")
     costo_mensual_promedio = models.FloatField(verbose_name="Costo Mensual Promedio (COP)")
@@ -185,8 +185,28 @@ class FuenteEnergiaBase(models.Model):
     factor_emision = models.FloatField(verbose_name="Factor de Emisión (FE)", help_text="kgCO2/Unidad")
     emisiones_totales = models.FloatField(verbose_name="Emisiones Totales (TonCO2/año)")
 
+    # --- 3. OPORTUNIDADES DE MEJORA ---
+    porcentaje_reduccion = models.FloatField(
+        verbose_name="Meta de Reducción (%)",
+        default=0,
+        help_text="Porcentaje de reducción objetivo para este energético"
+    )
+
     class Meta:
         abstract = True
+
+    def get_ahorro_energia_potencial(self):
+        """Calcula el ahorro potencial en kWh basado en el % de reducción."""
+        kwh = getattr(self, 'consumo_anual', None) or getattr(self, 'consumo_anual_kwh', 0)
+        return (kwh * self.porcentaje_reduccion) / 100 if self.porcentaje_reduccion else 0
+
+    def get_ahorro_costo_potencial(self):
+        """Calcula el ahorro potencial en COP basado en el % de reducción."""
+        return (self.costo_total_anual * self.porcentaje_reduccion) / 100 if self.porcentaje_reduccion else 0
+
+    def get_ahorro_emisiones_potencial(self):
+        """Calcula la reducción de emisiones potencial en TonCO2."""
+        return (self.emisiones_totales * self.porcentaje_reduccion) / 100 if self.porcentaje_reduccion else 0
 
 class Electricidad(FuenteEnergiaBase):
     """ Campos específicos del Excel para Electricidad """

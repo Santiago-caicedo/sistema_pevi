@@ -430,7 +430,430 @@
     </div>
 </div>
 
-<div class="row mt-2">
+<!-- SECCIÓN: OPORTUNIDADES DE MEJORA -->
+{% if kpi_energia > 0 %}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-5">
+    <h5 class="fw-bold text-dark mb-0">
+        <i class="bi bi-graph-down-arrow text-success me-2"></i>Oportunidades de Mejora - Línea Base
+    </h5>
+    <span class="text-muted small">Define metas de reducción para cada energético</span>
+</div>
+
+<div class="card-modern p-0 overflow-hidden bg-white shadow-sm mb-5">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Energético</th>
+                    <th class="text-center">Consumo Actual</th>
+                    <th class="text-center">Costo Actual</th>
+                    <th class="text-center">% Reducción</th>
+                    <th class="text-center">Ahorro Energía</th>
+                    <th class="text-center">Ahorro Costo</th>
+                    <th class="text-center">CO₂ Evitado</th>
+                    <th class="text-end pe-4"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if electricidad %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-soft-warning text-warning p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-plug-fill"></i>
+                            </div>
+                            <span class="fw-medium">Electricidad</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ electricidad.consumo_anual|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ electricidad.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if electricidad.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ electricidad.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if electricidad.porcentaje_reduccion > 0 %}
+                            {{ electricidad.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if electricidad.porcentaje_reduccion > 0 %}
+                            $ {{ electricidad.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if electricidad.porcentaje_reduccion > 0 %}
+                            {{ electricidad.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="electricidad"
+                                data-nombre="Electricidad"
+                                data-actual="{{ electricidad.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if gas_natural %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-soft-primary text-primary p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-fire"></i>
+                            </div>
+                            <span class="fw-medium">Gas Natural</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ gas_natural.consumo_anual_kwh|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ gas_natural.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if gas_natural.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ gas_natural.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_natural.porcentaje_reduccion > 0 %}
+                            {{ gas_natural.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_natural.porcentaje_reduccion > 0 %}
+                            $ {{ gas_natural.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_natural.porcentaje_reduccion > 0 %}
+                            {{ gas_natural.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="gas_natural"
+                                data-nombre="Gas Natural"
+                                data-actual="{{ gas_natural.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if carbon_mineral %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-dark text-white p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-box-seam-fill"></i>
+                            </div>
+                            <span class="fw-medium">Carbón Mineral</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ carbon_mineral.consumo_anual_kwh|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ carbon_mineral.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if carbon_mineral.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ carbon_mineral.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if carbon_mineral.porcentaje_reduccion > 0 %}
+                            {{ carbon_mineral.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if carbon_mineral.porcentaje_reduccion > 0 %}
+                            $ {{ carbon_mineral.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if carbon_mineral.porcentaje_reduccion > 0 %}
+                            {{ carbon_mineral.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="carbon"
+                                data-nombre="Carbón Mineral"
+                                data-actual="{{ carbon_mineral.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if fuel_oil %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-soft-danger text-danger p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-droplet-fill"></i>
+                            </div>
+                            <span class="fw-medium">Fuel Oil</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ fuel_oil.consumo_anual_kwh|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ fuel_oil.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if fuel_oil.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ fuel_oil.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if fuel_oil.porcentaje_reduccion > 0 %}
+                            {{ fuel_oil.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if fuel_oil.porcentaje_reduccion > 0 %}
+                            $ {{ fuel_oil.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if fuel_oil.porcentaje_reduccion > 0 %}
+                            {{ fuel_oil.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="fuel_oil"
+                                data-nombre="Fuel Oil"
+                                data-actual="{{ fuel_oil.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if biomasa %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-soft-success text-success p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-recycle"></i>
+                            </div>
+                            <span class="fw-medium">Biomasa</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ biomasa.consumo_anual_kwh|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ biomasa.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if biomasa.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ biomasa.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if biomasa.porcentaje_reduccion > 0 %}
+                            {{ biomasa.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if biomasa.porcentaje_reduccion > 0 %}
+                            $ {{ biomasa.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if biomasa.porcentaje_reduccion > 0 %}
+                            {{ biomasa.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="biomasa"
+                                data-nombre="Biomasa"
+                                data-actual="{{ biomasa.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% if gas_propano %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-soft-info text-info p-2 me-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-cloud-fog2-fill"></i>
+                            </div>
+                            <span class="fw-medium">Gas Propano (GLP)</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">{{ gas_propano.consumo_anual_kwh|floatformat:0|intcomma }}</span>
+                        <span class="text-muted small">kWh</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold">$ {{ gas_propano.costo_total_anual|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{% if gas_propano.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
+                            {{ gas_propano.porcentaje_reduccion|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_propano.porcentaje_reduccion > 0 %}
+                            {{ gas_propano.get_ahorro_energia_potencial|floatformat:0|intcomma }} kWh
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_propano.porcentaje_reduccion > 0 %}
+                            $ {{ gas_propano.get_ahorro_costo_potencial|floatformat:0|intcomma }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-bold">
+                        {% if gas_propano.porcentaje_reduccion > 0 %}
+                            {{ gas_propano.get_ahorro_emisiones_potencial|floatformat:2 }} Ton
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-sm btn-light border"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalReduccion"
+                                data-tipo="gas_propano"
+                                data-nombre="Gas Propano (GLP)"
+                                data-actual="{{ gas_propano.porcentaje_reduccion }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr class="fw-bold">
+                    <td class="ps-4">TOTAL POTENCIAL</td>
+                    <td class="text-center">-</td>
+                    <td class="text-center">-</td>
+                    <td class="text-center">-</td>
+                    <td class="text-center text-success">{{ total_ahorro_energia|floatformat:0|intcomma }} kWh</td>
+                    <td class="text-center text-success">$ {{ total_ahorro_costo|floatformat:0|intcomma }}</td>
+                    <td class="text-center text-success">{{ total_ahorro_emisiones|floatformat:2 }} Ton</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para editar % de reducción -->
+<div class="modal fade" id="modalReduccion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-graph-down-arrow me-2"></i>Meta de Reducción</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formReduccion" method="post" action="{% url 'guardar_reduccion' proyecto.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo_energia" id="inputTipoEnergia">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Define el porcentaje de reducción objetivo para <strong id="nombreEnergetico">-</strong>
+                    </p>
+                    <div class="input-group input-group-lg">
+                        <input type="number" name="porcentaje" id="inputPorcentaje"
+                               class="form-control text-center fw-bold"
+                               min="0" max="100" step="0.1"
+                               placeholder="0" required>
+                        <span class="input-group-text bg-light fw-bold">%</span>
+                    </div>
+                    <div class="form-text text-center mt-2">Valor entre 0% y 100%</div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success px-4">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('modalReduccion');
+    modal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        document.getElementById('inputTipoEnergia').value = button.getAttribute('data-tipo');
+        document.getElementById('nombreEnergetico').textContent = button.getAttribute('data-nombre');
+        document.getElementById('inputPorcentaje').value = button.getAttribute('data-actual') || 0;
+    });
+});
+</script>
+{% endif %}
+
+<div class="row mt-4">
     <div class="col-12">
         <div class="card-modern p-0 overflow-hidden bg-white shadow-sm">
             <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-light">
