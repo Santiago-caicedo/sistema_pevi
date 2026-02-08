@@ -25,6 +25,14 @@
                 <form method="post">
                     {% csrf_token %}
 
+                    {% if confirmar_cambio_lider %}
+                        <input type="hidden" name="confirmar_cambio_lider" value="1">
+                        <div class="alert alert-warning rounded-3 mb-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Confirma el cambio de liderazgo:</strong> Al guardar, transferirás el control del proyecto a otra persona y perderás acceso de edición.
+                        </div>
+                    {% endif %}
+
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger rounded-3 mb-4">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ form.non_field_errors }}

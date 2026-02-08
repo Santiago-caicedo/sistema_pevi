@@ -26,7 +26,13 @@ class EstiloBootstrapMixin:
 class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
         model = Empresa
-        fields = '__all__'
+        # SEGURIDAD: Lista explícita de campos permitidos (NO usar __all__)
+        fields = [
+            'centro',
+            'razon_social', 'nit', 'sector_productivo',
+            'direccion', 'ciudad',
+            'contacto_nombre', 'contacto_email', 'contacto_telefono'
+        ]
         widgets = {
             'direccion': forms.Textarea(attrs={'rows': 2}),
         }
@@ -34,6 +40,7 @@ class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self._user = user  # Guardar para validación
 
         if user:
             if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
@@ -46,6 +53,19 @@ class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
                 self.fields['centro'].widget = forms.HiddenInput()
                 self.fields['centro'].initial = user.centro_pevi
                 self.fields['centro'].required = False
+
+    def clean_centro(self):
+        """Garantiza que toda empresa tenga un centro asignado."""
+        centro = self.cleaned_data.get('centro')
+
+        # Si no viene centro del formulario, usar el del usuario
+        if not centro and hasattr(self, '_user') and self._user and self._user.centro_pevi:
+            return self._user.centro_pevi
+
+        if not centro:
+            raise forms.ValidationError("Debe asignar un Centro PEVI a la empresa.")
+
+        return centro
 
 class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
@@ -67,6 +87,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
         from gestion.models import Usuario
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self._user = user  # Guardar para validación
 
         # AISLAMIENTO DE CENTROS: Filtrar todo por centro del usuario
         if user:
@@ -90,7 +111,37 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
                 # Filtrar equipo por centro
                 self.fields['equipo'].queryset = Usuario.objects.filter(
                     centro_pevi=user.centro_pevi
-                ) 
+                )
+
+    def clean(self):
+        """Valida consistencia de centro entre empresa, líder y equipo."""
+        cleaned_data = super().clean()
+        empresa = cleaned_data.get('empresa')
+        lider = cleaned_data.get('lider_proyecto')
+        equipo = cleaned_data.get('equipo')
+
+        # Solo validar para Nacional/Superuser (los demás ya están filtrados)
+        if hasattr(self, '_user') and self._user:
+            if self._user.is_superuser or self._user.rol == 'DIRECTOR_NACIONAL':
+                if empresa:
+                    centro_empresa = empresa.centro
+
+                    # Validar que el líder sea del mismo centro que la empresa
+                    if lider and lider.centro_pevi and centro_empresa:
+                        if lider.centro_pevi != centro_empresa:
+                            self.add_error('lider_proyecto',
+                                f"El líder pertenece a {lider.centro_pevi.nombre_corto or lider.centro_pevi.nombre}, "
+                                f"pero la empresa es de {centro_empresa.nombre_corto or centro_empresa.nombre}.")
+
+                    # Validar que el equipo sea del mismo centro que la empresa
+                    if equipo and centro_empresa:
+                        for miembro in equipo:
+                            if miembro.centro_pevi and miembro.centro_pevi != centro_empresa:
+                                self.add_error('equipo',
+                                    f"{miembro.get_full_name()} pertenece a otro centro.")
+                                break
+
+        return cleaned_data 
 
 class ProduccionForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:

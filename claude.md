@@ -45,7 +45,7 @@ sistema_pevi/
 │
 ├── gestion/                   # APP CORE: Usuarios, Proyectos, Dashboard
 │   ├── models.py             # Usuario (AbstractUser), CentroPevi
-│   ├── views.py              # 36 vistas principales (~1100 líneas)
+│   ├── views.py              # 37 vistas principales (~1150 líneas)
 │   ├── forms.py              # Formularios con validación de seguridad
 │   ├── decorators.py         # Control de acceso RBAC
 │   └── backends.py           # Auth por email O username
@@ -174,12 +174,26 @@ python manage.py recalcular_kwh
 - `templates/gestion/registro_energia_form.html` - Formulario con cálculo JS en tiempo real
 
 ### Expediente de Proyecto (Detalle)
-- `gestion/views.py` - `detalle_proyecto()` - KPIs y datos para 4 gráficos
+- `gestion/views.py` - `detalle_proyecto()` - KPIs y datos para 4 gráficos + oportunidades de mejora
 - `templates/gestion/proyecto_detalle.html` - 4 gráficos Chart.js:
   1. Matriz de Consumo (kWh) - doughnut
   2. Huella de Carbono (TonCO2) - doughnut
   3. Balance Térmico (MBTU) - barras
   4. Distribución de Costos - barras
+
+### Oportunidades de Mejora (Reducción Energética)
+- `auditorias/models.py` - `FuenteEnergiaBase`:
+  - `porcentaje_reduccion` - Meta de reducción (%) por energético
+  - `get_ahorro_energia_potencial()` - Calcula kWh ahorrables
+  - `get_ahorro_costo_potencial()` - Calcula COP ahorrables
+  - `get_ahorro_emisiones_potencial()` - Calcula TonCO2 evitables
+- `gestion/views.py` - `guardar_reduccion()` - Guarda % de reducción via AJAX
+- `templates/gestion/proyecto_detalle.html`:
+  - Panel de comparación visual (Consumo Actual → Consumo Proyectado)
+  - 3 KPI boxes (ahorro kWh, COP, TonCO2)
+  - Gráfico de barras horizontales por fuente energética
+  - Tabla con % reducción y ahorros calculados
+  - Modal para editar % de reducción
 
 ### Dashboards y BI
 - `metricas/views.py` - `dashboard_estrategico()` - BI con filtros por estado/fecha
@@ -192,7 +206,12 @@ python manage.py recalcular_kwh
 ### Sitio Público
 - `web/views.py` - Vistas públicas (home, nosotros, centros, biblioteca, resultados)
 - `templates/web/centros.html` - Modals con gráficos Chart.js por centro
-- `templates/web/resultados.html` - Filtros (año, región, sector) + exportar CSV/PDF
+- `templates/web/resultados.html` - Hero section con glassmorphism + filtros + exportar CSV/PDF
+
+### Auto-asignación de Líder de Proyecto
+- `gestion/views.py` - `crear_proyecto()`:
+  - Profesores se auto-asignan como líderes al crear proyectos
+  - Campo preseleccionado en GET, validado en POST
 
 ---
 
@@ -220,6 +239,9 @@ python manage.py recalcular_kwh
 /app/proyectos/<id>/documentos/subir/  → subir_documento
 /app/proyectos/<id>/informe/pdf/       → generar_informe_pdf
 
+# Oportunidades de Mejora
+/app/proyectos/<id>/reduccion/         → guardar_reduccion (AJAX)
+
 # Gestión administrativa
 /app/empresas/                       → lista_empresas
 /app/empresas/nueva/                 → crear_empresa
@@ -241,7 +263,7 @@ python manage.py recalcular_kwh
 /nosotros/                           → nosotros
 /centros/                            → centros_public (con modals)
 /biblioteca/                         → biblioteca
-/resultados/                         → resultados (filtros + exportar)
+/resultados/                         → resultados_public (filtros + exportar)
 ```
 
 ---
@@ -277,6 +299,9 @@ python manage.py recalcular_kwh
 | IDES | Energía_Total / Producción_Total | Desempeño energético |
 | Emisiones | Σ(consumo_orig × factor_emisión) / 1000 | Huella de carbono (TonCO2) |
 | Costo Normalizado | Costo_Total / Energía_kWh | Comparativas ($/kWh) |
+| Ahorro Potencial kWh | Σ(kWh × %reducción) / 100 | Oportunidades de mejora |
+| Ahorro Potencial COP | Σ(costo_anual × %reducción) / 100 | Impacto económico |
+| CO2 Evitado | Σ(emisiones × %reducción) / 100 | Impacto ambiental |
 
 ---
 
@@ -380,6 +405,11 @@ python manage.py recalcular_kwh            # Aplicar corrección
 ### Chart.js en Modals
 - Inicializar gráficos en evento `shown.bs.modal`, no en `DOMContentLoaded`
 - Destruir instancia anterior antes de crear nueva (`chart.destroy()`)
+
+### Glassmorphism en Hero Sections
+- Usar `backdrop-filter: blur()` con `background: rgba(255,255,255,0.1)`
+- Agregar shapes animados con `@keyframes float`
+- Overlay grid pattern: `background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px)`
 
 ### Notificaciones (Messages)
 - Configurado `MESSAGE_TAGS` en settings.py para Bootstrap

@@ -40,8 +40,18 @@ def dashboard_estrategico(request):
     # filtro_anio = request.GET.get('anio') # Disponible para futuro
 
     if filtro_proyecto:
-        qs = qs.filter(id=filtro_proyecto)
-    
+        # SEGURIDAD: Validar que el proyecto pertenece al scope del usuario
+        # Filtramos sobre el queryset YA restringido por rol, evitando IDOR
+        try:
+            proyecto_id = int(filtro_proyecto)
+            if qs.filter(id=proyecto_id).exists():
+                qs = qs.filter(id=proyecto_id)
+            else:
+                # Proyecto no está en su scope - ignorar filtro silenciosamente
+                pass
+        except (ValueError, TypeError):
+            pass  # ID inválido, ignorar filtro
+
     if filtro_lider:
         qs = qs.filter(lider_proyecto_id=filtro_lider)
 
@@ -121,7 +131,7 @@ def dashboard_estrategico(request):
         # Calcular IDES del proyecto individual
         p_energia_total = p_kwh_elec + p_kwh_term
         p_ides = 0
-        if p.produccion_total > 0:
+        if p.produccion_total and p.produccion_total > 0:
             # Redondeo aquí para enviar dato limpio al template
             p_ides = round(p_energia_total / p.produccion_total, 2)
 
@@ -251,7 +261,14 @@ def dashboard_nacional(request):
     # MODO A: VISTA DETALLADA DE UN CENTRO (DRILL-DOWN)
     # =========================================================
     if filtro_centro_id:
-        centro_seleccionado = centros.get(id=filtro_centro_id)
+        # SEGURIDAD: Validar que el centro existe y está activo
+        try:
+            centro_seleccionado = centros.get(id=filtro_centro_id)
+        except CentroPevi.DoesNotExist:
+            # Centro no encontrado - redirigir a vista nacional sin filtro
+            from django.shortcuts import redirect
+            return redirect('dashboard_nacional')
+
         context['page_subtitle'] = f"Análisis Detallado: {centro_seleccionado.nombre}"
         context['vista_detalle'] = True # Bandera para el template
 
@@ -314,7 +331,7 @@ def dashboard_nacional(request):
             global_emisiones_total += p_emis
             
             p_ides = 0
-            if p.produccion_total > 0:
+            if p.produccion_total and p.produccion_total > 0:
                 p_ides = round((p_kwh_elec + p_kwh_term) / p.produccion_total, 2)
 
             tabla_proyectos.append({

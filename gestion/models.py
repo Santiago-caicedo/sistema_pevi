@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 
 class CentroPevi(models.Model):
     """
@@ -138,3 +139,98 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return f"{self.username} - {self.get_rol_display()}"
+
+
+class RegistroActividad(models.Model):
+    """
+    Modelo para almacenar logs de actividad en la base de datos.
+    Permite consultas, filtros y reportes de auditoría.
+    """
+
+    # Tipos de evento
+    TIPO_ACCESO = 'ACCESO'
+    TIPO_ACTIVIDAD = 'ACTIVIDAD'
+    TIPO_SEGURIDAD = 'SEGURIDAD'
+    TIPO_ERROR = 'ERROR'
+
+    TIPOS = [
+        (TIPO_ACCESO, 'Acceso'),
+        (TIPO_ACTIVIDAD, 'Actividad'),
+        (TIPO_SEGURIDAD, 'Seguridad'),
+        (TIPO_ERROR, 'Error'),
+    ]
+
+    # Acciones comunes
+    ACCION_LOGIN = 'LOGIN'
+    ACCION_LOGOUT = 'LOGOUT'
+    ACCION_LOGIN_FALLIDO = 'LOGIN_FALLIDO'
+    ACCION_CREAR = 'CREAR'
+    ACCION_EDITAR = 'EDITAR'
+    ACCION_ELIMINAR = 'ELIMINAR'
+    ACCION_VER = 'VER'
+    ACCION_ACCESO_DENEGADO = 'ACCESO_DENEGADO'
+    ACCION_ESCALADA_BLOQUEADA = 'ESCALADA_BLOQUEADA'
+
+    ACCIONES = [
+        (ACCION_LOGIN, 'Inicio de sesión'),
+        (ACCION_LOGOUT, 'Cierre de sesión'),
+        (ACCION_LOGIN_FALLIDO, 'Intento de login fallido'),
+        (ACCION_CREAR, 'Crear'),
+        (ACCION_EDITAR, 'Editar'),
+        (ACCION_ELIMINAR, 'Eliminar'),
+        (ACCION_VER, 'Ver'),
+        (ACCION_ACCESO_DENEGADO, 'Acceso denegado'),
+        (ACCION_ESCALADA_BLOQUEADA, 'Escalada de privilegios bloqueada'),
+    ]
+
+    # Campos principales
+    tipo = models.CharField(max_length=20, choices=TIPOS, db_index=True)
+    accion = models.CharField(max_length=30, choices=ACCIONES, db_index=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    # Usuario que realizó la acción (puede ser null si es login fallido)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='actividades'
+    )
+    username_intento = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="Username usado en intentos fallidos de login"
+    )
+
+    # Contexto de la acción
+    modelo_afectado = models.CharField(max_length=50, blank=True, help_text="Ej: Proyecto, Empresa, Usuario")
+    objeto_id = models.PositiveIntegerField(null=True, blank=True, help_text="ID del objeto afectado")
+    objeto_repr = models.CharField(max_length=200, blank=True, help_text="Representación del objeto")
+
+    # Detalles adicionales
+    descripcion = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+
+    # Centro PEVI (para filtrar por centro)
+    centro = models.ForeignKey(
+        CentroPevi,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='actividades'
+    )
+
+    class Meta:
+        verbose_name = "Registro de Actividad"
+        verbose_name_plural = "Registros de Actividad"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['tipo', 'timestamp']),
+            models.Index(fields=['usuario', 'timestamp']),
+            models.Index(fields=['accion', 'modelo_afectado']),
+        ]
+
+    def __str__(self):
+        usuario_str = self.usuario.username if self.usuario else self.username_intento or 'Anónimo'
+        return f"[{self.timestamp:%Y-%m-%d %H:%M}] {usuario_str} - {self.get_accion_display()}"

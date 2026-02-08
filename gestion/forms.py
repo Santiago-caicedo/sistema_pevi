@@ -162,6 +162,15 @@ class UsuarioAdminForm(EstiloBootstrapMixin, forms.ModelForm):
         if password and password_confirm and password != password_confirm:
             raise ValidationError("Las contraseñas no coinciden.")
 
+        # SEGURIDAD: Usuarios que no son Director Nacional deben tener centro asignado
+        rol = cleaned_data.get('rol')
+        centro = cleaned_data.get('centro_pevi')
+        is_superuser = cleaned_data.get('is_superuser')
+
+        if rol != Usuario.ROL_NACIONAL and not is_superuser and not centro:
+            self.add_error('centro_pevi',
+                "Los usuarios con rol diferente a Director Nacional deben tener un Centro asignado.")
+
         return cleaned_data
 
 
@@ -188,6 +197,20 @@ class UsuarioAdminEditForm(EstiloBootstrapMixin, forms.ModelForm):
             'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # SEGURIDAD: Usuarios que no son Director Nacional deben tener centro asignado
+        rol = cleaned_data.get('rol')
+        centro = cleaned_data.get('centro_pevi')
+        is_superuser = cleaned_data.get('is_superuser')
+
+        if rol != Usuario.ROL_NACIONAL and not is_superuser and not centro:
+            self.add_error('centro_pevi',
+                "Los usuarios con rol diferente a Director Nacional deben tener un Centro asignado.")
+
+        return cleaned_data
 
 
 class NoticiaAdminForm(EstiloBootstrapMixin, forms.ModelForm):

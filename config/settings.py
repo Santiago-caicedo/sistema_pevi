@@ -213,3 +213,129 @@ else:
         "default": {"BACKEND": "config.settings.MediaStorage"},
         "staticfiles": {"BACKEND": "config.settings.StaticStorage"},
     }
+
+
+# ==============================================================================
+# SISTEMA DE LOGS
+# ==============================================================================
+
+# Crear carpeta de logs si no existe
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    # Formateadores: cómo se ve cada línea del log
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} | {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{levelname} | {message}',
+            'style': '{',
+        },
+        'security': {
+            'format': '[{asctime}] SEGURIDAD | {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+
+    # Handlers: a dónde van los logs
+    'handlers': {
+        # Consola (desarrollo)
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+
+        # Archivo de accesos (login, logout)
+        'acceso_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'acceso.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+
+        # Archivo de actividad (CRUD)
+        'actividad_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'actividad.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+
+        # Archivo de errores
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errores.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+
+        # Archivo de seguridad
+        'seguridad_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'seguridad.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 10,
+            'formatter': 'security',
+            'encoding': 'utf-8',
+        },
+    },
+
+    # Loggers: categorías de logs
+    'loggers': {
+        # Log de accesos
+        'pevi.acceso': {
+            'handlers': ['acceso_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Log de actividad
+        'pevi.actividad': {
+            'handlers': ['actividad_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # Log de errores
+        'pevi.errores': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+
+        # Log de seguridad
+        'pevi.seguridad': {
+            'handlers': ['seguridad_file', 'console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+
+        # Errores de Django
+        'django': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+
+        # Requests de Django (opcional, muy verbose)
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}

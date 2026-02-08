@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.db.models import Sum, Q
+from django.db import transaction
 from django.utils import timezone
 
 # Librería PDF
@@ -27,6 +28,13 @@ from .decorators import acceso_staff, solo_directivos, solo_lideres, solo_supera
 
 # Modelo de Noticias
 from web.models import Noticia
+
+# Sistema de Logging
+from .logger import (
+    log_crear, log_editar, log_eliminar,
+    log_acceso_denegado, log_escalada_bloqueada,
+    log_cambio_estado, log_error
+)
 
 # ==============================================================================
 #  CONFIGURACIÓN GLOBAL
@@ -285,6 +293,7 @@ def crear_empresa(request):
             if not empresa.centro and request.user.centro_pevi:
                 empresa.centro = request.user.centro_pevi
             empresa.save()
+            log_crear(request, 'Empresa', empresa)
             messages.success(request, "Empresa registrada exitosamente.")
             return redirect('lista_empresas')
     else:
@@ -300,12 +309,14 @@ def editar_empresa(request, empresa_id):
     # Validar acceso: Solo puede editar si es del mismo centro, nacional o superadmin
     if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
         if empresa.centro != request.user.centro_pevi:
+            log_acceso_denegado(request, f'Empresa {empresa_id}', 'Empresa de otro centro')
             raise PermissionDenied("No tienes permiso para editar esta empresa.")
 
     if request.method == 'POST':
         form = EmpresaForm(request.POST, instance=empresa, user=request.user)
         if form.is_valid():
             form.save()
+            log_editar(request, 'Empresa', empresa)
             messages.success(request, f"Empresa '{empresa.razon_social}' actualizada.")
             return redirect('lista_empresas')
     else:
@@ -351,6 +362,7 @@ def crear_usuario(request):
             nuevo.is_staff = False
             
             nuevo.save()
+            log_crear(request, 'Usuario', nuevo, f"Rol: {nuevo.get_rol_display()}")
             messages.success(request, f"Usuario {nuevo.username} creado.")
             return redirect('lista_usuarios')
     else:
@@ -362,17 +374,25 @@ def crear_usuario(request):
 @solo_directivos
 def editar_usuario(request, usuario_id):
     target_user = get_object_or_404(Usuario, id=usuario_id)
-    
+
     # Seguridad cruzada
     if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+        # Validar mismo centro
         if target_user.centro_pevi != request.user.centro_pevi:
+            log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
             raise PermissionDenied("No puedes editar personal de otro centro.")
+
+        # SEGURIDAD: Un Director de Centro NO puede editar a otro Director o superior
+        if target_user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL']:
+            log_escalada_bloqueada(request, f'Editar usuario con rol {target_user.rol}')
+            raise PermissionDenied("No puedes editar a usuarios con rol de Director o superior.")
 
     if request.method == 'POST':
         # Pasamos creator=request.user
         form = UsuarioEditarForm(request.POST, instance=target_user, creator=request.user)
         if form.is_valid():
             form.save()
+            log_editar(request, 'Usuario', target_user)
             messages.success(request, "Usuario actualizado.")
             return redirect('lista_usuarios')
     else:
@@ -387,12 +407,16 @@ def eliminar_usuario(request, usuario_id):
     
     if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
         if target_user.centro_pevi != request.user.centro_pevi:
+            log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
             raise PermissionDenied("No tienes permiso para eliminar este usuario.")
-    
+
     if target_user == request.user:
         messages.error(request, "No puedes eliminarte a ti mismo.")
     else:
+        usuario_repr = f"{target_user.get_full_name()} ({target_user.username})"
+        usuario_id_log = target_user.id
         target_user.delete()
+        log_eliminar(request, 'Usuario', usuario_id_log, usuario_repr)
         messages.success(request, "Usuario eliminado del sistema.")
     return redirect('lista_usuarios')
 
@@ -407,38 +431,42 @@ def crear_proyecto(request):
     if request.method == 'POST':
         form = ProyectoForm(request.POST, user=request.user)
         if form.is_valid():
-            proyecto = form.save(commit=False)
+            # SEGURIDAD: Validaciones previas al guardado (antes de la transacción)
+            es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
 
-            # Auto-asignar líder si es Profesor y no seleccionó uno
-            if request.user.rol == 'PROFESOR' and not proyecto.lider_proyecto:
-                proyecto.lider_proyecto = request.user
-
-            # Asignar centro del creador
-            if request.user.centro_pevi:
-                proyecto.centro = request.user.centro_pevi
-            elif not proyecto.centro_id and not request.user.is_superuser:
-                raise PermissionDenied("Error de asignación de Centro. Contacte soporte.")
-
-            # VALIDACIÓN DE AISLAMIENTO: Verificar que líder sea del mismo centro
-            if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+            # Validar líder del mismo centro
+            if not es_nacional:
                 lider = form.cleaned_data.get('lider_proyecto')
                 if lider and lider.centro_pevi != request.user.centro_pevi:
                     messages.error(request, "No puede asignar un líder de otro centro.")
                     return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
 
-            proyecto.save()
-
-            # VALIDACIÓN DE AISLAMIENTO: Verificar que equipo sea del mismo centro
-            if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+                # Validar equipo del mismo centro
                 equipo = form.cleaned_data.get('equipo')
                 if equipo:
                     for miembro in equipo:
                         if miembro.centro_pevi != request.user.centro_pevi:
-                            proyecto.delete()  # Rollback
                             messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
                             return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
 
-            form.save_m2m()  # Guardar equipo
+            # TRANSACCIÓN ATÓMICA: Todo o nada (evita race conditions)
+            with transaction.atomic():
+                proyecto = form.save(commit=False)
+
+                # Auto-asignar líder si es Profesor y no seleccionó uno
+                if request.user.rol == 'PROFESOR' and not proyecto.lider_proyecto:
+                    proyecto.lider_proyecto = request.user
+
+                # Asignar centro del creador
+                if request.user.centro_pevi:
+                    proyecto.centro = request.user.centro_pevi
+                elif not proyecto.centro_id and not request.user.is_superuser:
+                    raise PermissionDenied("Error de asignación de Centro. Contacte soporte.")
+
+                proyecto.save()
+                form.save_m2m()  # Guardar equipo
+
+            log_crear(request, 'Proyecto', proyecto, f"Empresa: {proyecto.empresa.razon_social}")
             messages.success(request, "Proyecto iniciado correctamente.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     else:
@@ -460,6 +488,7 @@ def editar_proyecto(request, proyecto_id):
     es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
 
     if not (es_propietario or es_director_suyo or es_nacional):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'No es propietario ni director')
         raise PermissionDenied("Solo el líder o director pueden editar la estructura del proyecto.")
 
     if request.method == 'POST':
@@ -479,8 +508,29 @@ def editar_proyecto(request, proyecto_id):
                             messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
                             return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
 
-            form.save()
-            form.save_m2m()
+            # SEGURIDAD: Advertir si un profesor se quita a sí mismo como líder
+            nuevo_lider = form.cleaned_data.get('lider_proyecto')
+            if es_propietario and request.user.rol == 'PROFESOR':
+                if nuevo_lider and nuevo_lider != request.user:
+                    # Verificar si hay confirmación explícita
+                    if not request.POST.get('confirmar_cambio_lider'):
+                        messages.warning(request,
+                            "⚠️ Estás a punto de transferir el liderazgo a otra persona. "
+                            "Perderás acceso de edición a este proyecto. "
+                            "Guarda nuevamente para confirmar.")
+                        # Agregar campo oculto para confirmar
+                        return render(request, 'gestion/proyecto_form.html', {
+                            'form': form,
+                            'titulo': 'Editar Proyecto',
+                            'confirmar_cambio_lider': True
+                        })
+
+            # TRANSACCIÓN ATÓMICA: Garantiza consistencia
+            with transaction.atomic():
+                form.save()
+                form.save_m2m()
+
+            log_editar(request, 'Proyecto', proyecto)
             messages.success(request, "Proyecto actualizado.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     else:
@@ -499,6 +549,7 @@ def detalle_proyecto(request, proyecto_id):
     
     # 🚨 BLINDAJE DE SEGURIDAD
     if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Sin acceso al proyecto')
         raise PermissionDenied("Acceso Denegado: No estás autorizado para ver este proyecto.")
 
     # 1. Recuperar Bitácora Energética
@@ -664,6 +715,7 @@ def guardar_reduccion(request, proyecto_id):
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
 
     if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id} reduccion', 'Sin acceso')
         raise PermissionDenied("No tienes permiso para modificar este proyecto.")
 
     tipo_energia = request.POST.get('tipo_energia')
@@ -875,29 +927,49 @@ def generar_informe_pdf(request, proyecto_id):
 @solo_lideres # Solo Directores y Profesores pueden cambiar estados
 def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
     """
-    Cambia el ciclo de vida del proyecto:
-    BORRADOR -> EJECUCION -> FINALIZADO
+    Cambia el ciclo de vida del proyecto con validación de transiciones.
+    Flujo válido: BORRADOR -> EJECUCION -> REVISION -> FINALIZADO
     """
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
-    
+
     # Validación de seguridad extra (Propiedad)
     if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Sin acceso al proyecto')
         raise PermissionDenied("No tienes permiso sobre este proyecto.")
 
-    # Validar que el estado sea uno de los permitidos
-    estados_validos = ['BORRADOR', 'EJECUCION', 'FINALIZADO']
-    
-    if nuevo_estado in estados_validos:
-        proyecto.estado = nuevo_estado
-        proyecto.save()
-        
-        # Mensajes de feedback según el estado
-        if nuevo_estado == 'EJECUCION':
-            messages.success(request, "¡Proyecto activado! Ahora está En Ejecución.")
-        elif nuevo_estado == 'FINALIZADO':
-            messages.success(request, "Proyecto Finalizado y Cerrado exitosamente.")
+    # Matriz de transiciones válidas (estado_actual -> [estados_permitidos])
+    TRANSICIONES_VALIDAS = {
+        'BORRADOR': ['EJECUCION'],
+        'EJECUCION': ['REVISION', 'BORRADOR'],  # Puede volver a borrador o avanzar
+        'REVISION': ['FINALIZADO', 'EJECUCION'],  # Puede volver a ejecución o finalizar
+        'FINALIZADO': [],  # Estado terminal, no permite cambios
+    }
+
+    estado_actual = proyecto.estado
+    transiciones_permitidas = TRANSICIONES_VALIDAS.get(estado_actual, [])
+
+    # Validar que la transición sea permitida
+    if nuevo_estado not in transiciones_permitidas:
+        if estado_actual == 'FINALIZADO':
+            messages.error(request, "Los proyectos finalizados no pueden cambiar de estado.")
         else:
-            messages.info(request, "Estado del proyecto actualizado.")
+            messages.error(request, f"Transición no permitida: {estado_actual} → {nuevo_estado}")
+        return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+
+    # Aplicar el cambio de estado
+    proyecto.estado = nuevo_estado
+    proyecto.save()
+
+    log_cambio_estado(request, proyecto, estado_actual, nuevo_estado)
+
+    # Mensajes de feedback según el estado
+    mensajes = {
+        'EJECUCION': "¡Proyecto activado! Ahora está En Ejecución.",
+        'REVISION': "Proyecto enviado a Revisión Interna.",
+        'FINALIZADO': "Proyecto Finalizado y Cerrado exitosamente.",
+        'BORRADOR': "Proyecto devuelto a Borrador para correcciones.",
+    }
+    messages.success(request, mensajes.get(nuevo_estado, "Estado actualizado."))
 
     return redirect('detalle_proyecto', proyecto_id=proyecto.id)
 
@@ -950,6 +1022,7 @@ def control_centro_crear(request):
         form = CentroPeviForm(request.POST, request.FILES)
         if form.is_valid():
             centro = form.save()
+            log_crear(request, 'CentroPevi', centro)
             messages.success(request, f"Centro '{centro.nombre}' creado exitosamente.")
             return redirect('control_centros_lista')
     else:
@@ -974,6 +1047,7 @@ def control_centro_editar(request, centro_id):
         form = CentroPeviForm(request.POST, request.FILES, instance=centro)
         if form.is_valid():
             form.save()
+            log_editar(request, 'CentroPevi', centro)
             messages.success(request, f"Centro '{centro.nombre}' actualizado.")
             return redirect('control_centros_lista')
     else:
@@ -995,7 +1069,9 @@ def control_centro_eliminar(request, centro_id):
 
     if request.method == 'POST':
         nombre = centro.nombre
+        centro_id = centro.id
         centro.delete()
+        log_eliminar(request, 'CentroPevi', centro_id, nombre)
         messages.success(request, f"Centro '{nombre}' eliminado permanentemente.")
         return redirect('control_centros_lista')
 
@@ -1029,6 +1105,7 @@ def control_usuario_crear(request):
             usuario = form.save(commit=False)
             usuario.set_password(form.cleaned_data['password'])
             usuario.save()
+            log_crear(request, 'Usuario', usuario, f"Creado desde panel admin. Rol: {usuario.get_rol_display()}")
             messages.success(request, f"Usuario '{usuario.username}' creado exitosamente.")
             return redirect('control_usuarios_lista')
     else:
@@ -1058,6 +1135,7 @@ def control_usuario_editar(request, usuario_id):
             if nueva_password:
                 usuario.set_password(nueva_password)
             usuario.save()
+            log_editar(request, 'Usuario', usuario, 'Editado desde panel admin')
             messages.success(request, f"Usuario '{usuario.username}' actualizado.")
             return redirect('control_usuarios_lista')
     else:
@@ -1084,7 +1162,10 @@ def control_usuario_eliminar(request, usuario_id):
 
     if request.method == 'POST':
         nombre = usuario.username
+        usuario_id = usuario.id
+        usuario_repr = f"{usuario.get_full_name()} ({usuario.username})"
         usuario.delete()
+        log_eliminar(request, 'Usuario', usuario_id, usuario_repr)
         messages.success(request, f"Usuario '{nombre}' eliminado permanentemente.")
         return redirect('control_usuarios_lista')
 
@@ -1118,6 +1199,7 @@ def control_noticia_crear(request):
             noticia = form.save(commit=False)
             noticia.autor = request.user
             noticia.save()
+            log_crear(request, 'Noticia', noticia)
             messages.success(request, f"Noticia '{noticia.titulo}' publicada.")
             return redirect('control_noticias_lista')
     else:
@@ -1142,6 +1224,7 @@ def control_noticia_editar(request, noticia_id):
         form = NoticiaAdminForm(request.POST, request.FILES, instance=noticia)
         if form.is_valid():
             form.save()
+            log_editar(request, 'Noticia', noticia)
             messages.success(request, f"Noticia '{noticia.titulo}' actualizada.")
             return redirect('control_noticias_lista')
     else:
@@ -1163,7 +1246,9 @@ def control_noticia_eliminar(request, noticia_id):
 
     if request.method == 'POST':
         titulo = noticia.titulo
+        noticia_id = noticia.id
         noticia.delete()
+        log_eliminar(request, 'Noticia', noticia_id, titulo)
         messages.success(request, f"Noticia '{titulo}' eliminada.")
         return redirect('control_noticias_lista')
 
