@@ -409,6 +409,10 @@ def crear_proyecto(request):
         if form.is_valid():
             proyecto = form.save(commit=False)
 
+            # Auto-asignar líder si es Profesor y no seleccionó uno
+            if request.user.rol == 'PROFESOR' and not proyecto.lider_proyecto:
+                proyecto.lider_proyecto = request.user
+
             # Asignar centro del creador
             if request.user.centro_pevi:
                 proyecto.centro = request.user.centro_pevi
@@ -438,7 +442,11 @@ def crear_proyecto(request):
             messages.success(request, "Proyecto iniciado correctamente.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     else:
-        form = ProyectoForm(user=request.user)
+        # Pre-seleccionar al Profesor como líder
+        initial = {}
+        if request.user.rol == 'PROFESOR':
+            initial['lider_proyecto'] = request.user
+        form = ProyectoForm(user=request.user, initial=initial)
     return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
 
 @login_required
