@@ -959,11 +959,13 @@ def subir_documento(request, proyecto_id):
 @acceso_staff
 def generar_informe_pdf(request, proyecto_id):
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
-    
+
     if not verificar_acceso_proyecto(request.user, proyecto):
         raise PermissionDenied("Acceso denegado.")
 
-    # Recuperación de datos (Similar a detalle_proyecto pero formateado para PDF)
+    # ===========================================================================
+    # 1. RECUPERACIÓN DE DATOS ENERGÉTICOS
+    # ===========================================================================
     electricidad = proyecto.electricidad_related.first()
     gas_natural = proyecto.gasnatural_related.first()
     carbon = proyecto.carbonmineral_related.first()
@@ -972,36 +974,41 @@ def generar_informe_pdf(request, proyecto_id):
     gas_propano = proyecto.gaspropano_related.first()
 
     fuentes_map = [
-        ('Electricidad', electricidad, 'kWh'),
-        ('Gas Natural', gas_natural, 'm³'),
-        ('Carbón Mineral', carbon, 'Ton'),
-        ('Fuel Oil', fuel_oil, 'Gal'),
-        ('Biomasa', biomasa, 'Ton'),
-        ('GLP', gas_propano, 'kg'),
+        ('Electricidad', electricidad, 'kWh', '#f59e0b', 'elec'),
+        ('Gas Natural', gas_natural, 'm³', '#3b82f6', 'gas'),
+        ('Carbón Mineral', carbon, 'Ton', '#1f2937', 'carbon'),
+        ('Fuel Oil', fuel_oil, 'Gal', '#ef4444', 'fuel'),
+        ('Biomasa', biomasa, 'Ton', '#22c55e', 'biomasa'),
+        ('GLP', gas_propano, 'kg', '#06b6d4', 'glp'),
     ]
 
+    # Acumuladores
     total_emisiones = 0.0
     total_costo = 0.0
     total_energia = 0.0
     total_kwh_electrico = 0.0
     total_kwh_termico = 0.0
+    total_ahorro_energia = 0.0
+    total_ahorro_costo = 0.0
+    total_ahorro_emisiones = 0.0
 
     datos_tabla = []
+    datos_grafico = []  # Para gráfico de barras CSS
 
-    for nombre_bonito, fuente, unidad in fuentes_map:
+    for nombre_bonito, fuente, unidad, color, key in fuentes_map:
         if fuente:
             total_emisiones += fuente.emisiones_totales
             total_costo += fuente.costo_total_anual
-            
+
             energia_kwh = 0
             consumo_orig = 0
-            if hasattr(fuente, 'consumo_anual_kwh'): 
+            if hasattr(fuente, 'consumo_anual_kwh'):
                 energia_kwh = fuente.consumo_anual_kwh
                 consumo_orig = fuente.consumo_anual_orig
-            elif hasattr(fuente, 'consumo_anual'): 
+            elif hasattr(fuente, 'consumo_anual'):
                 energia_kwh = fuente.consumo_anual
                 consumo_orig = fuente.consumo_anual
-            
+
             total_energia += energia_kwh
 
             if nombre_bonito == 'Electricidad':
@@ -1009,30 +1016,126 @@ def generar_informe_pdf(request, proyecto_id):
             else:
                 total_kwh_termico += energia_kwh
 
-            # Pre-formateo para evitar errores en template
+            # Oportunidades de mejora
+            ahorro_e = fuente.get_ahorro_energia_potencial()
+            ahorro_c = fuente.get_ahorro_costo_potencial()
+            ahorro_em = fuente.get_ahorro_emisiones_potencial()
+            total_ahorro_energia += ahorro_e
+            total_ahorro_costo += ahorro_c
+            total_ahorro_emisiones += ahorro_em
+
             datos_tabla.append({
                 'nombre': nombre_bonito,
                 'unidad': unidad,
+                'color': color,
+                'consumo_raw': consumo_orig,
                 'consumo': f"{consumo_orig:,.0f}",
+                'energia_raw': energia_kwh,
                 'energia': f"{energia_kwh:,.0f}",
+                'emisiones_raw': fuente.emisiones_totales,
                 'emisiones': f"{fuente.emisiones_totales:,.2f}",
-                'costo': f"{fuente.costo_total_anual:,.0f}"
+                'costo_raw': fuente.costo_total_anual,
+                'costo': f"{fuente.costo_total_anual:,.0f}",
+                'reduccion': fuente.porcentaje_reduccion or 0,
+                'ahorro_energia': f"{ahorro_e:,.0f}",
+                'ahorro_costo': f"{ahorro_c:,.0f}",
+                'ahorro_emisiones': f"{ahorro_em:,.2f}",
             })
 
+            if energia_kwh > 0:
+                datos_grafico.append({
+                    'nombre': nombre_bonito,
+                    'valor': energia_kwh,
+                    'color': color,
+                })
+
+    # ===========================================================================
+    # 2. CÁLCULOS DE KPIs Y PORCENTAJES
+    # ===========================================================================
     indicador_ides = 0
     if proyecto.produccion_total and proyecto.produccion_total > 0 and total_energia > 0:
         indicador_ides = total_energia / proyecto.produccion_total
 
+    # Calcular porcentajes para gráfico de distribución
+    for item in datos_grafico:
+        item['porcentaje'] = round((item['valor'] / total_energia * 100), 1) if total_energia > 0 else 0
+
+    # Ordenar por valor descendente
+    datos_grafico = sorted(datos_grafico, key=lambda x: x['valor'], reverse=True)
+
+    # Calcular el máximo para escalar barras
+    max_energia = max([d['valor'] for d in datos_grafico]) if datos_grafico else 1
+    for item in datos_grafico:
+        item['barra_width'] = int((item['valor'] / max_energia) * 100)
+
+    # Balance eléctrico vs térmico
+    pct_electrico = round((total_kwh_electrico / total_energia * 100), 1) if total_energia > 0 else 0
+    pct_termico = round((total_kwh_termico / total_energia * 100), 1) if total_energia > 0 else 0
+
+    # MBTU
+    FACTOR_MBTU = 0.00341214
+    mbtu_electrico = total_kwh_electrico * FACTOR_MBTU
+    mbtu_termico = total_kwh_termico * FACTOR_MBTU
+
+    # Costo por kWh
+    costo_por_kwh = total_costo / total_energia if total_energia > 0 else 0
+
+    # Emisiones por producción
+    emisiones_por_prod = total_emisiones / proyecto.produccion_total if proyecto.produccion_total else 0
+
+    # Consumo proyectado (después de reducción)
+    consumo_proyectado = total_energia - total_ahorro_energia
+    pct_reduccion_total = round((total_ahorro_energia / total_energia * 100), 1) if total_energia > 0 else 0
+
+    # ===========================================================================
+    # 3. CONTEXTO COMPLETO PARA EL TEMPLATE
+    # ===========================================================================
     context = {
         'proyecto': proyecto,
+        'fecha_generacion': timezone.now(),
+
+        # Tabla de datos
         'datos_tabla': datos_tabla,
-        'kpi_emisiones': f"{total_emisiones:,.2f}",
+        'datos_grafico': datos_grafico,
+
+        # KPIs principales (formateados)
         'kpi_energia': f"{total_energia:,.0f}",
+        'kpi_energia_raw': total_energia,
+        'kpi_emisiones': f"{total_emisiones:,.2f}",
+        'kpi_emisiones_raw': total_emisiones,
         'kpi_costo': f"{total_costo:,.0f}",
-        'kpi_ides': f"{indicador_ides:,.2f}",
+        'kpi_costo_raw': total_costo,
+        'kpi_ides': f"{indicador_ides:,.4f}",
+        'kpi_ides_raw': indicador_ides,
+
+        # Balance energético
         'kpi_elec': f"{total_kwh_electrico:,.0f}",
+        'kpi_elec_raw': total_kwh_electrico,
         'kpi_term': f"{total_kwh_termico:,.0f}",
-        'base_url': request.build_absolute_uri('/') 
+        'kpi_term_raw': total_kwh_termico,
+        'pct_electrico': pct_electrico,
+        'pct_termico': pct_termico,
+        'mbtu_electrico': f"{mbtu_electrico:,.2f}",
+        'mbtu_termico': f"{mbtu_termico:,.2f}",
+
+        # Indicadores adicionales
+        'costo_por_kwh': f"{costo_por_kwh:,.2f}",
+        'emisiones_por_prod': f"{emisiones_por_prod:,.4f}",
+
+        # Oportunidades de mejora
+        'total_ahorro_energia': f"{total_ahorro_energia:,.0f}",
+        'total_ahorro_energia_raw': total_ahorro_energia,
+        'total_ahorro_costo': f"{total_ahorro_costo:,.0f}",
+        'total_ahorro_costo_raw': total_ahorro_costo,
+        'total_ahorro_emisiones': f"{total_ahorro_emisiones:,.2f}",
+        'consumo_proyectado': f"{consumo_proyectado:,.0f}",
+        'pct_reduccion_total': pct_reduccion_total,
+
+        # Equipo
+        'equipo': proyecto.equipo.all(),
+
+        # URL base para assets
+        'base_url': request.build_absolute_uri('/')
     }
 
     html_string = render_to_string('gestion/informe_pdf.html', context)
@@ -1040,7 +1143,7 @@ def generar_informe_pdf(request, proyecto_id):
     result = html.write_pdf()
 
     response = HttpResponse(result, content_type='application/pdf')
-    filename = f"Informe_PEVI_{proyecto.id}.pdf"
+    filename = f"Informe_PEVI_{proyecto.empresa.razon_social[:20]}_{proyecto.id}.pdf"
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
