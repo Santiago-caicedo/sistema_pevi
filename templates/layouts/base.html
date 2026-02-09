@@ -246,6 +246,8 @@
 
     <main class="main-content">
         
+        {% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+
         <header class="top-navbar">
             <div>
                 <h1 class="page-title">{% block page_title %}Resumen General{% endblock %}</h1>

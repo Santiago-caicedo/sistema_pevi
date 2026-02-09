@@ -40,15 +40,18 @@ python manage.py runserver
 sistema_pevi/
 ├── config/                    # Configuración Django
 │   ├── settings.py           # Config global (BD, apps, middleware, S3)
+│   ├── middleware.py         # CSP Headers y seguridad HTTP
 │   ├── urls.py               # Enrutamiento principal
 │   └── wsgi.py               # Punto de entrada WSGI
 │
 ├── gestion/                   # APP CORE: Usuarios, Proyectos, Dashboard
-│   ├── models.py             # Usuario (AbstractUser), CentroPevi
-│   ├── views.py              # 37 vistas principales (~1150 líneas)
+│   ├── models.py             # Usuario, CentroPevi, RegistroActividad
+│   ├── views.py              # 37 vistas principales (~1200 líneas)
 │   ├── forms.py              # Formularios con validación de seguridad
 │   ├── decorators.py         # Control de acceso RBAC
-│   └── backends.py           # Auth por email O username
+│   ├── backends.py           # Auth por email O username
+│   ├── logger.py             # Funciones de logging reutilizables
+│   └── signals.py            # Signals para login/logout automático
 │
 ├── auditorias/                # APP: Datos de Auditorías Energéticas
 │   ├── models.py             # Empresa, ProyectoAuditoria, 6 fuentes energéticas
@@ -72,6 +75,7 @@ sistema_pevi/
 │
 ├── static/                    # Archivos estáticos (CSS, JS, imágenes)
 ├── media/                     # Archivos subidos (documentos de proyectos)
+├── logs/                      # Logs del sistema (acceso, actividad, seguridad, errores)
 └── requirements.txt           # Dependencias Python
 ```
 
@@ -289,6 +293,115 @@ python manage.py recalcular_kwh
 - Usuarios filtrados por `centro_pevi` del usuario
 - Director Nacional y Superuser ven todo
 
+### Máquina de Estados de Proyectos
+```python
+# Transiciones válidas (gestion/views.py - cambiar_estado_proyecto)
+TRANSICIONES_VALIDAS = {
+    'BORRADOR': ['EJECUCION'],
+    'EJECUCION': ['REVISION', 'BORRADOR'],
+    'REVISION': ['FINALIZADO', 'EJECUCION'],
+    'FINALIZADO': [],  # Estado terminal
+}
+```
+
+### Validaciones de Seguridad Implementadas
+- Director Centro NO puede editar a otro Director o superior
+- Empresas siempre requieren centro asignado
+- Director Nacional NO puede mezclar centros (empresa de un centro + equipo de otro)
+- Usuarios (excepto Nacional) siempre requieren centro asignado
+- Advertencia al transferir liderazgo de proyecto (doble confirmación)
+- Transacciones atómicas en crear/editar proyecto
+
+### Content Security Policy (CSP Headers)
+
+El sistema implementa CSP para prevenir ataques XSS. Configurado en `config/middleware.py`.
+
+**Fuentes externas autorizadas:**
+| Dominio | Uso | Directiva |
+|---------|-----|-----------|
+| `cdn.jsdelivr.net` | Bootstrap CSS/JS, Icons, Chart.js | script-src, style-src, font-src |
+| `cdnjs.cloudflare.com` | Anime.js (animaciones sitio público) | script-src, style-src |
+| `fonts.googleapis.com` | Hojas de estilo Google Fonts | style-src |
+| `fonts.gstatic.com` | Archivos de fuentes (woff2) | font-src |
+| `vadomdata.s3.amazonaws.com` | Archivos estáticos/media en producción | img-src |
+
+**Headers de seguridad adicionales:**
+- `X-Content-Type-Options: nosniff` - Previene MIME sniffing
+- `X-Frame-Options: DENY` - Previene clickjacking
+- `Referrer-Policy: strict-origin-when-cross-origin` - Control de referrer
+
+**Si agregas una nueva librería externa:**
+1. Editar `config/middleware.py`
+2. Agregar el dominio a la directiva correspondiente (script-src, style-src, etc.)
+3. Actualizar esta documentación
+
+---
+
+## Sistema de Logs
+
+### Archivos de Log
+| Archivo | Contenido | Ubicación |
+|---------|-----------|-----------|
+| `acceso.log` | Login, logout, intentos fallidos | `logs/` |
+| `actividad.log` | Crear, editar, eliminar (CRUD) | `logs/` |
+| `seguridad.log` | Accesos denegados, escaladas bloqueadas | `logs/` |
+| `errores.log` | Excepciones del sistema | `logs/` |
+
+### Modelo RegistroActividad
+```python
+# gestion/models.py - Logs en base de datos
+RegistroActividad:
+    - tipo: ACCESO | ACTIVIDAD | SEGURIDAD | ERROR
+    - accion: LOGIN | LOGOUT | CREAR | EDITAR | ELIMINAR | ACCESO_DENEGADO
+    - usuario, timestamp, ip_address, user_agent
+    - modelo_afectado, objeto_id, objeto_repr
+    - descripcion, centro
+```
+
+### Módulo de Logging
+```python
+# gestion/logger.py - Funciones disponibles
+from gestion.logger import (
+    log_login, log_logout, log_login_fallido,  # Acceso
+    log_crear, log_editar, log_eliminar,        # Actividad
+    log_acceso_denegado, log_escalada_bloqueada, # Seguridad
+    log_cambio_estado, log_error                 # Otros
+)
+```
+
+### Signals Automáticos
+- `gestion/signals.py` - Captura login/logout automáticamente via Django signals
+- Se registran en `gestion/apps.py` al iniciar la app
+
+### Configuración (settings.py)
+- `LOGGING` configurado con `RotatingFileHandler` (5-10 MB por archivo)
+- Hasta 10 backups por archivo
+- Logs visibles en Django Admin (solo lectura)
+
+### Mantenimiento de Logs
+```bash
+# Limpiar logs de BD mayores a 90 días
+python manage.py shell -c "
+from gestion.models import RegistroActividad
+from django.utils import timezone
+from datetime import timedelta
+fecha_limite = timezone.now() - timedelta(days=90)
+RegistroActividad.objects.filter(timestamp__lt=fecha_limite).delete()
+"
+```
+
+### Producción - Permisos
+```bash
+# La carpeta logs/ debe existir con permisos para www-data
+sudo mkdir -p /opt/sistema_pevi/logs
+sudo chown www-data:www-data /opt/sistema_pevi/logs
+sudo chmod 775 /opt/sistema_pevi/logs
+
+# Crear archivos iniciales
+sudo touch /opt/sistema_pevi/logs/{acceso,actividad,errores,seguridad}.log
+sudo chown www-data:www-data /opt/sistema_pevi/logs/*.log
+```
+
 ---
 
 ## Indicadores Clave (KPIs)
@@ -422,7 +535,8 @@ python manage.py recalcular_kwh            # Aplicar corrección
 
 ```bash
 # En el servidor EC2
-cd /path/to/sistema_pevi
+cd /opt/sistema_pevi
+source venv/bin/activate
 git pull origin main
 
 # Si hay cambios en modelos:
@@ -434,6 +548,24 @@ python manage.py collectstatic --noinput
 # Si hay cambios en conversión de energía:
 python manage.py recalcular_kwh
 
-# Reiniciar servicio
-sudo systemctl restart gunicorn
+# Reiniciar servicio (Apache en este servidor)
+sudo systemctl restart apache2
 ```
+
+### Primera vez - Configurar Logs
+```bash
+# Crear carpeta y archivos de log con permisos correctos
+sudo mkdir -p /opt/sistema_pevi/logs
+sudo touch /opt/sistema_pevi/logs/{acceso,actividad,errores,seguridad}.log
+sudo chown -R www-data:www-data /opt/sistema_pevi/logs
+sudo chmod 775 /opt/sistema_pevi/logs
+sudo chmod 644 /opt/sistema_pevi/logs/*.log
+```
+
+### Logs del Servidor
+| Log | Ubicación | Uso |
+|-----|-----------|-----|
+| Apache errors | `/var/log/apache2/pevicolombia_error.log` | Errores de infraestructura |
+| App acceso | `/opt/sistema_pevi/logs/acceso.log` | Login/logout usuarios |
+| App actividad | `/opt/sistema_pevi/logs/actividad.log` | CRUD de datos |
+| App seguridad | `/opt/sistema_pevi/logs/seguridad.log` | Accesos denegados |

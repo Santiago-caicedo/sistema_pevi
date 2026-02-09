@@ -36,9 +36,32 @@ from .logger import (
     log_cambio_estado, log_error
 )
 
+# URLs para Breadcrumbs
+from django.urls import reverse
+
 # ==============================================================================
 #  CONFIGURACIÓN GLOBAL
 # ==============================================================================
+
+def breadcrumb_home():
+    """Retorna el breadcrumb base (Dashboard)."""
+    return {'label': 'Dashboard', 'url': reverse('dashboard')}
+
+def breadcrumb_proyectos():
+    """Retorna el breadcrumb de lista de proyectos."""
+    return {'label': 'Proyectos', 'url': reverse('lista_proyectos')}
+
+def breadcrumb_empresas():
+    """Retorna el breadcrumb de lista de empresas."""
+    return {'label': 'Empresas', 'url': reverse('lista_empresas')}
+
+def breadcrumb_equipo():
+    """Retorna el breadcrumb de lista de usuarios."""
+    return {'label': 'Equipo', 'url': reverse('lista_usuarios')}
+
+def breadcrumb_control():
+    """Retorna el breadcrumb del panel de control."""
+    return {'label': 'Panel de Control', 'url': reverse('control_panel')}
 
 # Mapa de configuración para la Bitácora de Energía
 # Define qué formulario, título y lógica física usa cada tipo
@@ -161,13 +184,16 @@ def dashboard(request):
         'kpi_energia': int(total_kwh),
         'saludo': saludo,
         'rol_label': rol_label,
-        
+
         # Flags para definir qué diseño mostrar (Ejecutivo vs Operativo)
         # Nota: Nacionales y Directores ven el diseño Ejecutivo (Tarjetas de colores)
         'es_directivo': user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'] or user.is_superuser,
         'es_operativo': user.rol in ['PROFESOR', 'ESTUDIANTE'],
+
+        # Breadcrumbs (Dashboard es la raíz, no necesita navegación)
+        'breadcrumbs': [],
     }
-    
+
     return render(request, 'gestion/dashboard.html', context)
 
 @login_required
@@ -252,12 +278,18 @@ def lista_proyectos(request):
         'opciones_centros': opciones_centros,
         'opciones_lideres': opciones_lideres,
         'es_vista_nacional': es_vista_nacional,
-        
+
         'filtro_actual_q': filtro_q or '',
         'filtro_actual_estado': filtro_estado or '',
         'filtro_actual_fase': filtro_fase or '',
         'filtro_actual_lider': int(filtro_lider) if filtro_lider else '',
         'filtro_actual_centro': int(filtro_centro) if filtro_centro else '',
+
+        # Breadcrumbs
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Proyectos'},
+        ],
     }
 
     return render(request, 'gestion/lista_proyectos.html', context)
@@ -280,7 +312,14 @@ def lista_empresas(request):
     else:
         empresas = Empresa.objects.none()
 
-    return render(request, 'gestion/lista_empresas.html', {'empresas': empresas})
+    context = {
+        'empresas': empresas,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Empresas'},
+        ],
+    }
+    return render(request, 'gestion/lista_empresas.html', context)
 
 @login_required
 @solo_lideres
@@ -298,7 +337,17 @@ def crear_empresa(request):
             return redirect('lista_empresas')
     else:
         form = EmpresaForm(user=request.user)
-    return render(request, 'gestion/empresa_form.html', {'form': form, 'titulo': 'Registrar Empresa'})
+
+    context = {
+        'form': form,
+        'titulo': 'Registrar Empresa',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_empresas(),
+            {'label': 'Nueva Empresa'},
+        ],
+    }
+    return render(request, 'gestion/empresa_form.html', context)
 
 
 @login_required
@@ -322,11 +371,17 @@ def editar_empresa(request, empresa_id):
     else:
         form = EmpresaForm(instance=empresa, user=request.user)
 
-    return render(request, 'gestion/empresa_form.html', {
+    context = {
         'form': form,
         'titulo': f'Editar: {empresa.razon_social}',
-        'empresa': empresa
-    })
+        'empresa': empresa,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_empresas(),
+            {'label': empresa.razon_social[:25]},
+        ],
+    }
+    return render(request, 'gestion/empresa_form.html', context)
 
 
 @login_required
@@ -341,8 +396,15 @@ def lista_usuarios(request):
         # Director de Centro solo ve su propia gente
         if user.centro_pevi:
             usuarios = Usuario.objects.filter(centro_pevi=user.centro_pevi).order_by('first_name')
-    
-    return render(request, 'gestion/lista_usuarios.html', {'usuarios': usuarios})
+
+    context = {
+        'usuarios': usuarios,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Equipo'},
+        ],
+    }
+    return render(request, 'gestion/lista_usuarios.html', context)
 
 @login_required
 @solo_directivos
@@ -367,8 +429,17 @@ def crear_usuario(request):
             return redirect('lista_usuarios')
     else:
         form = UsuarioForm(creator=request.user)
-        
-    return render(request, 'gestion/usuario_form.html', {'form': form, 'titulo': 'Nuevo Usuario'})
+
+    context = {
+        'form': form,
+        'titulo': 'Nuevo Usuario',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_equipo(),
+            {'label': 'Nuevo Usuario'},
+        ],
+    }
+    return render(request, 'gestion/usuario_form.html', context)
 
 @login_required
 @solo_directivos
@@ -397,8 +468,17 @@ def editar_usuario(request, usuario_id):
             return redirect('lista_usuarios')
     else:
         form = UsuarioEditarForm(instance=target_user, creator=request.user)
-        
-    return render(request, 'gestion/usuario_form.html', {'form': form, 'titulo': 'Editar Usuario'})
+
+    context = {
+        'form': form,
+        'titulo': 'Editar Usuario',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_equipo(),
+            {'label': target_user.get_full_name() or target_user.username},
+        ],
+    }
+    return render(request, 'gestion/usuario_form.html', context)
 
 @login_required
 @solo_directivos
@@ -475,7 +555,17 @@ def crear_proyecto(request):
         if request.user.rol == 'PROFESOR':
             initial['lider_proyecto'] = request.user
         form = ProyectoForm(user=request.user, initial=initial)
-    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
+
+    context = {
+        'form': form,
+        'titulo': 'Nuevo Proyecto',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_proyectos(),
+            {'label': 'Nuevo Proyecto'},
+        ],
+    }
+    return render(request, 'gestion/proyecto_form.html', context)
 
 @login_required
 @solo_lideres
@@ -527,15 +617,25 @@ def editar_proyecto(request, proyecto_id):
 
             # TRANSACCIÓN ATÓMICA: Garantiza consistencia
             with transaction.atomic():
-                form.save()
-                form.save_m2m()
+                form.save()  # save() ya guarda relaciones M2M automáticamente
 
             log_editar(request, 'Proyecto', proyecto)
             messages.success(request, "Proyecto actualizado.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
     else:
         form = ProyectoForm(instance=proyecto, user=request.user)
-    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
+
+    context = {
+        'form': form,
+        'titulo': 'Editar Proyecto',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_proyectos(),
+            {'label': proyecto.nombre_proyecto[:20], 'url': reverse('detalle_proyecto', args=[proyecto.id])},
+            {'label': 'Editar'},
+        ],
+    }
+    return render(request, 'gestion/proyecto_form.html', context)
 
 # ==============================================================================
 #  4. HUB DEL PROYECTO (Lógica Core)
@@ -659,7 +759,14 @@ def detalle_proyecto(request, proyecto_id):
     context = {
         'proyecto': proyecto,
         'produccion_display': produccion_display,
-        
+
+        # Breadcrumbs
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_proyectos(),
+            {'label': proyecto.nombre_proyecto[:25]},
+        ],
+
         # Objetos Individuales
         'electricidad': electricidad,
         'gas_natural': gas_natural,
@@ -792,7 +899,13 @@ def registrar_consumo(request, proyecto_id, tipo_energia):
         'tipo_energia': tipo_energia,  # Para JS: carbon, fuel_oil, gas_propano, etc.
         'icono': config['icono'],
         'tipo_fisica': config.get('tipo_fisica', 'masa'),
-        'es_edicion': registro_existente is not None
+        'es_edicion': registro_existente is not None,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_proyectos(),
+            {'label': proyecto.nombre_proyecto[:20], 'url': reverse('detalle_proyecto', args=[proyecto.id])},
+            {'label': config['titulo']},
+        ],
     }
     return render(request, 'gestion/registro_energia_form.html', context)
 
@@ -813,8 +926,17 @@ def registrar_produccion(request, proyecto_id):
     else:
         form = ProduccionForm(instance=proyecto)
 
-    # Renderiza el formulario específico de producción
-    return render(request, 'gestion/produccion_form.html', {'proyecto': proyecto, 'form': form})
+    context = {
+        'proyecto': proyecto,
+        'form': form,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_proyectos(),
+            {'label': proyecto.nombre_proyecto[:20], 'url': reverse('detalle_proyecto', args=[proyecto.id])},
+            {'label': 'Producción'},
+        ],
+    }
+    return render(request, 'gestion/produccion_form.html', context)
 
 @login_required
 @acceso_staff
@@ -998,6 +1120,12 @@ def control_panel(request):
         'ultimos_centros': CentroPevi.objects.order_by('-id')[:5],
         'ultimos_usuarios': Usuario.objects.order_by('-date_joined')[:5],
         'ultimas_noticias': Noticia.objects.order_by('-fecha_publicacion')[:5],
+
+        # Breadcrumbs
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Panel de Control'},
+        ],
     }
     return render(request, 'control/panel.html', context)
 
@@ -1009,7 +1137,15 @@ def control_panel(request):
 def control_centros_lista(request):
     """Lista todos los Centros PEVI."""
     centros = CentroPevi.objects.all().order_by('nombre')
-    return render(request, 'control/centros_lista.html', {'centros': centros})
+    context = {
+        'centros': centros,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_control(),
+            {'label': 'Centros PEVI'},
+        ],
+    }
+    return render(request, 'control/centros_lista.html', context)
 
 
 @login_required
@@ -1090,7 +1226,15 @@ def control_centro_eliminar(request, centro_id):
 def control_usuarios_lista(request):
     """Lista todos los usuarios del sistema."""
     usuarios = Usuario.objects.select_related('centro_pevi').order_by('-date_joined')
-    return render(request, 'control/usuarios_lista.html', {'usuarios': usuarios})
+    context = {
+        'usuarios': usuarios,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_control(),
+            {'label': 'Usuarios'},
+        ],
+    }
+    return render(request, 'control/usuarios_lista.html', context)
 
 
 @login_required
@@ -1184,7 +1328,15 @@ def control_usuario_eliminar(request, usuario_id):
 def control_noticias_lista(request):
     """Lista todas las noticias."""
     noticias = Noticia.objects.order_by('-fecha_publicacion')
-    return render(request, 'control/noticias_lista.html', {'noticias': noticias})
+    context = {
+        'noticias': noticias,
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_control(),
+            {'label': 'Noticias'},
+        ],
+    }
+    return render(request, 'control/noticias_lista.html', context)
 
 
 @login_required

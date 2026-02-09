@@ -1,0 +1,36 @@
+{% comment %}
+Componente de Breadcrumbs reutilizable.
+
+Uso en templates:
+    {% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+
+Donde breadcrumbs es una lista de diccionarios:
+    breadcrumbs = [
+        {'label': 'Dashboard', 'url': '/app/'},
+        {'label': 'Proyectos', 'url': '/app/proyectos/'},
+        {'label': 'Empresa XYZ'},  # Sin url = página actual
+    ]
+{% endcomment %}
+
+{% if breadcrumbs %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0" style="background: transparent; padding: 0; font-size: 0.85rem;">
+        {% for crumb in breadcrumbs %}
+            {% if forloop.last %}
+                <li class="breadcrumb-item active text-muted" aria-current="page">
+                    {{ crumb.label }}
+                </li>
+            {% else %}
+                <li class="breadcrumb-item">
+                    <a href="{{ crumb.url }}" class="text-decoration-none" style="color: var(--primary-brand, #0284c7);">
+                        {% if forloop.first %}
+                        <i class="bi bi-house-door me-1"></i>
+                        {% endif %}
+                        {{ crumb.label }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+</nav>
+{% endif %}

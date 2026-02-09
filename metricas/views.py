@@ -3,11 +3,17 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.core.exceptions import PermissionDenied
+from django.urls import reverse
 
 # Modelos
 from auditorias.models import ProyectoAuditoria
 from gestion.models import CentroPevi, Usuario
 from gestion.decorators import solo_directivos
+
+
+def breadcrumb_home():
+    """Breadcrumb base (Dashboard)."""
+    return {'label': 'Dashboard', 'url': reverse('dashboard')}
 
 @login_required
 @solo_directivos
@@ -200,7 +206,13 @@ def dashboard_estrategico(request):
     context = {
         'page_title': "Dashboard de Ingeniería",
         'page_subtitle': titulo_scope,
-        
+
+        # Breadcrumbs
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Métricas & BI'},
+        ],
+
         # Filtros y Listas
         'opciones_proyectos': lista_proyectos_dropdown, # Lista inteligente filtrada
         'opciones_lideres': lista_lideres_dropdown,
@@ -212,7 +224,7 @@ def dashboard_estrategico(request):
         'kpi_energia_total': int(global_kwh_electrico + global_kwh_termico),
         'kpi_costo_total': int(global_costo_total),
         'kpi_emisiones': int(global_emisiones_total),
-        
+
         # Desglose Técnico (Tarjeta Balance)
         'kpi_elec_kwh': int(global_kwh_electrico),
         'kpi_term_mbtu': round(mbtu_term, 2),
@@ -255,6 +267,10 @@ def dashboard_nacional(request):
         'page_title': "Tablero Nacional",
         'opciones_centros': centros,
         'filtro_actual_centro': int(filtro_centro_id) if filtro_centro_id else '',
+        'breadcrumbs': [
+            breadcrumb_home(),
+            {'label': 'Tablero Nacional'},
+        ],
     }
 
     # =========================================================

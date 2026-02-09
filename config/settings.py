@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'config.middleware.ContentSecurityPolicyMiddleware',  # CSP Headers
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -221,7 +222,10 @@ else:
 
 # Crear carpeta de logs si no existe
 LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+try:
+    LOGS_DIR.mkdir(exist_ok=True)
+except PermissionError:
+    pass  # En producción, la carpeta ya debe existir con permisos correctos
 
 LOGGING = {
     'version': 1,
