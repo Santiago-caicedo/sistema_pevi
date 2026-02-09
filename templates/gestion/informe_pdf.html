@@ -83,7 +83,7 @@
         }
 
         .cover-logo {
-            height: 50px;
+            height: 90px;
             filter: brightness(0) invert(1);
         }
 
@@ -188,7 +188,8 @@
         }
 
         .page-header-logo {
-            height: 35px;
+            height: 30px;
+            max-width: 160px;
         }
 
         .page-header-title {
@@ -232,18 +233,25 @@
            KPI CARDS
         ================================================================== */
         .kpi-grid {
-            display: flex;
-            gap: 15px;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
             margin-bottom: 25px;
         }
 
         .kpi-card {
-            flex: 1;
+            display: table-cell;
+            width: 25%;
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 15px;
+            padding: 12px 8px;
             text-align: center;
+            vertical-align: top;
+        }
+
+        .kpi-card + .kpi-card {
+            border-left: none;
         }
 
         .kpi-card.highlight {
@@ -266,24 +274,27 @@
         }
 
         .kpi-value {
-            font-size: 18pt;
+            font-size: 14pt;
             font-weight: 700;
             color: #0f172a;
             line-height: 1.2;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .kpi-value small {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: 400;
             color: #64748b;
         }
 
         .kpi-label {
-            font-size: 8pt;
+            font-size: 7pt;
             color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             margin-top: 5px;
+            line-height: 1.3;
         }
 
         .kpi-change {
@@ -594,21 +605,45 @@
            GRID LAYOUTS
         ================================================================== */
         .two-column {
-            display: flex;
-            gap: 20px;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
 
         .two-column > div {
-            flex: 1;
+            display: table-cell;
+            width: 50%;
+            padding: 0 10px;
+            vertical-align: top;
+        }
+
+        .two-column > div:first-child {
+            padding-left: 0;
+        }
+
+        .two-column > div:last-child {
+            padding-right: 0;
         }
 
         .three-column {
-            display: flex;
-            gap: 15px;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
 
         .three-column > div {
-            flex: 1;
+            display: table-cell;
+            width: 33.33%;
+            padding: 0 8px;
+            vertical-align: top;
+        }
+
+        .three-column > div:first-child {
+            padding-left: 0;
+        }
+
+        .three-column > div:last-child {
+            padding-right: 0;
         }
 
         /* ==================================================================
@@ -772,7 +807,7 @@
     ================================================================= -->
     <div class="content-page">
         <div class="page-header">
-            <img src="{% static 'img/logo_pevi.png' %}" class="page-header-logo" alt="PEVI">
+            <img src="{% static 'img/pevi_horizontal.png' %}" class="page-header-logo" alt="PEVI">
             <div class="page-header-title">{{ proyecto.empresa.razon_social }}</div>
         </div>
 
@@ -885,7 +920,7 @@
     ================================================================= -->
     <div class="content-page page-break">
         <div class="page-header">
-            <img src="{% static 'img/logo_pevi.png' %}" class="page-header-logo" alt="PEVI">
+            <img src="{% static 'img/pevi_horizontal.png' %}" class="page-header-logo" alt="PEVI">
             <div class="page-header-title">{{ proyecto.empresa.razon_social }}</div>
         </div>
 
@@ -1005,7 +1040,7 @@
     ================================================================= -->
     <div class="content-page page-break">
         <div class="page-header">
-            <img src="{% static 'img/logo_pevi.png' %}" class="page-header-logo" alt="PEVI">
+            <img src="{% static 'img/pevi_horizontal.png' %}" class="page-header-logo" alt="PEVI">
             <div class="page-header-title">{{ proyecto.empresa.razon_social }}</div>
         </div>
 
@@ -1117,7 +1152,7 @@
     ================================================================= -->
     <div class="content-page page-break">
         <div class="page-header">
-            <img src="{% static 'img/logo_pevi.png' %}" class="page-header-logo" alt="PEVI">
+            <img src="{% static 'img/pevi_horizontal.png' %}" class="page-header-logo" alt="PEVI">
             <div class="page-header-title">{{ proyecto.empresa.razon_social }}</div>
         </div>
 
