@@ -256,7 +256,7 @@ LOGGING = {
         # Archivo de accesos (login, logout)
         'acceso_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'acceso.log',
+            'filename': str(LOGS_DIR / 'acceso.log'),
             'maxBytes': 5 * 1024 * 1024,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -266,7 +266,7 @@ LOGGING = {
         # Archivo de actividad (CRUD)
         'actividad_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'actividad.log',
+            'filename': str(LOGS_DIR / 'actividad.log'),
             'maxBytes': 10 * 1024 * 1024,  # 10 MB
             'backupCount': 10,
             'formatter': 'verbose',
@@ -276,7 +276,7 @@ LOGGING = {
         # Archivo de errores
         'error_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'errores.log',
+            'filename': str(LOGS_DIR / 'errores.log'),
             'maxBytes': 5 * 1024 * 1024,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -286,7 +286,7 @@ LOGGING = {
         # Archivo de seguridad
         'seguridad_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'seguridad.log',
+            'filename': str(LOGS_DIR / 'seguridad.log'),
             'maxBytes': 5 * 1024 * 1024,  # 5 MB
             'backupCount': 10,
             'formatter': 'security',
