@@ -1,9 +1,9 @@
 from django.core.management.base import BaseCommand
-from auditorias.models import GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
+from auditorias.models import Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
 
 
 class Command(BaseCommand):
-    help = 'Recalcula consumo_anual_kwh para todos los registros de combustibles existentes'
+    help = 'Recalcula consumo_anual_kwh y emisiones_totales para todos los registros energéticos'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,6 +18,28 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('MODO DRY-RUN: No se guardarán cambios'))
 
+        # --- Electricidad (solo emisiones) ---
+        self.stdout.write(f'\nElectricidad:')
+        self.stdout.write('-' * 50)
+        registros_elec = Electricidad.objects.all()
+
+        if registros_elec.count() == 0:
+            self.stdout.write('  Sin registros')
+        else:
+            for registro in registros_elec:
+                emisiones_anterior = registro.emisiones_totales
+                emisiones_nueva = self._calcular_emisiones_electricidad(registro)
+
+                if not dry_run:
+                    registro.save()
+                    emisiones_nueva = registro.emisiones_totales
+
+                self.stdout.write(
+                    f'  ID {registro.id} ({registro.proyecto}): '
+                    f'Emisiones: {emisiones_anterior:,.2f} → {emisiones_nueva:,.2f} TonCO2'
+                )
+
+        # --- Combustibles (kWh + emisiones) ---
         modelos = [
             ('Gas Natural', GasNatural),
             ('Carbón Mineral', CarbonMineral),
@@ -33,39 +55,40 @@ class Command(BaseCommand):
             count = registros.count()
 
             if count == 0:
-                self.stdout.write(f'{nombre}: Sin registros')
+                self.stdout.write(f'\n{nombre}: Sin registros')
                 continue
 
             self.stdout.write(f'\n{nombre}: {count} registro(s)')
             self.stdout.write('-' * 50)
 
             for registro in registros:
-                valor_anterior = registro.consumo_anual_kwh
+                kwh_anterior = registro.consumo_anual_kwh
+                emisiones_anterior = registro.emisiones_totales
 
-                # El método save() ahora tiene la lógica correcta de conversión
                 if not dry_run:
                     registro.save()
-                    valor_nuevo = registro.consumo_anual_kwh
+                    kwh_nuevo = registro.consumo_anual_kwh
+                    emisiones_nueva = registro.emisiones_totales
                 else:
-                    # Calculamos sin guardar para mostrar el cambio
-                    valor_nuevo = self._calcular_kwh(registro)
+                    kwh_nuevo = self._calcular_kwh(registro)
+                    emisiones_nueva = self._calcular_emisiones_combustible(registro)
 
-                cambio = valor_nuevo - valor_anterior if valor_anterior else valor_nuevo
-                porcentaje = (cambio / valor_anterior * 100) if valor_anterior and valor_anterior != 0 else 0
+                cambio_kwh = kwh_nuevo - kwh_anterior if kwh_anterior else kwh_nuevo
+                pct_kwh = (cambio_kwh / kwh_anterior * 100) if kwh_anterior and kwh_anterior != 0 else 0
 
                 self.stdout.write(
                     f'  ID {registro.id} ({registro.proyecto}): '
-                    f'{valor_anterior:,.0f} → {valor_nuevo:,.0f} kWh '
-                    f'({porcentaje:+.1f}%)'
+                    f'kWh: {kwh_anterior:,.0f} → {kwh_nuevo:,.0f} ({pct_kwh:+.1f}%) | '
+                    f'Emisiones: {emisiones_anterior:,.2f} → {emisiones_nueva:,.2f} TonCO2'
                 )
                 total_actualizados += 1
 
         self.stdout.write('\n' + '=' * 50)
         if dry_run:
-            self.stdout.write(self.style.WARNING(f'Se actualizarían {total_actualizados} registro(s)'))
+            self.stdout.write(self.style.WARNING(f'Se actualizarían {total_actualizados + registros_elec.count()} registro(s)'))
             self.stdout.write(self.style.WARNING('Ejecuta sin --dry-run para aplicar cambios'))
         else:
-            self.stdout.write(self.style.SUCCESS(f'Se actualizaron {total_actualizados} registro(s)'))
+            self.stdout.write(self.style.SUCCESS(f'Se actualizaron {total_actualizados + registros_elec.count()} registro(s)'))
 
     def _calcular_kwh(self, registro):
         """Calcula kWh sin guardar (para dry-run)"""
@@ -92,4 +115,16 @@ class Command(BaseCommand):
             energia_kj = (registro.consumo_anual_orig * factor_unidad) * registro.poder_calorifico * factor_energia
             return energia_kj / 3600
 
+        return 0
+
+    def _calcular_emisiones_combustible(self, registro):
+        """Calcula emisiones TonCO2 para combustibles (para dry-run)"""
+        if registro.consumo_anual_orig and registro.factor_emision:
+            return (registro.consumo_anual_orig * registro.factor_emision) / 1000
+        return 0
+
+    def _calcular_emisiones_electricidad(self, registro):
+        """Calcula emisiones TonCO2 para electricidad (para dry-run)"""
+        if registro.consumo_anual and registro.factor_emision:
+            return (registro.consumo_anual * registro.factor_emision) / 1000
         return 0

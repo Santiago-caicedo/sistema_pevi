@@ -1068,6 +1068,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (labels.length === 0) return;
 
+        // Formateador numérico consistente: , = miles, . = decimal
+        function fmtNum(n, decimals) {
+            if (decimals === undefined) decimals = 0;
+            let parts = Number(n).toFixed(decimals).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return parts.join('.');
+        }
+
         // 1. DOUGHNUT (kWh)
         const ctxEnergia = document.getElementById('chartEnergia').getContext('2d');
         const totalEnergia = dataEnergia.reduce((a, b) => a + b, 0);
@@ -1091,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(c) {
                                 const porcentaje = ((c.raw / totalEnergia) * 100).toFixed(1);
-                                return c.label + ': ' + c.raw.toLocaleString() + ' kWh (' + porcentaje + '%)';
+                                return c.label + ': ' + fmtNum(c.raw) + ' kWh (' + porcentaje + '%)';
                             }
                         }
                     }
@@ -1123,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(c) {
                                 const porcentaje = ((c.raw / totalEmisiones) * 100).toFixed(1);
-                                return c.label + ': ' + c.raw.toLocaleString() + ' TonCO2 (' + porcentaje + '%)';
+                                return c.label + ': ' + fmtNum(c.raw, 2) + ' TonCO2 (' + porcentaje + '%)';
                             }
                         }
                     }
@@ -1155,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: function(c) { return c.raw.toLocaleString() + ' MBTU'; } } }
+                    tooltip: { callbacks: { label: function(c) { return fmtNum(c.raw, 2) + ' MBTU'; } } }
                 }
             }
         });
@@ -1261,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        return 'Ahorro: ' + context.raw.toLocaleString() + ' kWh';
+                                        return 'Ahorro: ' + fmtNum(context.raw) + ' kWh';
                                     }
                                 }
                             }

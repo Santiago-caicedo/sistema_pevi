@@ -212,14 +212,20 @@ class Electricidad(FuenteEnergiaBase):
     """ Campos específicos del Excel para Electricidad """
     consumo_mensual = models.FloatField(verbose_name="Consumo Mensual (kWh/mes)")
     consumo_anual = models.FloatField(verbose_name="Consumo Anual (kWh/año)")
-    
+
     # La electricidad no tiene conversión de unidades ni PC complejo
-    
+
     def get_kwh_equivalente(self):
         return self.consumo_anual # Ya viene en kWh
 
     def calcular_emisiones_ton_co2(self):
-        return self.emisiones_totales # Retornamos el valor manual
+        return self.emisiones_totales
+
+    def save(self, *args, **kwargs):
+        # AUTO-CÁLCULO DE EMISIONES: (consumo_anual × factor_emision) / 1000
+        if self.consumo_anual and self.factor_emision:
+            self.emisiones_totales = (self.consumo_anual * self.factor_emision) / 1000
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Registro Electricidad"
@@ -284,6 +290,10 @@ class CombustibleBase(FuenteEnergiaBase):
             # 3. Calculamos indicador de costo
             if self.costo_total_anual and self.consumo_anual_kwh > 0:
                 self.costo_kwh_equivalente = self.costo_total_anual / self.consumo_anual_kwh
+
+        # AUTO-CÁLCULO DE EMISIONES: (consumo_anual_orig × factor_emision) / 1000
+        if self.consumo_anual_orig and self.factor_emision:
+            self.emisiones_totales = (self.consumo_anual_orig * self.factor_emision) / 1000
 
         super().save(*args, **kwargs)
         
