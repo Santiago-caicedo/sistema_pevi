@@ -1207,6 +1207,9 @@ def generar_informe_pdf(request, proyecto_id):
         'consumo_proyectado': f"{consumo_proyectado:,.0f}",
         'pct_reduccion_total': pct_reduccion_total,
 
+        # OPMs identificadas
+        'oportunidades': proyecto.oportunidades_mejora.all(),
+
         # Equipo
         'equipo': proyecto.equipo.all(),
 

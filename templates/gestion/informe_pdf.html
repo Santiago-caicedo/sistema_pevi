@@ -1148,7 +1148,75 @@
     </div>
 
     <!-- ================================================================
-         PÁGINA 5: EQUIPO Y CIERRE
+         PÁGINA 5: OPMs IDENTIFICADAS
+    ================================================================= -->
+    {% if oportunidades %}
+    <div class="content-page page-break">
+        <div class="page-header">
+            <img src="{% static 'img/pevi_horizontal.png' %}" class="page-header-logo" alt="PEVI">
+            <div class="page-header-title">{{ proyecto.empresa.razon_social }}</div>
+        </div>
+
+        <div class="section-title">Oportunidades de Mejora Identificadas</div>
+        <p class="section-subtitle">Detalle de las OPMs con análisis técnico-financiero</p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>OPM</th>
+                    <th>Descripción</th>
+                    <th>Energético</th>
+                    <th class="text-right">Ahorro (kWh/año)</th>
+                    <th class="text-right">Costos Evitados (MCOP)</th>
+                    <th class="text-right">TonCO₂ Evitadas</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opm in oportunidades %}
+                <tr>
+                    <td class="fw-bold">{{ opm.codigo }}</td>
+                    <td>{{ opm.descripcion }}</td>
+                    <td>{{ opm.get_energetico_display }}</td>
+                    <td class="text-right">{{ opm.ahorro_energia|floatformat:0 }}</td>
+                    <td class="text-right">{{ opm.costos_evitados|floatformat:1 }}</td>
+                    <td class="text-right">{{ opm.emisiones_evitadas|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="section-divider"></div>
+
+        <div class="chart-title">Análisis Financiero de OPMs</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>OPM</th>
+                    <th class="text-right">Inversión (COP)</th>
+                    <th class="text-right">VPN (COP)</th>
+                    <th class="text-right">TIR (%)</th>
+                    <th class="text-right">Payback (meses)</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opm in oportunidades %}
+                <tr>
+                    <td class="fw-bold">{{ opm.codigo }}</td>
+                    <td class="text-right">${{ opm.inversion|floatformat:0 }}</td>
+                    <td class="text-right">${{ opm.vpn|floatformat:0 }}</td>
+                    <td class="text-right">{{ opm.tir|floatformat:1 }}%</td>
+                    <td class="text-right">{{ opm.payback|floatformat:1 }}</td>
+                    <td class="fs-small">{{ opm.observaciones|truncatewords:15|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ================================================================
+         PÁGINA 6: EQUIPO Y CIERRE
     ================================================================= -->
     <div class="content-page page-break">
         <div class="page-header">
