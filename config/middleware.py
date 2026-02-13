@@ -56,16 +56,22 @@ class ContentSecurityPolicyMiddleware:
                 "cdn.jsdelivr.net",
             ],
 
-            # Imágenes: servidor propio, S3, y data URIs (íconos inline)
+            # Imágenes: servidor propio, S3, data URIs, y fuentes externas del sitio público
             'img-src': [
                 "'self'",
                 "data:",  # Para imágenes base64 inline
                 "vadomdata.s3.amazonaws.com",
+                "p4.wallpaperbetter.com",       # Hero home
+                "wallpapers.com",               # Hero home
+                "img.freepik.com",              # Hero home
+                "lirp.cdn-website.com",         # Sección home
+                "*.basemaps.cartocdn.com",      # Tiles mapa resultados
             ],
 
-            # Conexiones AJAX/Fetch: solo al propio servidor
+            # Conexiones AJAX/Fetch: servidor propio + CDN source maps
             'connect-src': [
                 "'self'",
+                "cdn.jsdelivr.net",  # Source maps de Bootstrap/Chart.js
             ],
 
             # Frames: no permitir embeber en iframes (anti-clickjacking)
