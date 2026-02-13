@@ -311,3 +311,37 @@ class Biomasa(CombustibleBase):
 
 class GasPropano(CombustibleBase):
     class Meta: verbose_name = "Registro GLP"
+
+
+class OportunidadMejora(models.Model):
+    ENERGETICOS = [
+        ('ELECTRICIDAD', 'Electricidad'),
+        ('GAS_NATURAL', 'Gas Natural'),
+        ('CARBON', 'Carb\u00f3n Mineral'),
+        ('FUEL_OIL', 'Fuel Oil'),
+        ('BIOMASA', 'Biomasa'),
+        ('GLP', 'Gas Propano (GLP)'),
+        ('OTRO', 'Otro'),
+    ]
+
+    proyecto = models.ForeignKey(ProyectoAuditoria, on_delete=models.CASCADE, related_name="oportunidades_mejora")
+    codigo = models.CharField(max_length=20, verbose_name="OPM")
+    descripcion = models.CharField(max_length=300, verbose_name="Descripci\u00f3n")
+    energetico = models.CharField(max_length=20, choices=ENERGETICOS)
+    ahorro_energia = models.FloatField(verbose_name="Ahorro Energ\u00eda (kWh/a\u00f1o)", default=0)
+    costos_evitados = models.FloatField(verbose_name="Costos Evitados (MCOP/a\u00f1o)", default=0)
+    emisiones_evitadas = models.FloatField(verbose_name="Emisiones Evitadas (TonCO2/a\u00f1o)", default=0)
+    inversion = models.FloatField(verbose_name="Inversi\u00f3n (COP)", default=0)
+    vpn = models.FloatField(verbose_name="VPN (COP)", default=0)
+    tir = models.FloatField(verbose_name="TIR (%)", default=0)
+    payback = models.FloatField(verbose_name="Payback (meses)", default=0)
+    observaciones = models.TextField(verbose_name="Observaciones", blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Oportunidad de Mejora"
+        verbose_name_plural = "Oportunidades de Mejora"
+        ordering = ['codigo']
+
+    def __str__(self):
+        return f"{self.codigo} - {self.descripcion[:50]}"

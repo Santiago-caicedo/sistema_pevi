@@ -1,8 +1,8 @@
 from django import forms
 from .models import (
     Empresa, ProyectoAuditoria, DocumentoProyecto,
-    Electricidad, GasNatural, CarbonMineral, 
-    FuelOil, Biomasa, GasPropano
+    Electricidad, GasNatural, CarbonMineral,
+    FuelOil, Biomasa, GasPropano, OportunidadMejora
 )
 
 # --- MIXIN DE DISEÑO ---
@@ -307,3 +307,32 @@ class GasPropanoForm(RegistroEnergiaForm):
             'consumo_anual_kwh': 'Consumo Eq. Anual (kWh)',
             'costo_kwh_equivalente': 'Costo Equivalente ($/kWh)',
         }
+
+
+class OportunidadMejoraForm(EstiloBootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = OportunidadMejora
+        exclude = ['proyecto', 'created_at']
+        widgets = {
+            'observaciones': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Interceptar comas en TODOS los campos numéricos del POST
+        if args:
+            data = args[0].copy()
+            campos_numericos = [
+                'ahorro_energia', 'costos_evitados', 'emisiones_evitadas',
+                'inversion', 'vpn', 'tir', 'payback'
+            ]
+            for key in campos_numericos:
+                if key in data and isinstance(data[key], str):
+                    data[key] = data[key].replace(',', '')
+            args = (data,) + args[1:]
+
+        super().__init__(*args, **kwargs)
+
+        # Convertir campos numéricos a TextInput para evitar validación HTML5
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.NumberInput):
+                field.widget = forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'})

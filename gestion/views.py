@@ -16,11 +16,11 @@ import tempfile
 # Modelos y Formularios del Sistema
 from .models import CentroPevi, Usuario
 from .forms import UsuarioForm, UsuarioEditarForm
-from auditorias.models import ProyectoAuditoria, Empresa
+from auditorias.models import ProyectoAuditoria, Empresa, OportunidadMejora
 from auditorias.forms import (
     ProyectoForm, ProduccionForm, DocumentoForm, EmpresaForm,
-    ElectricidadForm, GasNaturalForm, CarbonForm, 
-    FuelOilForm, BiomasaForm, GasPropanoForm
+    ElectricidadForm, GasNaturalForm, CarbonForm,
+    FuelOilForm, BiomasaForm, GasPropanoForm, OportunidadMejoraForm
 )
 
 # Decoradores de Seguridad Personalizados
@@ -805,6 +805,10 @@ def detalle_proyecto(request, proyecto_id):
         'waterfall_reducciones': json.dumps(waterfall_reducciones),
         'waterfall_total_actual': int(total_energia),
         'waterfall_total_proyectado': int(consumo_proyectado),
+
+        # Oportunidades de Mejora - Proyectos Identificados
+        'oportunidades_mejora': proyecto.oportunidades_mejora.all(),
+        'form_opm': OportunidadMejoraForm(),
     }
 
     return render(request, 'gestion/proyecto_detalle.html', context)
@@ -858,6 +862,75 @@ def guardar_reduccion(request, proyecto_id):
             messages.error(request, "No existe registro para este energético.")
     else:
         messages.error(request, "Tipo de energético no válido.")
+
+    return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
+
+@login_required
+@acceso_staff
+def crear_oportunidad(request, proyecto_id):
+    """Crea una nueva Oportunidad de Mejora (OPM) para un proyecto."""
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+
+    if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id} OPM crear', 'Sin acceso')
+        raise PermissionDenied("No tienes permiso para modificar este proyecto.")
+
+    if request.method == 'POST':
+        form = OportunidadMejoraForm(request.POST)
+        if form.is_valid():
+            opm = form.save(commit=False)
+            opm.proyecto = proyecto
+            opm.save()
+            log_crear(request, 'OportunidadMejora', opm.id, str(opm))
+            messages.success(request, f"OPM '{opm.codigo}' creada exitosamente.")
+        else:
+            messages.error(request, "Error al crear la OPM. Revisa los campos.")
+
+    return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
+
+@login_required
+@acceso_staff
+def editar_oportunidad(request, proyecto_id, opm_id):
+    """Edita una Oportunidad de Mejora existente."""
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+
+    if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id} OPM editar', 'Sin acceso')
+        raise PermissionDenied("No tienes permiso para modificar este proyecto.")
+
+    opm = get_object_or_404(OportunidadMejora, id=opm_id, proyecto=proyecto)
+
+    if request.method == 'POST':
+        form = OportunidadMejoraForm(request.POST, instance=opm)
+        if form.is_valid():
+            form.save()
+            log_editar(request, 'OportunidadMejora', opm.id, str(opm))
+            messages.success(request, f"OPM '{opm.codigo}' actualizada.")
+        else:
+            messages.error(request, "Error al actualizar la OPM. Revisa los campos.")
+
+    return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
+
+@login_required
+@acceso_staff
+def eliminar_oportunidad(request, proyecto_id, opm_id):
+    """Elimina una Oportunidad de Mejora."""
+    proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
+
+    if not verificar_acceso_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id} OPM eliminar', 'Sin acceso')
+        raise PermissionDenied("No tienes permiso para modificar este proyecto.")
+
+    opm = get_object_or_404(OportunidadMejora, id=opm_id, proyecto=proyecto)
+
+    if request.method == 'POST':
+        codigo = opm.codigo
+        log_eliminar(request, 'OportunidadMejora', opm.id, str(opm))
+        opm.delete()
+        messages.success(request, f"OPM '{codigo}' eliminada.")
 
     return redirect('detalle_proyecto', proyecto_id=proyecto_id)
 

@@ -3,6 +3,7 @@ from django.urls import path, include
 from gestion.views import (
     cambiar_estado_proyecto, crear_empresa, editar_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf,
     lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento, guardar_reduccion,
+    crear_oportunidad, editar_oportunidad, eliminar_oportunidad,
     # Panel de Control Superadmin
     control_panel, control_centros_lista, control_centro_crear, control_centro_editar, control_centro_eliminar,
     control_usuarios_lista, control_usuario_crear, control_usuario_editar, control_usuario_eliminar,
@@ -52,6 +53,9 @@ urlpatterns = [
 
     # --- OPORTUNIDADES DE MEJORA ---
     path('app/proyectos/<int:proyecto_id>/reduccion/', guardar_reduccion, name='guardar_reduccion'),
+    path('app/proyectos/<int:proyecto_id>/oportunidades/nueva/', crear_oportunidad, name='crear_oportunidad'),
+    path('app/proyectos/<int:proyecto_id>/oportunidades/<int:opm_id>/editar/', editar_oportunidad, name='editar_oportunidad'),
+    path('app/proyectos/<int:proyecto_id>/oportunidades/<int:opm_id>/eliminar/', eliminar_oportunidad, name='eliminar_oportunidad'),
 
     # --- GESTIÓN DE EQUIPO (RRHH) ---
     path('app/equipo/', lista_usuarios, name='lista_usuarios'),

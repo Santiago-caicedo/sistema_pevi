@@ -963,6 +963,242 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endif %}
 
+<!-- ================================================================== -->
+<!--  OPORTUNIDADES DE MEJORA - PROYECTOS IDENTIFICADOS                 -->
+<!-- ================================================================== -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card-modern p-0 overflow-hidden bg-white shadow-sm">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-light">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-lightbulb me-2"></i>Oportunidades de Mejora - Proyectos Identificados</h6>
+                    <small class="text-muted">Detalle t&eacute;cnico-financiero de las OPMs propuestas</small>
+                </div>
+                {% if puede_editar_estructura %}
+                <button type="button" class="btn btn-white border shadow-sm text-success fw-medium hover-lift" data-bs-toggle="modal" data-bs-target="#modalOPM" onclick="limpiarModalOPM()">
+                    <i class="bi bi-plus-lg me-1"></i> Nueva OPM
+                </button>
+                {% endif %}
+            </div>
+
+            {% if oportunidades_mejora %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">OPM</th>
+                            <th>Descripci&oacute;n</th>
+                            <th>Energ&eacute;tico</th>
+                            <th class="text-end">Ahorro kWh/a&ntilde;o</th>
+                            <th class="text-end">Costos Evitados<br><small class="text-muted">MCOP/a&ntilde;o</small></th>
+                            <th class="text-end">Emisiones Evitadas<br><small class="text-muted">TonCO2/a&ntilde;o</small></th>
+                            <th class="text-end">Inversi&oacute;n<br><small class="text-muted">COP</small></th>
+                            <th class="text-end">VPN<br><small class="text-muted">COP</small></th>
+                            <th class="text-end">TIR %</th>
+                            <th class="text-end">Payback<br><small class="text-muted">meses</small></th>
+                            {% if puede_editar_estructura %}
+                            <th class="text-center pe-4">Acciones</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for opm in oportunidades_mejora %}
+                        <tr>
+                            <td class="ps-4 fw-medium text-primary">{{ opm.codigo }}</td>
+                            <td style="max-width: 220px;" title="{{ opm.descripcion }}">{{ opm.descripcion|truncatechars:60 }}</td>
+                            <td><span class="badge bg-soft-primary text-primary">{{ opm.get_energetico_display }}</span></td>
+                            <td class="text-end">{{ opm.ahorro_energia|floatformat:0 }}</td>
+                            <td class="text-end">{{ opm.costos_evitados|floatformat:2 }}</td>
+                            <td class="text-end">{{ opm.emisiones_evitadas|floatformat:2 }}</td>
+                            <td class="text-end">{{ opm.inversion|floatformat:0 }}</td>
+                            <td class="text-end">{{ opm.vpn|floatformat:0 }}</td>
+                            <td class="text-end">{{ opm.tir|floatformat:1 }}%</td>
+                            <td class="text-end">{{ opm.payback|floatformat:1 }}</td>
+                            {% if puede_editar_estructura %}
+                            <td class="text-center pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                    data-bs-toggle="modal" data-bs-target="#modalOPM"
+                                    onclick="editarOPM(this)"
+                                    data-id="{{ opm.id }}"
+                                    data-codigo="{{ opm.codigo }}"
+                                    data-descripcion="{{ opm.descripcion }}"
+                                    data-energetico="{{ opm.energetico }}"
+                                    data-ahorro_energia="{{ opm.ahorro_energia }}"
+                                    data-costos_evitados="{{ opm.costos_evitados }}"
+                                    data-emisiones_evitadas="{{ opm.emisiones_evitadas }}"
+                                    data-inversion="{{ opm.inversion }}"
+                                    data-vpn="{{ opm.vpn }}"
+                                    data-tir="{{ opm.tir }}"
+                                    data-payback="{{ opm.payback }}"
+                                    data-observaciones="{{ opm.observaciones }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" action="{% url 'eliminar_oportunidad' proyecto.id opm.id %}" class="d-inline"
+                                      onsubmit="return confirm('&iquest;Eliminar OPM {{ opm.codigo }}?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold" id="opmTotales">
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-lightbulb fs-3 d-block mb-2 opacity-50"></i>
+                No hay oportunidades de mejora registradas.
+                {% if puede_editar_estructura %}
+                <br><small>Haz clic en "Nueva OPM" para agregar la primera.</small>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal OPM (Crear / Editar) -->
+{% if puede_editar_estructura %}
+<div class="modal fade" id="modalOPM" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" id="formOPM" action="{% url 'crear_oportunidad' proyecto.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="tituloModalOPM"><i class="bi bi-lightbulb me-2"></i>Nueva Oportunidad de Mejora</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">C&oacute;digo OPM <span class="text-danger">*</span></label>
+                            <input type="text" name="codigo" id="opm_codigo" class="form-control" maxlength="20" required placeholder="Ej: OPM-01">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-medium">Descripci&oacute;n <span class="text-danger">*</span></label>
+                            <input type="text" name="descripcion" id="opm_descripcion" class="form-control" maxlength="300" required placeholder="Descripci&oacute;n de la acci&oacute;n">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Energ&eacute;tico <span class="text-danger">*</span></label>
+                            <select name="energetico" id="opm_energetico" class="form-select" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="ELECTRICIDAD">Electricidad</option>
+                                <option value="GAS_NATURAL">Gas Natural</option>
+                                <option value="CARBON">Carb&oacute;n Mineral</option>
+                                <option value="FUEL_OIL">Fuel Oil</option>
+                                <option value="BIOMASA">Biomasa</option>
+                                <option value="GLP">Gas Propano (GLP)</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Ahorro Energ&iacute;a (kWh/a&ntilde;o)</label>
+                            <input type="text" name="ahorro_energia" id="opm_ahorro_energia" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Costos Evitados (MCOP/a&ntilde;o)</label>
+                            <input type="text" name="costos_evitados" id="opm_costos_evitados" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Emisiones Evitadas (TonCO2/a&ntilde;o)</label>
+                            <input type="text" name="emisiones_evitadas" id="opm_emisiones_evitadas" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Inversi&oacute;n (COP)</label>
+                            <input type="text" name="inversion" id="opm_inversion" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">VPN (COP)</label>
+                            <input type="text" name="vpn" id="opm_vpn" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">TIR (%)</label>
+                            <input type="text" name="tir" id="opm_tir" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Payback (meses)</label>
+                            <input type="text" name="payback" id="opm_payback" class="form-control" autocomplete="off" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Observaciones</label>
+                            <textarea name="observaciones" id="opm_observaciones" class="form-control" rows="2" placeholder="Notas adicionales (opcional)"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success px-4"><i class="bi bi-check-lg me-1"></i> Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function limpiarModalOPM() {
+    document.getElementById('formOPM').action = "{% url 'crear_oportunidad' proyecto.id %}";
+    document.getElementById('tituloModalOPM').innerHTML = '<i class="bi bi-lightbulb me-2"></i>Nueva Oportunidad de Mejora';
+    var campos = ['codigo','descripcion','energetico','ahorro_energia','costos_evitados','emisiones_evitadas','inversion','vpn','tir','payback','observaciones'];
+    campos.forEach(function(c) {
+        var el = document.getElementById('opm_' + c);
+        if (el) el.value = '';
+    });
+}
+
+function editarOPM(btn) {
+    var id = btn.getAttribute('data-id');
+    document.getElementById('formOPM').action = "{% url 'crear_oportunidad' proyecto.id %}".replace(/oportunidades\/nueva/, 'oportunidades/' + id + '/editar');
+    document.getElementById('tituloModalOPM').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Oportunidad de Mejora';
+    var campos = ['codigo','descripcion','energetico','ahorro_energia','costos_evitados','emisiones_evitadas','inversion','vpn','tir','payback','observaciones'];
+    campos.forEach(function(c) {
+        var el = document.getElementById('opm_' + c);
+        if (el) el.value = btn.getAttribute('data-' + c) || '';
+    });
+}
+
+// Calcular totales del footer OPM
+document.addEventListener('DOMContentLoaded', function() {
+    var tfoot = document.getElementById('opmTotales');
+    if (!tfoot) return;
+    var tbody = tfoot.closest('table').querySelector('tbody');
+    var rows = tbody.querySelectorAll('tr');
+    // Indices de columnas numéricas (0-based): 3=ahorro, 4=costos, 5=emisiones, 6=inv, 7=vpn
+    var sums = [0,0,0,0,0];
+    var idxs = [3,4,5,6,7]; // ahorro, costos, emisiones, inversion, vpn
+    rows.forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        idxs.forEach(function(ci, si) {
+            var txt = cells[ci] ? cells[ci].textContent.replace(/[^0-9.\-]/g, '') : '0';
+            sums[si] += parseFloat(txt) || 0;
+        });
+    });
+    var fmt = function(v, d) { return v.toLocaleString('es-CO', {minimumFractionDigits: d, maximumFractionDigits: d}); };
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="ps-4" colspan="3">TOTALES</td>' +
+        '<td class="text-end">' + fmt(sums[0], 0) + '</td>' +
+        '<td class="text-end">' + fmt(sums[1], 2) + '</td>' +
+        '<td class="text-end">' + fmt(sums[2], 2) + '</td>' +
+        '<td class="text-end">' + fmt(sums[3], 0) + '</td>' +
+        '<td class="text-end">' + fmt(sums[4], 0) + '</td>' +
+        '<td class="text-end text-muted">-</td>' +
+        '<td class="text-end text-muted">-</td>' +
+        {% if puede_editar_estructura %}'<td></td>' +{% endif %}
+        '';
+    tfoot.appendChild(tr);
+});
+</script>
+{% endif %}
+
 <div class="row mt-4">
     <div class="col-12">
         <div class="card-modern p-0 overflow-hidden bg-white shadow-sm">
