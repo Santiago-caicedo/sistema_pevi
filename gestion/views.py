@@ -1175,19 +1175,16 @@ def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
         # Matriz de transiciones válidas (estado_actual -> [estados_permitidos])
         TRANSICIONES_VALIDAS = {
             'BORRADOR': ['EJECUCION'],
-            'EJECUCION': ['REVISION', 'BORRADOR'],  # Puede volver a borrador o avanzar
-            'REVISION': ['FINALIZADO', 'EJECUCION'],  # Puede volver a ejecución o finalizar
-            'FINALIZADO': [],  # Estado terminal, no permite cambios
+            'EJECUCION': ['FINALIZADO', 'REVISION', 'BORRADOR'],
+            'REVISION': ['FINALIZADO', 'EJECUCION'],
+            'FINALIZADO': ['EJECUCION', 'BORRADOR'],  # Líderes pueden reabrir
         }
 
         transiciones_permitidas = TRANSICIONES_VALIDAS.get(estado_actual, [])
 
         # Validar que la transición sea permitida
         if nuevo_estado not in transiciones_permitidas:
-            if estado_actual == 'FINALIZADO':
-                messages.error(request, "Los proyectos finalizados no pueden cambiar de estado.")
-            else:
-                messages.error(request, f"Transición no permitida: {estado_actual} → {nuevo_estado}")
+            messages.error(request, f"Transición no permitida: {estado_actual} → {nuevo_estado}")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
 
     # Aplicar el cambio de estado

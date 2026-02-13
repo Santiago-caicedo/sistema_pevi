@@ -64,6 +64,9 @@
                         <i class="bi bi-three-dots"></i>
                     </button>
                     <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'REVISION' %}">
+                            <i class="bi bi-eye me-2 text-warning"></i>Enviar a Revisión
+                        </a></li>
                         <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'BORRADOR' %}">
                             <i class="bi bi-pencil me-2 text-secondary"></i>Devolver a Borrador
                         </a></li>
@@ -87,24 +90,26 @@
                     </ul>
                 </div>
 
-            {% elif proyecto.estado == 'FINALIZADO' and es_superadmin %}
+            {% elif proyecto.estado == 'FINALIZADO' %}
                 <div class="dropdown">
-                    <button class="btn btn-outline-danger btn-sm fw-bold shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                            onclick="event.preventDefault();">
-                        <i class="bi bi-shield-lock-fill me-1"></i> Reabrir Proyecto
+                    <button class="btn btn-outline-warning btn-sm fw-bold shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reabrir Proyecto
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><span class="dropdown-header"><i class="bi bi-shield-fill me-1"></i> Acción de Superadmin</span></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'EJECUCION' %}">
+                        <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'EJECUCION' %}"
+                               onclick="return confirm('¿Reabrir este proyecto a Ejecución?');">
                             <i class="bi bi-play-circle me-2 text-primary"></i>Reabrir a Ejecución
                         </a></li>
-                        <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'BORRADOR' %}">
+                        <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'BORRADOR' %}"
+                               onclick="return confirm('¿Devolver este proyecto a Borrador?');">
                             <i class="bi bi-pencil me-2 text-secondary"></i>Devolver a Borrador
                         </a></li>
+                        {% if es_superadmin %}
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'cambiar_estado' proyecto.id 'REVISION' %}">
                             <i class="bi bi-eye me-2 text-warning"></i>Enviar a Revisión
                         </a></li>
+                        {% endif %}
                     </ul>
                 </div>
             {% endif %}
