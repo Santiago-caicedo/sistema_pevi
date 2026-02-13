@@ -233,12 +233,16 @@ DEFAULT_FROM_EMAIL = 'PEVI Colombia <info@vadomdata.com>'
 # SISTEMA DE LOGS
 # ==============================================================================
 
-# Crear carpeta de logs si no existe
+# Crear carpeta y archivos de logs si no existen
 LOGS_DIR = BASE_DIR / 'logs'
+_LOG_FILES_OK = False
 try:
     LOGS_DIR.mkdir(exist_ok=True)
-except PermissionError:
-    pass  # En producción, la carpeta ya debe existir con permisos correctos
+    for _lf in ['acceso.log', 'actividad.log', 'errores.log', 'seguridad.log']:
+        (LOGS_DIR / _lf).touch(exist_ok=True)
+    _LOG_FILES_OK = True
+except (PermissionError, OSError):
+    _LOG_FILES_OK = False
 
 LOGGING = {
     'version': 1,
@@ -264,93 +268,95 @@ LOGGING = {
 
     # Handlers: a dónde van los logs
     'handlers': {
-        # Consola (desarrollo)
+        # Consola (siempre disponible)
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
 
-        # Archivo de accesos (login, logout)
-        'acceso_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOGS_DIR / 'acceso.log'),
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
+        **({
+            # Archivo de accesos (login, logout)
+            'acceso_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': str(LOGS_DIR / 'acceso.log'),
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'encoding': 'utf-8',
+            },
 
-        # Archivo de actividad (CRUD)
-        'actividad_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOGS_DIR / 'actividad.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
+            # Archivo de actividad (CRUD)
+            'actividad_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': str(LOGS_DIR / 'actividad.log'),
+                'maxBytes': 10 * 1024 * 1024,
+                'backupCount': 10,
+                'formatter': 'verbose',
+                'encoding': 'utf-8',
+            },
 
-        # Archivo de errores
-        'error_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOGS_DIR / 'errores.log'),
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
+            # Archivo de errores
+            'error_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': str(LOGS_DIR / 'errores.log'),
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'encoding': 'utf-8',
+            },
 
-        # Archivo de seguridad
-        'seguridad_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': str(LOGS_DIR / 'seguridad.log'),
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 10,
-            'formatter': 'security',
-            'encoding': 'utf-8',
-        },
+            # Archivo de seguridad
+            'seguridad_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': str(LOGS_DIR / 'seguridad.log'),
+                'maxBytes': 5 * 1024 * 1024,
+                'backupCount': 10,
+                'formatter': 'security',
+                'encoding': 'utf-8',
+            },
+        } if _LOG_FILES_OK else {}),
     },
 
     # Loggers: categorías de logs
     'loggers': {
         # Log de accesos
         'pevi.acceso': {
-            'handlers': ['acceso_file', 'console'],
+            'handlers': ['acceso_file', 'console'] if _LOG_FILES_OK else ['console'],
             'level': 'INFO',
             'propagate': False,
         },
 
         # Log de actividad
         'pevi.actividad': {
-            'handlers': ['actividad_file', 'console'],
+            'handlers': ['actividad_file', 'console'] if _LOG_FILES_OK else ['console'],
             'level': 'INFO',
             'propagate': False,
         },
 
         # Log de errores
         'pevi.errores': {
-            'handlers': ['error_file', 'console'],
+            'handlers': ['error_file', 'console'] if _LOG_FILES_OK else ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
 
         # Log de seguridad
         'pevi.seguridad': {
-            'handlers': ['seguridad_file', 'console'],
+            'handlers': ['seguridad_file', 'console'] if _LOG_FILES_OK else ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
 
         # Errores de Django
         'django': {
-            'handlers': ['error_file', 'console'],
+            'handlers': ['error_file', 'console'] if _LOG_FILES_OK else ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
 
-        # Requests de Django (opcional, muy verbose)
+        # Requests de Django
         'django.request': {
-            'handlers': ['error_file'],
+            'handlers': ['error_file'] if _LOG_FILES_OK else ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
