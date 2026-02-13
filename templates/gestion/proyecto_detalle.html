@@ -1086,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(c) {
                                 const porcentaje = ((c.raw / totalEnergia) * 100).toFixed(1);
-                                return c.label + ': ' + c.raw.toLocaleString() + ' kWh (' + porcentaje + '%)';
+                                return c.label + ': ' + c.raw.toLocaleString('en-US') + ' kWh (' + porcentaje + '%)';
                             }
                         }
                     }
@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(c) {
                                 const porcentaje = ((c.raw / totalEmisiones) * 100).toFixed(1);
-                                return c.label + ': ' + c.raw.toLocaleString() + ' TonCO2 (' + porcentaje + '%)';
+                                return c.label + ': ' + c.raw.toLocaleString('en-US') + ' TonCO2 (' + porcentaje + '%)';
                             }
                         }
                     }
@@ -1150,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: function(c) { return c.raw.toLocaleString() + ' MBTU'; } } }
+                    tooltip: { callbacks: { label: function(c) { return c.raw.toLocaleString('en-US') + ' MBTU'; } } }
                 }
             }
         });
@@ -1256,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        return 'Ahorro: ' + context.raw.toLocaleString() + ' kWh';
+                                        return 'Ahorro: ' + context.raw.toLocaleString('en-US') + ' kWh';
                                     }
                                 }
                             }
