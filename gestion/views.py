@@ -792,7 +792,8 @@ def detalle_proyecto(request, proyecto_id):
         'chart_data_mbtu': json.dumps(chart_data_mbtu),
         
         # Permisos frontend
-        'puede_editar_estructura': (request.user.rol != 'ESTUDIANTE'),
+        'puede_editar_estructura': (request.user.rol != 'ESTUDIANTE') or request.user.is_superuser,
+        'es_superadmin': request.user.is_superuser,
 
         # Oportunidades de Mejora
         'total_ahorro_energia': total_ahorro_energia,
@@ -1162,24 +1163,32 @@ def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
         log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Sin acceso al proyecto')
         raise PermissionDenied("No tienes permiso sobre este proyecto.")
 
-    # Matriz de transiciones válidas (estado_actual -> [estados_permitidos])
-    TRANSICIONES_VALIDAS = {
-        'BORRADOR': ['EJECUCION'],
-        'EJECUCION': ['REVISION', 'BORRADOR'],  # Puede volver a borrador o avanzar
-        'REVISION': ['FINALIZADO', 'EJECUCION'],  # Puede volver a ejecución o finalizar
-        'FINALIZADO': [],  # Estado terminal, no permite cambios
-    }
-
     estado_actual = proyecto.estado
-    transiciones_permitidas = TRANSICIONES_VALIDAS.get(estado_actual, [])
 
-    # Validar que la transición sea permitida
-    if nuevo_estado not in transiciones_permitidas:
-        if estado_actual == 'FINALIZADO':
-            messages.error(request, "Los proyectos finalizados no pueden cambiar de estado.")
-        else:
-            messages.error(request, f"Transición no permitida: {estado_actual} → {nuevo_estado}")
-        return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    # SUPERADMIN: Puede forzar cualquier transición de estado
+    if request.user.is_superuser:
+        estados_validos = [e[0] for e in ProyectoAuditoria.ESTADOS]
+        if nuevo_estado not in estados_validos:
+            messages.error(request, f"Estado '{nuevo_estado}' no es válido.")
+            return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    else:
+        # Matriz de transiciones válidas (estado_actual -> [estados_permitidos])
+        TRANSICIONES_VALIDAS = {
+            'BORRADOR': ['EJECUCION'],
+            'EJECUCION': ['REVISION', 'BORRADOR'],  # Puede volver a borrador o avanzar
+            'REVISION': ['FINALIZADO', 'EJECUCION'],  # Puede volver a ejecución o finalizar
+            'FINALIZADO': [],  # Estado terminal, no permite cambios
+        }
+
+        transiciones_permitidas = TRANSICIONES_VALIDAS.get(estado_actual, [])
+
+        # Validar que la transición sea permitida
+        if nuevo_estado not in transiciones_permitidas:
+            if estado_actual == 'FINALIZADO':
+                messages.error(request, "Los proyectos finalizados no pueden cambiar de estado.")
+            else:
+                messages.error(request, f"Transición no permitida: {estado_actual} → {nuevo_estado}")
+            return redirect('detalle_proyecto', proyecto_id=proyecto.id)
 
     # Aplicar el cambio de estado
     proyecto.estado = nuevo_estado

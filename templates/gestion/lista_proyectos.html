@@ -30,6 +30,7 @@
                     <option value="">-- Estado --</option>
                     <option value="BORRADOR" {% if filtro_actual_estado == 'BORRADOR' %}selected{% endif %}>Borrador</option>
                     <option value="EJECUCION" {% if filtro_actual_estado == 'EJECUCION' %}selected{% endif %}>En Ejecución</option>
+                    <option value="REVISION" {% if filtro_actual_estado == 'REVISION' %}selected{% endif %}>En Revisión</option>
                     <option value="FINALIZADO" {% if filtro_actual_estado == 'FINALIZADO' %}selected{% endif %}>Finalizado</option>
                 </select>
             </div>
@@ -79,7 +80,7 @@
             {% endif %}
 
             <div class="col text-end">
-                {% if user.rol != 'ESTUDIANTE' %}
+                {% if user.rol != 'ESTUDIANTE' or user.is_superuser %}
                 <a href="{% url 'crear_proyecto' %}" class="btn btn-primary btn-sm rounded-pill shadow-sm fw-medium hover-lift">
                     <i class="bi bi-plus-lg"></i> <span class="d-none d-lg-inline">Nuevo</span>
                 </a>
