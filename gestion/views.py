@@ -886,10 +886,12 @@ def registrar_consumo(request, proyecto_id, tipo_energia):
             registro = form.save(commit=False)
             registro.proyecto = proyecto
             registro.save()
-            
+
             accion = "actualizado" if registro_existente else "creado"
             messages.success(request, f"Registro de {config['titulo']} {accion}.")
             return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+        else:
+            messages.error(request, "Por favor corrige los errores en el formulario.")
     else:
         form = FormClass(instance=registro_existente)
 

@@ -219,7 +219,7 @@ class RegistroEnergiaForm(EstiloBootstrapMixin, forms.ModelForm):
 class ElectricidadForm(RegistroEnergiaForm):
     class Meta:
         model = Electricidad
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'consumo_mensual': 'Consumo Mensual (kWh/mes)',
             'consumo_anual': 'Consumo Anual (kWh/año)',
@@ -230,7 +230,7 @@ class ElectricidadForm(RegistroEnergiaForm):
 class GasNaturalForm(RegistroEnergiaForm):
     class Meta:
         model = GasNatural
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'consumo_mensual_orig': 'Consumo Mensual (m³)',
             'consumo_anual_orig': 'Consumo Anual (m³)',
@@ -246,7 +246,7 @@ class GasNaturalForm(RegistroEnergiaForm):
 class CarbonForm(RegistroEnergiaForm):
     class Meta:
         model = CarbonMineral
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'consumo_mensual_orig': 'Consumo Mensual (Ton)',
             'consumo_anual_orig': 'Consumo Anual (Ton)',
@@ -262,7 +262,7 @@ class CarbonForm(RegistroEnergiaForm):
 class FuelOilForm(RegistroEnergiaForm):
     class Meta:
         model = FuelOil
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'consumo_mensual_orig': 'Consumo Mensual (Gal)',
             'consumo_anual_orig': 'Consumo Anual (Gal)',
@@ -278,7 +278,7 @@ class FuelOilForm(RegistroEnergiaForm):
 class BiomasaForm(RegistroEnergiaForm):
     class Meta:
         model = Biomasa
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'tipo': 'Tipo de Biomasa',
             'consumo_mensual_orig': 'Consumo Mensual (Ton)',
@@ -295,7 +295,7 @@ class BiomasaForm(RegistroEnergiaForm):
 class GasPropanoForm(RegistroEnergiaForm):
     class Meta:
         model = GasPropano
-        exclude = ['proyecto']
+        exclude = ['proyecto', 'porcentaje_reduccion']
         labels = {
             'consumo_mensual_orig': 'Consumo Mensual (kg)',
             'consumo_anual_orig': 'Consumo Anual (kg)',
