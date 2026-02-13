@@ -217,6 +217,19 @@ else:
 
 
 # ==============================================================================
+# EMAIL (SMTP)
+# ==============================================================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.vadomdata.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='info@vadomdata.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = 'PEVI Colombia <info@vadomdata.com>'
+
+
+# ==============================================================================
 # SISTEMA DE LOGS
 # ==============================================================================
 
