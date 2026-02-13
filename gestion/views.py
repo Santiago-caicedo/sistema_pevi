@@ -882,7 +882,7 @@ def crear_oportunidad(request, proyecto_id):
             opm = form.save(commit=False)
             opm.proyecto = proyecto
             opm.save()
-            log_crear(request, 'OportunidadMejora', opm.id, str(opm))
+            log_crear(request, 'OportunidadMejora', opm, str(opm))
             messages.success(request, f"OPM '{opm.codigo}' creada exitosamente.")
         else:
             messages.error(request, "Error al crear la OPM. Revisa los campos.")
