@@ -301,6 +301,14 @@
             transform: translateY(-1px);
         }
 
+        .center-logo.no-filter {
+            filter: drop-shadow(0 0 1px rgba(255,255,255,0.3)) opacity(0.9);
+        }
+
+        .center-logo.no-filter:hover {
+            opacity: 1;
+        }
+
         .brand-main-title {
             font-size: 1.8rem;
             font-weight: 600;
@@ -353,7 +361,7 @@
                 <img src="{% static 'img/Logo_UAO.svg.png' %}" class="center-logo">
                 <img src="{% static 'img/logo-u-vig.png' %}" class="center-logo">
                 <img src="{% static 'img/logo.utp.png' %}" class="center-logo">
-                <img src="{% static 'img/logo-UFPS.png' %}" class="center-logo">
+                <img src="{% static 'img/logo-UFPS.png' %}" class="center-logo no-filter">
             </div>
 
             <h2 class="brand-main-title">Centros PEVI</h2>

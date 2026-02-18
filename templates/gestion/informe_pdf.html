@@ -783,8 +783,12 @@
                         <strong>{{ proyecto.empresa.sector_productivo|default:"Industrial" }}</strong>
                     </div>
                     <div class="cover-meta-item">
-                        Fecha del Informe
-                        <strong>{{ fecha_generacion|date:"d M Y" }}</strong>
+                        Fecha de Cierre
+                        <strong>{{ proyecto.fecha_cierre_estimada|date:"d M Y"|default:"Sin definir" }}</strong>
+                    </div>
+                    <div class="cover-meta-item">
+                        Fase
+                        <strong>{{ proyecto.get_fase_display|default:"Sin asignar" }}</strong>
                     </div>
                     <div class="cover-meta-item">
                         Estado
