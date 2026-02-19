@@ -505,6 +505,23 @@ def eliminar_usuario(request, usuario_id):
 #  Seguridad: Solo Líderes (Directores y Profesores)
 # ==============================================================================
 
+def _get_usuarios_por_rol(user):
+    """Agrupa usuarios del centro por rol para el selector de equipo."""
+    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+        qs = Usuario.objects.all()
+    else:
+        qs = Usuario.objects.filter(centro_pevi=user.centro_pevi)
+
+    resultado = {}
+    for codigo, etiqueta in Usuario.ROLES_CHOICES:
+        usuarios = list(
+            qs.filter(rol=codigo)
+            .values('id', 'first_name', 'last_name', 'email')
+        )
+        if usuarios:
+            resultado[codigo] = {'label': etiqueta, 'usuarios': usuarios}
+    return resultado
+
 @login_required
 @solo_lideres
 def crear_proyecto(request):
@@ -516,10 +533,13 @@ def crear_proyecto(request):
 
             # Validar líder del mismo centro
             if not es_nacional:
+                ctx_error = {'form': form, 'titulo': 'Nuevo Proyecto',
+                             'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
+                             'equipo_actual': json.dumps([])}
                 lider = form.cleaned_data.get('lider_proyecto')
                 if lider and lider.centro_pevi != request.user.centro_pevi:
                     messages.error(request, "No puede asignar un líder de otro centro.")
-                    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
+                    return render(request, 'gestion/proyecto_form.html', ctx_error)
 
                 # Validar equipo del mismo centro
                 equipo = form.cleaned_data.get('equipo')
@@ -527,7 +547,7 @@ def crear_proyecto(request):
                     for miembro in equipo:
                         if miembro.centro_pevi != request.user.centro_pevi:
                             messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
-                            return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Nuevo Proyecto'})
+                            return render(request, 'gestion/proyecto_form.html', ctx_error)
 
             # TRANSACCIÓN ATÓMICA: Todo o nada (evita race conditions)
             with transaction.atomic():
@@ -559,6 +579,8 @@ def crear_proyecto(request):
     context = {
         'form': form,
         'titulo': 'Nuevo Proyecto',
+        'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
+        'equipo_actual': json.dumps([]),
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_proyectos(),
@@ -586,17 +608,20 @@ def editar_proyecto(request, proyecto_id):
         if form.is_valid():
             # VALIDACIÓN DE AISLAMIENTO: Verificar que líder y equipo sean del mismo centro
             if not es_nacional:
+                ctx_error = {'form': form, 'titulo': 'Editar Proyecto',
+                             'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
+                             'equipo_actual': json.dumps(list(proyecto.equipo.values_list('id', flat=True)))}
                 lider = form.cleaned_data.get('lider_proyecto')
                 if lider and lider.centro_pevi != request.user.centro_pevi:
                     messages.error(request, "No puede asignar un líder de otro centro.")
-                    return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
+                    return render(request, 'gestion/proyecto_form.html', ctx_error)
 
                 equipo = form.cleaned_data.get('equipo')
                 if equipo:
                     for miembro in equipo:
                         if miembro.centro_pevi != request.user.centro_pevi:
                             messages.error(request, f"El usuario {miembro.get_full_name()} no pertenece a su centro.")
-                            return render(request, 'gestion/proyecto_form.html', {'form': form, 'titulo': 'Editar Proyecto'})
+                            return render(request, 'gestion/proyecto_form.html', ctx_error)
 
             # SEGURIDAD: Advertir si un profesor se quita a sí mismo como líder
             nuevo_lider = form.cleaned_data.get('lider_proyecto')
@@ -608,11 +633,12 @@ def editar_proyecto(request, proyecto_id):
                             "⚠️ Estás a punto de transferir el liderazgo a otra persona. "
                             "Perderás acceso de edición a este proyecto. "
                             "Guarda nuevamente para confirmar.")
-                        # Agregar campo oculto para confirmar
                         return render(request, 'gestion/proyecto_form.html', {
                             'form': form,
                             'titulo': 'Editar Proyecto',
-                            'confirmar_cambio_lider': True
+                            'confirmar_cambio_lider': True,
+                            'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
+                            'equipo_actual': json.dumps(list(proyecto.equipo.values_list('id', flat=True))),
                         })
 
             # TRANSACCIÓN ATÓMICA: Garantiza consistencia
@@ -625,9 +651,13 @@ def editar_proyecto(request, proyecto_id):
     else:
         form = ProyectoForm(instance=proyecto, user=request.user)
 
+    equipo_ids = list(proyecto.equipo.values_list('id', flat=True))
+
     context = {
         'form': form,
         'titulo': 'Editar Proyecto',
+        'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
+        'equipo_actual': json.dumps(equipo_ids),
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_proyectos(),

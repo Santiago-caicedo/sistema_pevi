@@ -89,14 +89,33 @@
                     <h6 class="text-uppercase text-primary fw-bold mb-4 text-xs tracking-wide border-top pt-4">
                         <i class="bi bi-people me-2"></i> Asignación de Equipo
                     </h6>
-                    
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark small">Ingenieros / Estudiantes Asignados</label>
-                        <div class="bg-light p-3 rounded border">
-                            {{ form.equipo }}
+
+                    {# Zona de miembros seleccionados #}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Miembros del equipo</label>
+                        <div id="equipo-seleccionados" class="d-flex flex-wrap gap-2 p-3 bg-light rounded border" style="min-height:46px">
+                            <span id="equipo-placeholder" class="text-muted small fst-italic">Ninguno seleccionado</span>
                         </div>
-                        <div class="form-text mt-2">
-                            <i class="bi bi-info-circle me-1"></i> Mantén presionada la tecla <strong>Ctrl</strong> (Windows) o <strong>Cmd</strong> (Mac) para seleccionar varias personas.
+                    </div>
+
+                    {# Hidden inputs container — Django reads these on POST #}
+                    <div id="equipo-hidden-inputs"></div>
+
+                    {# Pills por rol #}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Agregar por rol</label>
+                        <div id="equipo-role-pills" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
+                    {# Panel de usuarios del rol seleccionado #}
+                    <div id="equipo-user-panel" class="mb-4" style="display:none">
+                        <div class="border rounded p-3 bg-white">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span id="equipo-panel-title" class="fw-semibold small text-dark"></span>
+                                <input type="text" id="equipo-buscar" class="form-control form-control-sm" style="max-width:220px" placeholder="Buscar...">
+                            </div>
+                            <div id="equipo-user-list" class="d-flex flex-wrap gap-2" style="max-height:220px;overflow-y:auto"></div>
+                            <div id="equipo-empty" class="text-muted small py-2" style="display:none">No hay usuarios disponibles en este rol.</div>
                         </div>
                     </div>
 
@@ -112,4 +131,189 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const USUARIOS_POR_ROL = {{ usuarios_por_rol|safe }};
+    const EQUIPO_ACTUAL = new Set({{ equipo_actual|safe }}.map(Number));
+
+    const ROL_ICONS = {
+        'ESTUDIANTE': 'bi-mortarboard',
+        'PROFESOR': 'bi-person-workspace',
+        'DIRECTOR_CENTRO': 'bi-building',
+        'DIRECTOR_NACIONAL': 'bi-globe-americas'
+    };
+    const ROL_COLORS = {
+        'ESTUDIANTE': 'primary',
+        'PROFESOR': 'success',
+        'DIRECTOR_CENTRO': 'warning',
+        'DIRECTOR_NACIONAL': 'danger'
+    };
+
+    // State
+    let selected = new Map(); // id -> {first_name, last_name, email, rol}
+    let activeRole = null;
+
+    // DOM refs
+    const selArea = document.getElementById('equipo-seleccionados');
+    const placeholder = document.getElementById('equipo-placeholder');
+    const hiddenContainer = document.getElementById('equipo-hidden-inputs');
+    const pillsContainer = document.getElementById('equipo-role-pills');
+    const userPanel = document.getElementById('equipo-user-panel');
+    const panelTitle = document.getElementById('equipo-panel-title');
+    const userList = document.getElementById('equipo-user-list');
+    const emptyMsg = document.getElementById('equipo-empty');
+    const searchInput = document.getElementById('equipo-buscar');
+
+    // Initialize pre-selected users (edit mode)
+    function initPreselected() {
+        EQUIPO_ACTUAL.forEach(function(uid) {
+            for (const rol in USUARIOS_POR_ROL) {
+                const u = USUARIOS_POR_ROL[rol].usuarios.find(function(x) { return x.id === uid; });
+                if (u) {
+                    selected.set(uid, {first_name: u.first_name, last_name: u.last_name, email: u.email, rol: rol});
+                    break;
+                }
+            }
+        });
+    }
+
+    // Render role pills
+    function renderPills() {
+        pillsContainer.innerHTML = '';
+        for (const rol in USUARIOS_POR_ROL) {
+            const info = USUARIOS_POR_ROL[rol];
+            const color = ROL_COLORS[rol] || 'secondary';
+            const icon = ROL_ICONS[rol] || 'bi-person';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm ' + (activeRole === rol ? 'btn-' + color : 'btn-outline-' + color);
+            btn.innerHTML = '<i class="bi ' + icon + ' me-1"></i>' + info.label + ' <span class="badge bg-white text-' + color + ' ms-1">' + info.usuarios.length + '</span>';
+            btn.addEventListener('click', function() { toggleRole(rol); });
+            pillsContainer.appendChild(btn);
+        }
+    }
+
+    function toggleRole(rol) {
+        if (activeRole === rol) {
+            activeRole = null;
+            userPanel.style.display = 'none';
+        } else {
+            activeRole = rol;
+            searchInput.value = '';
+            userPanel.style.display = '';
+            renderUserList();
+        }
+        renderPills();
+    }
+
+    // Render user list for active role
+    function renderUserList() {
+        if (!activeRole) return;
+        const info = USUARIOS_POR_ROL[activeRole];
+        const color = ROL_COLORS[activeRole] || 'secondary';
+        panelTitle.textContent = info.label;
+
+        const filter = searchInput.value.toLowerCase();
+        userList.innerHTML = '';
+        let count = 0;
+
+        info.usuarios.forEach(function(u) {
+            const fullName = (u.first_name + ' ' + u.last_name).trim() || u.email;
+            if (filter && fullName.toLowerCase().indexOf(filter) === -1 && u.email.toLowerCase().indexOf(filter) === -1) return;
+            count++;
+
+            const isSelected = selected.has(u.id);
+            const card = document.createElement('div');
+            card.className = 'border rounded px-3 py-2 d-flex align-items-center gap-2 user-card';
+            card.style.cssText = 'cursor:pointer;min-width:200px;transition:all .15s;' + (isSelected ? 'background:#e8f4fd;border-color:#0284c7!important;' : '');
+            card.innerHTML =
+                '<i class="bi ' + (isSelected ? 'bi-check-circle-fill text-' + color : 'bi-circle text-muted') + '"></i>' +
+                '<div class="flex-grow-1">' +
+                    '<div class="fw-medium small">' + escapeHtml(fullName) + '</div>' +
+                    '<div class="text-muted" style="font-size:.75rem">' + escapeHtml(u.email) + '</div>' +
+                '</div>';
+            card.addEventListener('click', function() { toggleUser(u, activeRole); });
+            userList.appendChild(card);
+        });
+
+        emptyMsg.style.display = count === 0 ? '' : 'none';
+    }
+
+    function toggleUser(u, rol) {
+        const uid = u.id;
+        if (selected.has(uid)) {
+            selected.delete(uid);
+        } else {
+            selected.set(uid, {first_name: u.first_name, last_name: u.last_name, email: u.email, rol: rol});
+        }
+        syncAll();
+    }
+
+    function removeUser(uid) {
+        selected.delete(uid);
+        syncAll();
+    }
+
+    // Sync everything: badges, hidden inputs, user list
+    function syncAll() {
+        renderBadges();
+        renderHiddenInputs();
+        if (activeRole) renderUserList();
+    }
+
+    function renderBadges() {
+        // Remove all badges (keep placeholder)
+        selArea.querySelectorAll('.equipo-badge').forEach(function(el) { el.remove(); });
+
+        if (selected.size === 0) {
+            placeholder.style.display = '';
+            return;
+        }
+        placeholder.style.display = 'none';
+
+        selected.forEach(function(info, uid) {
+            const color = ROL_COLORS[info.rol] || 'secondary';
+            const fullName = (info.first_name + ' ' + info.last_name).trim() || info.email;
+            const badge = document.createElement('span');
+            badge.className = 'equipo-badge badge bg-soft-' + color + ' text-' + color + ' d-inline-flex align-items-center gap-1 px-2 py-1';
+            badge.style.fontSize = '.82rem';
+            badge.innerHTML = '<i class="bi ' + (ROL_ICONS[info.rol] || 'bi-person') + '"></i> ' + escapeHtml(fullName) +
+                ' <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.55rem" aria-label="Quitar"></button>';
+            badge.querySelector('.btn-close').addEventListener('click', function(e) {
+                e.stopPropagation();
+                removeUser(uid);
+            });
+            selArea.appendChild(badge);
+        });
+    }
+
+    function renderHiddenInputs() {
+        hiddenContainer.innerHTML = '';
+        selected.forEach(function(_, uid) {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'equipo';
+            inp.value = uid;
+            hiddenContainer.appendChild(inp);
+        });
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // Search filter
+    searchInput.addEventListener('input', function() { renderUserList(); });
+
+    // Init
+    initPreselected();
+    renderPills();
+    syncAll();
+})();
+</script>
 {% endblock %}

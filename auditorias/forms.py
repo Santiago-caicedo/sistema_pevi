@@ -77,7 +77,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
         widgets = {
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
             'fecha_cierre_estimada': forms.DateInput(attrs={'type': 'date'}),
-            'equipo': forms.SelectMultiple(attrs={'size': '5'}),
+            'equipo': forms.MultipleHiddenInput(),
         }
         labels = {
             'fase': 'Fase del Programa (Opcional)',
