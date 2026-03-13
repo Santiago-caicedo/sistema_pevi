@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario - Plataforma PEVI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #38bdf8;
+            --dark: #0f172a;
+            --dark-soft: #1e293b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --info: #0891b2;
+            --info-light: #cffafe;
+            --sidebar-width: 280px;
+            --header-height: 64px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @font-face {
+            font-family: 'Inter';
+            src: local('Inter');
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--gray-700);
+            line-height: 1.7;
+            background: var(--gray-50);
+        }
+
+        /* ============ SIDEBAR NAV ============ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--dark);
+            color: #fff;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gray-600) transparent;
+        }
+        .sidebar::-webkit-scrollbar { width: 5px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--gray-600); border-radius: 3px; }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+        .sidebar-brand h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        .sidebar-brand small {
+            color: var(--accent);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .sidebar-section {
+            padding: 16px 0 4px;
+        }
+        .sidebar-section-title {
+            padding: 0 20px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gray-400);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 20px;
+            color: var(--gray-300);
+            text-decoration: none;
+            font-size: 0.82rem;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar a:hover {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border-left-color: var(--accent);
+        }
+        .sidebar a.active {
+            background: rgba(56,189,248,0.1);
+            color: var(--accent);
+            border-left-color: var(--accent);
+            font-weight: 600;
+        }
+        .sidebar a i { font-size: 1rem; width: 20px; text-align: center; }
+
+        /* ============ MAIN CONTENT ============ */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            position: sticky;
+            top: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 14px 40px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .top-header h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        .top-header .breadcrumb-text {
+            font-size: 0.78rem;
+            color: var(--gray-400);
+        }
+
+        .content-body {
+            padding: 40px;
+            max-width: 960px;
+        }
+
+        /* ============ COVER ============ */
+        .cover-section {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 80px 40px;
+            text-align: center;
+            border-radius: 16px;
+            margin-bottom: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .cover-section h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .cover-section .subtitle {
+            font-size: 1.15rem;
+            color: var(--accent);
+            font-weight: 500;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .cover-section .version {
+            font-size: 0.85rem;
+            color: var(--gray-300);
+            position: relative;
+        }
+        .cover-badge {
+            display: inline-block;
+            background: rgba(56,189,248,0.15);
+            border: 1px solid rgba(56,189,248,0.3);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            color: var(--accent);
+            margin-top: 20px;
+            position: relative;
+        }
+
+        /* ============ SECTIONS ============ */
+        .section {
+            scroll-margin-top: 80px;
+            margin-bottom: 56px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .section-title i {
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+        .section-subtitle {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--dark-soft);
+            margin: 32px 0 12px;
+        }
+        h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin: 24px 0 8px;
+        }
+
+        p { margin-bottom: 14px; }
+
+        /* ============ CARDS & BOXES ============ */
+        .info-card {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .info-card.highlight {
+            border-left: 4px solid var(--primary);
+        }
+        .info-card.success { border-left: 4px solid var(--success); }
+        .info-card.warning { border-left: 4px solid var(--warning); }
+        .info-card.danger { border-left: 4px solid var(--danger); }
+
+        .tip-box {
+            background: var(--primary-light);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-size: 0.88rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .tip-box i { color: var(--primary); font-size: 1.1rem; margin-top: 2px; }
+        .tip-box.warn { background: var(--warning-light); }
+        .tip-box.warn i { color: var(--warning); }
+        .tip-box.danger { background: var(--danger-light); }
+        .tip-box.danger i { color: var(--danger); }
+
+        .step-list {
+            counter-reset: steps;
+            list-style: none;
+            padding: 0;
+        }
+        .step-list li {
+            counter-increment: steps;
+            padding: 12px 0 12px 52px;
+            position: relative;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .step-list li::before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .step-list li:last-child { border-bottom: none; }
+        .step-list li strong { color: var(--dark); }
+
+        /* ============ TABLES ============ */
+        .manual-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: 0.85rem;
+        }
+        .manual-table th {
+            background: var(--gray-100);
+            color: var(--dark-soft);
+            font-weight: 700;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--gray-200);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .manual-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: top;
+        }
+        .manual-table tr:hover td { background: var(--gray-50); }
+
+        /* ============ BADGES ============ */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-primary { background: var(--primary-light); color: var(--primary); }
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .badge-dark { background: var(--gray-200); color: var(--gray-700); }
+        .badge-info { background: var(--info-light); color: var(--info); }
+
+        /* ============ FLOW DIAGRAMS ============ */
+        .diagram-container {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+        .diagram-container .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ============ ROLE GRID ============ */
+        .role-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .role-card {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .role-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .role-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 1.3rem;
+        }
+        .role-card h4 { margin: 0 0 4px; font-size: 0.92rem; }
+        .role-card p { font-size: 0.78rem; color: var(--gray-500); margin: 0; }
+
+        /* ============ MOCKUP FRAMES ============ */
+        .screen-mockup {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .screen-mockup .mockup-bar {
+            background: var(--gray-100);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .screen-mockup .dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .screen-mockup .dot.red { background: #f87171; }
+        .screen-mockup .dot.yellow { background: #fbbf24; }
+        .screen-mockup .dot.green { background: #4ade80; }
+        .screen-mockup .mockup-url {
+            flex: 1;
+            background: #fff;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.72rem;
+            color: var(--gray-500);
+            margin-left: 8px;
+        }
+        .screen-mockup .mockup-body {
+            padding: 24px;
+            font-size: 0.85rem;
+        }
+
+        /* ============ FEATURE LIST ============ */
+        .feature-item {
+            display: flex;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .feature-item:last-child { border-bottom: none; }
+        .feature-item .fi-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        .feature-item .fi-text strong { color: var(--dark); display: block; font-size: 0.88rem; }
+        .feature-item .fi-text span { color: var(--gray-500); font-size: 0.82rem; }
+
+        /* ============ KBD ============ */
+        kbd {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.78rem;
+            font-family: monospace;
+            color: var(--gray-700);
+        }
+
+        /* ============ MOBILE ============ */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1100;
+            background: var(--dark);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .content-body { padding: 24px 20px; }
+            .cover-section { padding: 48px 24px; }
+            .cover-section h1 { font-size: 1.6rem; }
+            .top-header { padding: 14px 20px 14px 64px; }
+        }
+
+        /* ============ PRINT ============ */
+        @media print {
+            .sidebar, .menu-toggle, .top-header { display: none !important; }
+            .main-content { margin-left: 0; }
+            .content-body { padding: 0; max-width: 100%; }
+            .section { page-break-inside: avoid; }
+            .cover-section { background: var(--dark) !important; -webkit-print-color-adjust: exact; }
+        }
+
+        /* Smooth scroll */
+        html { scroll-behavior: smooth; }
+
+        /* Energy source colors */
+        .energy-elec { color: #eab308; }
+        .energy-gas { color: #3b82f6; }
+        .energy-carbon { color: #1e293b; }
+        .energy-fuel { color: #ef4444; }
+        .energy-bio { color: #22c55e; }
+        .energy-glp { color: #06b6d4; }
+    </style>
+</head>
+<body>
+
+<!-- Mobile menu toggle -->
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+    <i class="bi bi-list"></i>
+</button>
+
+<!-- ============ SIDEBAR ============ -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <h3><i class="bi bi-lightning-charge-fill" style="color:var(--accent)"></i> Plataforma PEVI</h3>
+        <small>Manual de Usuario</small>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Inicio</div>
+        <a href="#portada"><i class="bi bi-house"></i> Portada</a>
+        <a href="#introduccion"><i class="bi bi-info-circle"></i> Introduccion</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Conceptos</div>
+        <a href="#roles"><i class="bi bi-people"></i> Roles y Permisos</a>
+        <a href="#arquitectura"><i class="bi bi-diagram-3"></i> Arquitectura del Sistema</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Uso del Sistema</div>
+        <a href="#login"><i class="bi bi-box-arrow-in-right"></i> Inicio de Sesion</a>
+        <a href="#dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="#proyectos"><i class="bi bi-folder2-open"></i> Proyectos</a>
+        <a href="#energia"><i class="bi bi-lightning"></i> Registro Energetico</a>
+        <a href="#mejoras"><i class="bi bi-graph-up-arrow"></i> Oportunidades de Mejora</a>
+        <a href="#opm"><i class="bi bi-lightbulb"></i> OPM Identificadas</a>
+        <a href="#documentos"><i class="bi bi-file-earmark"></i> Documentos</a>
+        <a href="#informes"><i class="bi bi-file-pdf"></i> Informes PDF</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Gestion</div>
+        <a href="#empresas"><i class="bi bi-building"></i> Empresas</a>
+        <a href="#usuarios"><i class="bi bi-person-gear"></i> Usuarios</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Inteligencia</div>
+        <a href="#bi-estrategico"><i class="bi bi-pie-chart"></i> Dashboard Estrategico</a>
+        <a href="#bi-nacional"><i class="bi bi-globe-americas"></i> Dashboard Nacional</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Otros</div>
+        <a href="#sitio-publico"><i class="bi bi-globe"></i> Sitio Publico</a>
+        <a href="#admin"><i class="bi bi-shield-lock"></i> Panel Super Admin</a>
+        <a href="#glosario"><i class="bi bi-book"></i> Glosario</a>
+    </div>
+</nav>
+
+<!-- ============ MAIN ============ -->
+<div class="main-content">
+
+<header class="top-header">
+    <div>
+        <h1>Manual de Usuario</h1>
+        <span class="breadcrumb-text">Plataforma PEVI &mdash; Programa de Eficiencia Energetica</span>
+    </div>
+    <span class="breadcrumb-text">v2.0 &bull; Febrero 2026</span>
+</header>
+
+<div class="content-body">
+
+<!-- ==================== PORTADA ==================== -->
+<div id="portada" class="cover-section">
+    <h1>Manual de Usuario</h1>
+    <div class="subtitle">Plataforma PEVI &mdash; Programa de Evaluacion de Eficiencia Energetica Industrial</div>
+    <div class="version">Version 2.0 &bull; Febrero 2026</div>
+    <div class="cover-badge"><i class="bi bi-buildings me-1"></i> UPME Colombia &bull; MinEnergia &bull; ONUDI</div>
+</div>
+
+<!-- ==================== INTRODUCCION ==================== -->
+<div id="introduccion" class="section">
+    <h2 class="section-title"><i class="bi bi-info-circle"></i> Introduccion</h2>
+    <p class="section-subtitle">Vision general de la plataforma y su proposito dentro del programa PEVI.</p>
+
+    <p>La <strong>Plataforma PEVI</strong> es un sistema web de gestion de auditorias energeticas desarrollado para el <strong>Programa de Eficiencia Energetica Industrial (PEVI)</strong>, coordinado por la UPME (Unidad de Planeacion Minero Energetica) de Colombia.</p>
+
+    <p>El sistema permite a los centros universitarios participantes registrar, analizar y reportar los consumos energeticos de las empresas industriales auditadas, generando indicadores clave de desempeno energetico, huella de carbono y oportunidades de mejora.</p>
+
+    <div class="info-card highlight">
+        <strong>Centros PEVI participantes:</strong>
+        <ul style="margin:8px 0 0; padding-left:20px; color:var(--gray-600); font-size:0.88rem">
+            <li>Universidad del Atlantico</li>
+            <li>Universidad Autonoma de Occidente (UAO)</li>
+            <li>Universidad de Vigo</li>
+            <li>Universidad Tecnologica de Pereira (UTP)</li>
+            <li>Universidad Francisco de Paula Santander (UFPS)</li>
+        </ul>
+    </div>
+
+    <h3>Que puede hacer en la plataforma</h3>
+    <div class="feature-item">
+        <div class="fi-icon" style="background:var(--primary-light)"><i class="bi bi-folder2-open" style="color:var(--primary)"></i></div>
+        <div class="fi-text"><strong>Gestionar proyectos de auditoria</strong><span>Crear, asignar equipos, avanzar por estados y fases del programa</span></div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon" style="background:var(--warning-light)"><i class="bi bi-lightning" style="color:var(--warning)"></i></div>
+        <div class="fi-text"><strong>Registrar consumos energeticos</strong><span>6 fuentes: electricidad, gas natural, carbon mineral, fuel oil, biomasa y GLP</span></div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon" style="background:var(--success-light)"><i class="bi bi-graph-up-arrow" style="color:var(--success)"></i></div>
+        <div class="fi-text"><strong>Analizar oportunidades de mejora</strong><span>Definir metas de reduccion y evaluar ahorros en kWh, COP y TonCO2</span></div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon" style="background:var(--danger-light)"><i class="bi bi-file-pdf" style="color:var(--danger)"></i></div>
+        <div class="fi-text"><strong>Generar informes PDF</strong><span>Reportes profesionales con KPIs, graficos y analisis completo</span></div>
+    </div>
+    <div class="feature-item">
+        <div class="fi-icon" style="background:var(--info-light)"><i class="bi bi-pie-chart" style="color:var(--info)"></i></div>
+        <div class="fi-text"><strong>Consultar dashboards de inteligencia</strong><span>Dashboards estrategico y nacional con vision consolidada</span></div>
+    </div>
+
+    <h3>Acceso al sistema</h3>
+    <table class="manual-table">
+        <tr><th>Entorno</th><th>URL</th><th>Descripcion</th></tr>
+        <tr><td>Produccion</td><td><code>https://pevicolombia.com</code></td><td>Servidor principal (AWS)</td></tr>
+        <tr><td>Aplicacion interna</td><td><code>/app/</code></td><td>Dashboard y gestion (requiere login)</td></tr>
+        <tr><td>Sitio publico</td><td><code>/</code></td><td>Pagina publica con resultados agregados</td></tr>
+    </table>
+</div>
+
+<!-- ==================== ROLES ==================== -->
+<div id="roles" class="section">
+    <h2 class="section-title"><i class="bi bi-people"></i> Roles y Permisos</h2>
+    <p class="section-subtitle">El sistema opera con un modelo de roles jerarquico que determina el nivel de acceso de cada usuario.</p>
+
+    <div class="role-grid">
+        <div class="role-card">
+            <div class="icon" style="background:var(--danger-light); color:var(--danger)"><i class="bi bi-globe-americas"></i></div>
+            <h4>Director Nacional</h4>
+            <p>Acceso total al sistema. Vision de todos los centros del pais.</p>
+        </div>
+        <div class="role-card">
+            <div class="icon" style="background:var(--warning-light); color:var(--warning)"><i class="bi bi-building"></i></div>
+            <h4>Director de Centro</h4>
+            <p>Gestiona su centro PEVI. Ve proyectos, equipos y metricas de su centro.</p>
+        </div>
+        <div class="role-card">
+            <div class="icon" style="background:var(--success-light); color:var(--success)"><i class="bi bi-person-workspace"></i></div>
+            <h4>Profesor Lider</h4>
+            <p>Lidera proyectos, registra empresas, gestiona equipos de trabajo.</p>
+        </div>
+        <div class="role-card">
+            <div class="icon" style="background:var(--primary-light); color:var(--primary)"><i class="bi bi-mortarboard"></i></div>
+            <h4>Estudiante</h4>
+            <p>Participa en equipos asignados. Registra datos energeticos.</p>
+        </div>
+    </div>
+
+    <h3>Matriz de permisos</h3>
+    <table class="manual-table">
+        <tr>
+            <th>Funcionalidad</th>
+            <th style="text-align:center">Estudiante</th>
+            <th style="text-align:center">Profesor</th>
+            <th style="text-align:center">Dir. Centro</th>
+            <th style="text-align:center">Dir. Nacional</th>
+        </tr>
+        <tr><td>Ver dashboard</td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Registrar datos energeticos</td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Crear proyectos</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Gestionar empresas</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Gestionar usuarios</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Dashboard Estrategico (BI)</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Dashboard Nacional</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i></td></tr>
+        <tr><td>Panel de Super Admin</td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-x-circle" style="color:var(--gray-300)"></i></td><td style="text-align:center"><i class="bi bi-check-circle-fill" style="color:var(--success)"></i> *</td></tr>
+    </table>
+    <p style="font-size:0.8rem; color:var(--gray-400)">* Solo usuarios con permisos de superusuario.</p>
+
+    <div class="tip-box">
+        <i class="bi bi-shield-check"></i>
+        <div><strong>Aislamiento por centro:</strong> Cada usuario solo puede ver y gestionar datos de su propio Centro PEVI. El Director Nacional es la unica excepcion, con vision completa del pais.</div>
+    </div>
+</div>
+
+<!-- ==================== ARQUITECTURA ==================== -->
+<div id="arquitectura" class="section">
+    <h2 class="section-title"><i class="bi bi-diagram-3"></i> Arquitectura del Sistema</h2>
+    <p class="section-subtitle">Modelo de datos y flujos principales del sistema.</p>
+
+    <h3>Modelo de entidades</h3>
+    <div class="diagram-container">
+        <div class="mermaid">
+erDiagram
+    CentroPevi ||--o{ Usuario : tiene
+    CentroPevi ||--o{ Empresa : alberga
+    CentroPevi ||--o{ ProyectoAuditoria : gestiona
+    Usuario ||--o{ ProyectoAuditoria : lidera
+    Usuario }o--o{ ProyectoAuditoria : equipo
+    Empresa ||--o{ ProyectoAuditoria : auditada
+    ProyectoAuditoria ||--o| Electricidad : registra
+    ProyectoAuditoria ||--o| GasNatural : registra
+    ProyectoAuditoria ||--o| CarbonMineral : registra
+    ProyectoAuditoria ||--o| FuelOil : registra
+    ProyectoAuditoria ||--o| Biomasa : registra
+    ProyectoAuditoria ||--o| GasPropano : registra
+    ProyectoAuditoria ||--o{ OportunidadMejora : identifica
+    ProyectoAuditoria ||--o{ DocumentoProyecto : adjunta
+        </div>
+    </div>
+
+    <h3>Ciclo de vida del proyecto</h3>
+    <div class="diagram-container">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> BORRADOR: Crear proyecto
+    BORRADOR --> EJECUCION: Iniciar ejecucion
+    EJECUCION --> BORRADOR: Devolver a borrador
+    EJECUCION --> REVISION: Enviar a revision
+    REVISION --> EJECUCION: Devolver a ejecucion
+    REVISION --> FINALIZADO: Finalizar proyecto
+    FINALIZADO --> [*]
+
+    note right of BORRADOR
+        Configuracion inicial
+        Asignacion de equipo
+    end note
+    note right of EJECUCION
+        Registro de datos
+        energeticos
+    end note
+    note right of REVISION
+        Validacion por
+        director
+    end note
+    note right of FINALIZADO
+        Estado terminal
+        Solo lectura
+    end note
+        </div>
+    </div>
+
+    <h3>Flujo general de trabajo</h3>
+    <div class="diagram-container">
+        <div class="mermaid">
+flowchart LR
+    A[Crear Empresa] --> B[Crear Proyecto]
+    B --> C[Asignar Equipo]
+    C --> D[Registrar Produccion]
+    D --> E[Registrar Consumos<br/>6 fuentes energeticas]
+    E --> F[Analizar Resultados<br/>KPIs y Graficos]
+    F --> G[Definir Metas<br/>% Reduccion]
+    G --> H[Registrar OPMs]
+    H --> I[Generar Informe PDF]
+    I --> J[Finalizar Proyecto]
+
+    style A fill:#e0f2fe,stroke:#0284c7
+    style E fill:#fef3c7,stroke:#d97706
+    style F fill:#dcfce7,stroke:#16a34a
+    style I fill:#fee2e2,stroke:#dc2626
+    style J fill:#f1f5f9,stroke:#475569
+        </div>
+    </div>
+</div>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="login" class="section">
+    <h2 class="section-title"><i class="bi bi-box-arrow-in-right"></i> Inicio de Sesion</h2>
+    <p class="section-subtitle">Como acceder al sistema y la pantalla de autenticacion.</p>
+
+    <p>Para acceder a la plataforma, navegue a <code>https://pevicolombia.com</code> y sera redirigido a la pantalla de inicio de sesion.</p>
+
+    <div class="screen-mockup">
+        <div class="mockup-bar">
+            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+            <div class="mockup-url">https://pevicolombia.com/accounts/login/</div>
+        </div>
+        <div class="mockup-body" style="display:flex; gap:24px; min-height:300px;">
+            <div style="flex:1; background:linear-gradient(135deg, var(--dark), var(--primary-dark)); border-radius:12px; padding:32px; color:#fff; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <i class="bi bi-lightning-charge-fill" style="font-size:2rem; color:var(--accent); margin-bottom:12px"></i>
+                <strong style="font-size:1rem">Centros PEVI</strong>
+                <p style="font-size:0.75rem; color:var(--gray-300); text-align:center; margin-top:8px">Una red nacional de universidades conectada para la eficiencia energetica.</p>
+                <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; justify-content:center">
+                    <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--gray-300)">U. Atlantico</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--gray-300)">UAO</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--gray-300)">UTP</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--gray-300)">UFPS</span>
+                    <span class="badge" style="background:rgba(255,255,255,0.1); color:var(--gray-300)">U. Vigo</span>
+                </div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:16px">
+                <strong style="margin-bottom:16px; font-size:1.05rem">Iniciar sesion</strong>
+                <p style="font-size:0.78rem; color:var(--gray-500); margin-bottom:16px">Ingresa con tu usuario o correo electronico</p>
+                <div style="margin-bottom:12px">
+                    <div style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:10px 14px; font-size:0.82rem; color:var(--gray-400)">Usuario o Email</div>
+                </div>
+                <div style="margin-bottom:16px">
+                    <div style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:10px 14px; font-size:0.82rem; color:var(--gray-400)">Contrasena</div>
+                </div>
+                <div style="background:var(--dark); color:#fff; text-align:center; padding:10px; border-radius:8px; font-size:0.82rem; font-weight:700">INGRESAR</div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Credenciales de acceso</h3>
+    <p>Puede iniciar sesion usando su <strong>nombre de usuario</strong> o su <strong>correo electronico</strong> junto con su contrasena.</p>
+
+    <div class="tip-box warn">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>Contrasena olvidada:</strong> Use el enlace "Olvidaste tu contrasena?" en la pantalla de login para restablecerla. Si no tiene acceso a su email, contacte al Director de su Centro PEVI.</div>
+    </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="dashboard" class="section">
+    <h2 class="section-title"><i class="bi bi-speedometer2"></i> Dashboard Principal</h2>
+    <p class="section-subtitle">Pantalla de inicio despues de autenticarse. Ruta: <code>/app/</code></p>
+
+    <p>Al iniciar sesion, el sistema lo recibe con un saludo dinamico (Buenos dias/tardes/noches) y muestra una vista adaptada a su rol.</p>
+
+    <h3>Vista Ejecutiva (Directores)</h3>
+    <p>Los Directores de Centro y el Director Nacional ven 4 tarjetas de indicadores clave:</p>
+
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin:16px 0">
+        <div class="info-card" style="border-left:4px solid var(--primary); padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500); text-transform:uppercase">Proyectos Totales</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--dark)">24</div>
+        </div>
+        <div class="info-card" style="border-left:4px solid var(--warning); padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500); text-transform:uppercase">Proyectos Activos</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--warning)">8</div>
+        </div>
+        <div class="info-card" style="border-left:4px solid var(--success); padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500); text-transform:uppercase">Energia Auditada</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--success)">1.2M kWh</div>
+        </div>
+        <div class="info-card" style="border-left:4px solid var(--info); padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500); text-transform:uppercase">Metricas & BI</div>
+            <div style="font-size:0.85rem; color:var(--info); margin-top:4px"><i class="bi bi-arrow-right-circle"></i> Ver</div>
+        </div>
+    </div>
+
+    <h3>Vista Operativa (Profesores y Estudiantes)</h3>
+    <p>Los Profesores y Estudiantes ven un panel de trabajo simplificado con acceso rapido a sus proyectos. Los profesores tambien ven un boton para <strong>Iniciar Nuevo Proyecto</strong>.</p>
+
+    <h3>Tabla de actividad reciente</h3>
+    <p>Ambas vistas incluyen una tabla con los ultimos 10 proyectos actualizados, mostrando:</p>
+    <table class="manual-table">
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+        <tr><td>Proyecto / Cliente</td><td>Nombre del proyecto y empresa auditada</td></tr>
+        <tr><td>Estado</td><td>Badge de color: <span class="badge badge-dark">Borrador</span> <span class="badge badge-primary">En Ejecucion</span> <span class="badge badge-warning">En Revision</span> <span class="badge badge-success">Finalizado</span></td></tr>
+        <tr><td>Energia (kWh)</td><td>Total de kWh auditados en el proyecto</td></tr>
+        <tr><td>Ultima actualizacion</td><td>Fecha del ultimo cambio</td></tr>
+        <tr><td>Accion</td><td>Boton para ver o gestionar el proyecto</td></tr>
+    </table>
+</div>
+
+<!-- ==================== PROYECTOS ==================== -->
+<div id="proyectos" class="section">
+    <h2 class="section-title"><i class="bi bi-folder2-open"></i> Gestion de Proyectos</h2>
+    <p class="section-subtitle">Creacion, edicion, listado y ciclo de vida de los proyectos de auditoria energetica.</p>
+
+    <h3>Lista de proyectos</h3>
+    <p>Acceso en <code>/app/proyectos/</code>. Muestra todos los proyectos segun su rol:</p>
+    <ul style="padding-left:20px; margin-bottom:16px">
+        <li><strong>Director Nacional:</strong> "Portafolio Nacional de Proyectos" (todos los centros)</li>
+        <li><strong>Director de Centro:</strong> Proyectos de su centro</li>
+        <li><strong>Profesor:</strong> "Mis Proyectos Liderados" + proyectos donde participa</li>
+        <li><strong>Estudiante:</strong> Solo proyectos asignados a su equipo</li>
+    </ul>
+
+    <h4>Filtros disponibles</h4>
+    <table class="manual-table">
+        <tr><th>Filtro</th><th>Opciones</th><th>Disponible para</th></tr>
+        <tr><td><i class="bi bi-search"></i> Busqueda</td><td>Texto libre (nombre de proyecto o empresa)</td><td>Todos</td></tr>
+        <tr><td>Estado</td><td>Borrador, Ejecucion, Revision, Finalizado</td><td>Todos</td></tr>
+        <tr><td>Fase</td><td>Fase 1, Fase 2, Fase 3, Fase 4</td><td>Todos</td></tr>
+        <tr><td>Lider</td><td>Lista de profesores + "Mis Proyectos"</td><td>Directores</td></tr>
+        <tr><td>Centro PEVI</td><td>Lista de centros activos</td><td>Director Nacional</td></tr>
+    </table>
+
+    <h3>Crear un proyecto nuevo</h3>
+    <p>Ruta: <code>/app/proyectos/nuevo/</code>. Disponible para: <span class="badge badge-success">Profesor</span> <span class="badge badge-warning">Dir. Centro</span> <span class="badge badge-danger">Dir. Nacional</span></p>
+
+    <ol class="step-list">
+        <li><strong>Nombre de la auditoria:</strong> Ingrese un nombre descriptivo. Ejemplo: "Evaluacion Energetica Planta 2 - 2025".</li>
+        <li><strong>Empresa cliente:</strong> Seleccione la empresa a auditar del menu desplegable. Si no existe, use el enlace "Registrala aqui" para crearla.</li>
+        <li><strong>Lider del proyecto:</strong> Si usted es Profesor, se pre-selecciona automaticamente. Los directores pueden asignar a otro lider.</li>
+        <li><strong>Equipo de trabajo:</strong> Use el selector por roles para agregar miembros. Haga clic en la pill del rol deseado (Estudiante, Profesor, etc.) y seleccione las personas haciendo clic en sus tarjetas.</li>
+        <li><strong>Fase del programa (opcional):</strong> Seleccione la fase PEVI correspondiente si aplica.</li>
+        <li><strong>Cronograma:</strong> Defina fechas de inicio y cierre estimado.</li>
+        <li>Haga clic en <strong>"Crear Proyecto"</strong>.</li>
+    </ol>
+
+    <div class="tip-box">
+        <i class="bi bi-people"></i>
+        <div><strong>Selector de equipo por roles:</strong> El sistema agrupa a los usuarios por su rol. Haga clic en un rol para ver las personas disponibles, luego haga clic en cada persona para agregarla. Los miembros seleccionados aparecen como badges en la parte superior con un boton X para quitarlos. Puede buscar por nombre dentro de cada rol.</div>
+    </div>
+
+    <h3>Editar un proyecto</h3>
+    <p>Ruta: <code>/app/proyectos/&lt;id&gt;/editar/</code>. Solo el lider del proyecto, el director de su centro, o el Director Nacional pueden editar la estructura.</p>
+
+    <div class="tip-box warn">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>Transferencia de liderazgo:</strong> Si un profesor cambia el lider del proyecto a otra persona, el sistema solicita doble confirmacion porque perdera acceso de edicion al proyecto.</div>
+    </div>
+
+    <h3>Estados del proyecto</h3>
+    <table class="manual-table">
+        <tr><th>Estado</th><th>Descripcion</th><th>Transiciones posibles</th></tr>
+        <tr><td><span class="badge badge-dark">Borrador</span></td><td>Configuracion inicial. El equipo y la empresa estan siendo definidos.</td><td>Iniciar Ejecucion</td></tr>
+        <tr><td><span class="badge badge-primary">En Ejecucion</span></td><td>Fase activa. Registro de datos energeticos en progreso.</td><td>Enviar a Revision / Devolver a Borrador</td></tr>
+        <tr><td><span class="badge badge-warning">En Revision</span></td><td>Datos completos, pendiente de validacion por director.</td><td>Finalizar / Devolver a Ejecucion</td></tr>
+        <tr><td><span class="badge badge-success">Finalizado</span></td><td>Estado terminal. Proyecto completado y cerrado.</td><td>Ninguna (solo superadmin puede reabrir)</td></tr>
+    </table>
+
+    <h3>Expediente del proyecto (Vista detalle)</h3>
+    <p>Ruta: <code>/app/proyectos/&lt;id&gt;/</code>. Esta es la pantalla central del proyecto con toda la informacion:</p>
+
+    <h4>Barra de estado superior</h4>
+    <p>Muestra el estado actual del proyecto con badge de color, la fase (si aplica), fecha de inicio y botones de accion para cambiar estado, editar estructura o generar el informe PDF.</p>
+
+    <h4>3 KPI principales</h4>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin:16px 0">
+        <div class="info-card highlight" style="padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500)">CONSUMO TOTAL</div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--primary)">245,800 kWh</div>
+            <div style="font-size:0.72rem; color:var(--gray-400)">Electrica: 120,000 | Termica: 428 MBTU</div>
+        </div>
+        <div class="info-card success" style="padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500)">HUELLA DE CARBONO</div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--success)">85.3 TonCO2</div>
+        </div>
+        <div class="info-card warning" style="padding:14px; text-align:center">
+            <div style="font-size:0.7rem; color:var(--gray-500)">COSTO OPERATIVO</div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--warning)">$142.5M COP</div>
+        </div>
+    </div>
+
+    <h4>Bitacora de registros</h4>
+    <p>7 tarjetas interactivas, una por cada tipo de dato (Produccion + 6 fuentes energeticas). Cada tarjeta muestra un resumen del registro y un enlace para ver detalles o registrar datos.</p>
+
+    <h4>4 Graficos de analisis</h4>
+    <table class="manual-table">
+        <tr><th>Grafico</th><th>Tipo</th><th>Descripcion</th></tr>
+        <tr><td>Matriz de Consumo (kWh)</td><td>Dona</td><td>Distribucion porcentual de energia por fuente</td></tr>
+        <tr><td>Huella de Carbono (TonCO2)</td><td>Dona</td><td>Distribucion de emisiones por fuente</td></tr>
+        <tr><td>Balance Termico (MBTU)</td><td>Barras</td><td>Comparacion electrica vs termica</td></tr>
+        <tr><td>Distribucion de Costos (COP)</td><td>Barras</td><td>Costos por fuente energetica</td></tr>
+    </table>
+</div>
+
+<!-- ==================== ENERGIA ==================== -->
+<div id="energia" class="section">
+    <h2 class="section-title"><i class="bi bi-lightning"></i> Registro de Datos Energeticos</h2>
+    <p class="section-subtitle">Como registrar consumos de las 6 fuentes energeticas del sistema.</p>
+
+    <p>Desde el expediente del proyecto, haga clic en la tarjeta de la fuente energetica que desea registrar. El sistema presenta un formulario con formato estandarizado PEVI.</p>
+
+    <h3>Fuentes energeticas disponibles</h3>
+    <table class="manual-table">
+        <tr><th>Fuente</th><th>Unidad de consumo</th><th>Poder calorifico</th><th>Factor de emision</th></tr>
+        <tr><td><i class="bi bi-lightning-charge energy-elec"></i> Electricidad</td><td>kWh</td><td>N/A (ya es energia)</td><td>kgCO2/kWh</td></tr>
+        <tr><td><i class="bi bi-fire energy-gas"></i> Gas Natural</td><td>m&sup3;</td><td>kJ/m&sup3;</td><td>kgCO2/m&sup3;</td></tr>
+        <tr><td><i class="bi bi-box-fill energy-carbon"></i> Carbon Mineral</td><td>Toneladas</td><td>MJ/kg</td><td>kgCO2/Ton</td></tr>
+        <tr><td><i class="bi bi-droplet-half energy-fuel"></i> Fuel Oil</td><td>Galones</td><td>MJ/usgal</td><td>kgCO2/Gal</td></tr>
+        <tr><td><i class="bi bi-tree energy-bio"></i> Biomasa</td><td>Toneladas</td><td>kJ/kg</td><td>kgCO2/Ton</td></tr>
+        <tr><td><i class="bi bi-fire energy-glp"></i> Gas Propano (GLP)</td><td>kg</td><td>MJ/kg</td><td>kgCO2/kg</td></tr>
+    </table>
+
+    <h3>Estructura del formulario</h3>
+    <p>Cada formulario de registro contiene las siguientes secciones:</p>
+
+    <ol class="step-list">
+        <li><strong>Tipo de biomasa</strong> (solo para Biomasa): Seleccione el tipo: Bagazo, Cascarilla de arroz, Madera, etc.</li>
+        <li><strong>Datos de consumo:</strong> Ingrese el consumo anual en las unidades originales de la fuente (kWh, m&sup3;, Ton, Gal, kg).</li>
+        <li><strong>Informacion de costos:</strong> Registre el costo total anual (COP) y opcionalmente el costo por unidad.</li>
+        <li><strong>Parametros tecnicos</strong> (excepto electricidad): Ingrese el poder calorifico en la unidad correspondiente. Use el boton de <strong>conversor de unidades</strong> <i class="bi bi-calculator"></i> si necesita convertir desde otra unidad.</li>
+        <li><strong>Conversion energetica</strong> (automatica): El sistema calcula automaticamente el consumo equivalente en kWh. Este campo es de solo lectura.</li>
+        <li><strong>Impacto ambiental:</strong> Ingrese el factor de emision para calcular las emisiones de CO2.</li>
+    </ol>
+
+    <h3>Conversion automatica a kWh</h3>
+    <div class="info-card highlight">
+        <strong>Formula general:</strong>
+        <div style="background:var(--gray-50); padding:12px; border-radius:8px; margin-top:8px; font-family:monospace; font-size:0.85rem">
+            Energia (kWh) = (Consumo &times; Factor_Unidad &times; Poder_Calorifico &times; Factor_Energia) / 3600
+        </div>
+        <p style="font-size:0.82rem; margin-top:8px; color:var(--gray-600)">El sistema aplica automaticamente los factores de conversion segun el tipo de energetico. No necesita hacer calculos manuales.</p>
+    </div>
+
+    <h3>Calculo de emisiones</h3>
+    <div class="info-card success">
+        <strong>Formula de emisiones:</strong>
+        <div style="background:var(--gray-50); padding:12px; border-radius:8px; margin-top:8px; font-family:monospace; font-size:0.85rem">
+            Emisiones (TonCO2) = (Consumo_Anual_Original &times; Factor_Emision) / 1,000
+        </div>
+        <p style="font-size:0.82rem; margin-top:8px; color:var(--gray-600)">Las emisiones se calculan sobre el consumo en unidades originales, NO sobre kWh equivalentes.</p>
+    </div>
+
+    <div class="tip-box">
+        <i class="bi bi-info-circle"></i>
+        <div><strong>Formato numerico:</strong> Puede ingresar numeros con comas (1,200.50) o sin ellas (1200.50). El sistema las procesa automaticamente.</div>
+    </div>
+
+    <h3>Registrar produccion</h3>
+    <p>Ruta: <code>/app/proyectos/&lt;id&gt;/registro/produccion/</code></p>
+    <p>Antes de registrar consumos, defina la produccion de la empresa. Ingrese:</p>
+    <ul style="padding-left:20px; margin-bottom:16px">
+        <li><strong>Cantidad producida (Ano Base):</strong> Volumen de produccion anual</li>
+        <li><strong>Unidad de medida:</strong> Ej: Toneladas, Unidades, m&sup3;</li>
+    </ul>
+    <p>Con estos datos, el sistema calcula el <strong>IDES</strong> (Indicador de Desempeno Energetico Especifico) = Energia Total / Produccion Total.</p>
+</div>
+
+<!-- ==================== MEJORAS ==================== -->
+<div id="mejoras" class="section">
+    <h2 class="section-title"><i class="bi bi-graph-up-arrow"></i> Oportunidades de Mejora (Reduccion)</h2>
+    <p class="section-subtitle">Definicion de metas de reduccion energetica y calculo de ahorros potenciales.</p>
+
+    <p>Desde el expediente del proyecto, la seccion <strong>"Oportunidades de Mejora"</strong> permite establecer metas de reduccion porcentual para cada fuente energetica.</p>
+
+    <h3>Panel de comparacion</h3>
+    <p>Un panel visual muestra lado a lado:</p>
+    <div style="display:flex; gap:16px; align-items:center; margin:16px 0; flex-wrap:wrap">
+        <div class="info-card" style="flex:1; min-width:180px; text-align:center; border-left:4px solid var(--danger)">
+            <div style="font-size:0.7rem; color:var(--gray-500)">CONSUMO ACTUAL</div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--danger)">245,800 kWh</div>
+        </div>
+        <div style="font-size:1.5rem; color:var(--gray-300)"><i class="bi bi-arrow-right"></i></div>
+        <div class="info-card" style="flex:1; min-width:180px; text-align:center; border-left:4px solid var(--success)">
+            <div style="font-size:0.7rem; color:var(--gray-500)">CONSUMO PROYECTADO</div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--success)">208,930 kWh</div>
+        </div>
+    </div>
+
+    <h3>Como definir metas de reduccion</h3>
+    <ol class="step-list">
+        <li>En la tabla de oportunidades, localice la fila de la fuente energetica deseada.</li>
+        <li>Haga clic en el boton <i class="bi bi-pencil-square"></i> <strong>"Editar"</strong> de esa fila.</li>
+        <li>En el modal que aparece, ingrese el <strong>porcentaje de reduccion</strong> (0% a 100%).</li>
+        <li>El sistema calcula automaticamente:
+            <ul style="padding-left:16px; margin-top:4px">
+                <li><strong>Ahorro energia:</strong> kWh &times; % reduccion / 100</li>
+                <li><strong>Ahorro costo:</strong> COP &times; % reduccion / 100</li>
+                <li><strong>CO2 evitado:</strong> TonCO2 &times; % reduccion / 100</li>
+            </ul>
+        </li>
+        <li>Los 3 KPI boxes se actualizan con el total acumulado de ahorros.</li>
+    </ol>
+
+    <h3>Grafico de reduccion por fuente</h3>
+    <p>Un grafico de barras horizontales muestra la distribucion del ahorro por cada fuente energetica, facilitando la identificacion de las areas de mayor impacto.</p>
+</div>
+
+<!-- ==================== OPM ==================== -->
+<div id="opm" class="section">
+    <h2 class="section-title"><i class="bi bi-lightbulb"></i> OPM - Oportunidades de Mejora Identificadas</h2>
+    <p class="section-subtitle">Registro de proyectos concretos de mejora con analisis tecnico-financiero.</p>
+
+    <p>Las OPM son proyectos especificos de mejora identificados durante la auditoria. Se registran con metricas tecnicas y financieras para evaluar su viabilidad.</p>
+
+    <h3>Campos de cada OPM</h3>
+    <table class="manual-table">
+        <tr><th>Campo</th><th>Tipo</th><th>Descripcion</th></tr>
+        <tr><td>Codigo</td><td>Texto (20 car.)</td><td>Identificador unico. Ej: OPM-01</td></tr>
+        <tr><td>Descripcion</td><td>Texto (300 car.)</td><td>Descripcion de la mejora propuesta</td></tr>
+        <tr><td>Energetico</td><td>Seleccion</td><td>Electricidad, Gas Natural, Carbon, Fuel Oil, Biomasa, GLP u Otro</td></tr>
+        <tr><td>Ahorro Energia</td><td>Numerico</td><td>kWh/ano ahorrados</td></tr>
+        <tr><td>Costos Evitados</td><td>Numerico</td><td>MCOP/ano de ahorro</td></tr>
+        <tr><td>Emisiones Evitadas</td><td>Numerico</td><td>TonCO2/ano evitadas</td></tr>
+        <tr><td>Inversion</td><td>Numerico</td><td>COP requeridos para implementar</td></tr>
+        <tr><td>VPN</td><td>Numerico</td><td>Valor Presente Neto (COP)</td></tr>
+        <tr><td>TIR</td><td>Porcentaje</td><td>Tasa Interna de Retorno (%)</td></tr>
+        <tr><td>Payback</td><td>Numerico</td><td>Periodo de recuperacion (meses)</td></tr>
+        <tr><td>Observaciones</td><td>Texto largo</td><td>Notas adicionales (opcional)</td></tr>
+    </table>
+
+    <h3>Flujo de registro</h3>
+    <ol class="step-list">
+        <li>En el expediente del proyecto, desplacese a la seccion "Oportunidades de Mejora - Proyectos Identificados".</li>
+        <li>Haga clic en <strong>"Nueva Oportunidad"</strong>.</li>
+        <li>Complete el formulario con los datos tecnicos y financieros.</li>
+        <li>Guarde. La OPM aparecera en la tabla con totales automaticos en el pie.</li>
+    </ol>
+</div>
+
+<!-- ==================== DOCUMENTOS ==================== -->
+<div id="documentos" class="section">
+    <h2 class="section-title"><i class="bi bi-file-earmark"></i> Documentos del Proyecto</h2>
+    <p class="section-subtitle">Adjuntar archivos de soporte a los proyectos de auditoria.</p>
+
+    <p>Cada proyecto puede tener multiples documentos adjuntos (informes, fotografias, hojas de calculo, etc.).</p>
+
+    <h3>Subir un documento</h3>
+    <ol class="step-list">
+        <li>En el expediente del proyecto, desplacese a la seccion "Documentos".</li>
+        <li>Haga clic en <strong>"Subir Documento"</strong>.</li>
+        <li>En el modal, ingrese una <strong>descripcion</strong> y seleccione el <strong>archivo</strong>.</li>
+        <li>Formatos soportados: PDF, Excel, Word, imagenes. Tamano maximo: 10 MB.</li>
+        <li>Haga clic en "Guardar". El documento aparecera en la tabla.</li>
+    </ol>
+
+    <p>Cada documento muestra: nombre, fecha de carga, tamano y un boton de descarga.</p>
+</div>
+
+<!-- ==================== INFORMES ==================== -->
+<div id="informes" class="section">
+    <h2 class="section-title"><i class="bi bi-file-pdf"></i> Generacion de Informes PDF</h2>
+    <p class="section-subtitle">Reportes profesionales descargables con analisis energetico completo.</p>
+
+    <p>Ruta: <code>/app/proyectos/&lt;id&gt;/informe/pdf/</code></p>
+    <p>Desde el expediente del proyecto, haga clic en el boton <i class="bi bi-file-pdf"></i> <strong>"Informe PDF"</strong> en la barra de acciones superior.</p>
+
+    <h3>Contenido del informe</h3>
+    <ol class="step-list">
+        <li><strong>Encabezado:</strong> Nombre del proyecto, empresa, centro PEVI, fecha de generacion.</li>
+        <li><strong>Resumen ejecutivo:</strong> KPIs principales: Energia Total (kWh), Emisiones (TonCO2), Costo Operativo (COP), Indicador IDES.</li>
+        <li><strong>Tabla de consumos:</strong> Todas las fuentes energeticas con consumo original, equivalente kWh, emisiones y costos.</li>
+        <li><strong>Distribucion de consumo:</strong> Grafico de barras horizontales por fuente con porcentajes.</li>
+        <li><strong>Balance termico:</strong> Comparacion electrica vs termica en MBTU.</li>
+        <li><strong>Oportunidades de mejora:</strong> Ahorros proyectados en kWh, COP y TonCO2, tabla de OPMs con metricas financieras.</li>
+        <li><strong>Equipo de trabajo:</strong> Lista de miembros del equipo del proyecto.</li>
+    </ol>
+
+    <p>El archivo se descarga automaticamente con el formato: <code>Informe_PEVI_[Empresa]_[ID].pdf</code></p>
+</div>
+
+<!-- ==================== EMPRESAS ==================== -->
+<div id="empresas" class="section">
+    <h2 class="section-title"><i class="bi bi-building"></i> Gestion de Empresas</h2>
+    <p class="section-subtitle">Registro y administracion de empresas cliente para auditorias.</p>
+
+    <p>Ruta: <code>/app/empresas/</code>. Disponible para: <span class="badge badge-success">Profesor</span> <span class="badge badge-warning">Dir. Centro</span> <span class="badge badge-danger">Dir. Nacional</span></p>
+
+    <h3>Directorio de empresas</h3>
+    <p>La tabla muestra las empresas registradas con las siguientes columnas:</p>
+    <table class="manual-table">
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+        <tr><td>Razon Social / NIT</td><td>Nombre legal y numero de identificacion tributaria</td></tr>
+        <tr><td>Sector Productivo</td><td>Badge con el sector industrial</td></tr>
+        <tr><td>Ubicacion</td><td>Ciudad con icono de geolocalizacion</td></tr>
+        <tr><td>Contacto</td><td>Nombre y email de la persona de contacto</td></tr>
+        <tr><td>Acciones</td><td>Boton de edicion</td></tr>
+    </table>
+
+    <h3>Registrar una empresa nueva</h3>
+    <p>Ruta: <code>/app/empresas/nueva/</code></p>
+    <ol class="step-list">
+        <li><strong>Centro PEVI:</strong> Se asigna automaticamente segun su centro (Director Nacional puede elegir).</li>
+        <li><strong>Razon Social:</strong> Nombre legal completo de la empresa.</li>
+        <li><strong>NIT:</strong> Numero de identificacion tributaria.</li>
+        <li><strong>Sector Productivo:</strong> Sector industrial de la empresa.</li>
+        <li><strong>Direccion y Ciudad:</strong> Ubicacion fisica de la empresa.</li>
+        <li><strong>Datos de contacto:</strong> Nombre, email y telefono de la persona de contacto.</li>
+    </ol>
+
+    <div class="tip-box">
+        <i class="bi bi-info-circle"></i>
+        <div>Puede crear una empresa directamente desde el formulario de creacion de proyecto usando el enlace "Registrala aqui".</div>
+    </div>
+</div>
+
+<!-- ==================== USUARIOS ==================== -->
+<div id="usuarios" class="section">
+    <h2 class="section-title"><i class="bi bi-person-gear"></i> Gestion de Usuarios</h2>
+    <p class="section-subtitle">Administracion de cuentas de usuario y asignacion de roles.</p>
+
+    <p>Ruta: <code>/app/equipo/</code>. Disponible solo para: <span class="badge badge-warning">Dir. Centro</span> <span class="badge badge-danger">Dir. Nacional</span></p>
+
+    <h3>Lista de equipo</h3>
+    <p>Muestra todos los usuarios del centro con:</p>
+    <table class="manual-table">
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+        <tr><td>Usuario</td><td>Avatar con iniciales, nombre completo y email</td></tr>
+        <tr><td>Rol / Cargo</td><td>Badge de rol + cargo opcional</td></tr>
+        <tr><td>Estado</td><td><span class="badge badge-success">Activo</span> o <span class="badge badge-danger">Inactivo</span></td></tr>
+        <tr><td>Ultimo acceso</td><td>Fecha del ultimo login o "Nunca"</td></tr>
+        <tr><td>Acciones</td><td>Menu: Editar, Eliminar (con confirmacion)</td></tr>
+    </table>
+
+    <h3>Crear un usuario</h3>
+    <p>Ruta: <code>/app/equipo/nuevo/</code></p>
+    <ol class="step-list">
+        <li><strong>Username:</strong> Nombre de usuario unico para el login.</li>
+        <li><strong>Email:</strong> Correo electronico (tambien puede usarse para login).</li>
+        <li><strong>Nombre y Apellido:</strong> Datos del usuario.</li>
+        <li><strong>Rol:</strong> Seleccione Estudiante, Profesor o Director de Centro.</li>
+        <li><strong>Centro PEVI:</strong> Se asigna automaticamente segun su centro.</li>
+        <li><strong>Cargo:</strong> Posicion o titulo (opcional).</li>
+        <li><strong>Activo:</strong> Marque para habilitar el acceso al sistema.</li>
+    </ol>
+
+    <div class="tip-box danger">
+        <i class="bi bi-shield-exclamation"></i>
+        <div><strong>Seguridad anti-escalada:</strong> Un Director de Centro no puede crear otros Directores ni Directores Nacionales. Esta restriccion se aplica tanto en el formulario como en el servidor para prevenir escalada de privilegios.</div>
+    </div>
+</div>
+
+<!-- ==================== BI ESTRATEGICO ==================== -->
+<div id="bi-estrategico" class="section">
+    <h2 class="section-title"><i class="bi bi-pie-chart"></i> Dashboard Estrategico</h2>
+    <p class="section-subtitle">Inteligencia de negocios con vision consolidada de proyectos. Ruta: <code>/app/metricas/estrategico/</code></p>
+
+    <p>Disponible para: <span class="badge badge-warning">Dir. Centro</span> <span class="badge badge-danger">Dir. Nacional</span></p>
+
+    <h3>Alcance de datos</h3>
+    <ul style="padding-left:20px; margin-bottom:16px">
+        <li><strong>Director de Centro:</strong> Ve solo los proyectos de su centro</li>
+        <li><strong>Director Nacional / Superadmin:</strong> Ve todos los proyectos del pais</li>
+    </ul>
+
+    <h3>Filtros</h3>
+    <table class="manual-table">
+        <tr><th>Filtro</th><th>Descripcion</th></tr>
+        <tr><td>Proyecto</td><td>Seleccionar un proyecto especifico (dependiente del alcance)</td></tr>
+        <tr><td>Lider</td><td>Filtrar por profesor lider del proyecto</td></tr>
+    </table>
+
+    <h3>Indicadores mostrados</h3>
+    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin:16px 0">
+        <div class="info-card highlight" style="padding:14px">
+            <strong>KPI Cards:</strong>
+            <ul style="padding-left:16px; margin:8px 0 0; font-size:0.85rem; color:var(--gray-600)">
+                <li>Total de Proyectos</li>
+                <li>Energia Total (kWh electricos + termicos)</li>
+                <li>Costo Total (COP)</li>
+                <li>Emisiones Totales (TonCO2)</li>
+                <li>Desglose: Electrica vs Termica</li>
+            </ul>
+        </div>
+        <div class="info-card" style="border-left:4px solid var(--info); padding:14px">
+            <strong>Graficos:</strong>
+            <ul style="padding-left:16px; margin:8px 0 0; font-size:0.85rem; color:var(--gray-600)">
+                <li>Dona: Energia por fuente</li>
+                <li>Dona: Costos por fuente</li>
+                <li>Barras: Balance termico (MBTU)</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Tabla detallada de proyectos</h3>
+    <p>Incluye todas las metricas por proyecto: Empresa, Lider, Produccion, Unidad, Energia (Total/Electrica/Termica), Costo, Emisiones e IDES.</p>
+</div>
+
+<!-- ==================== BI NACIONAL ==================== -->
+<div id="bi-nacional" class="section">
+    <h2 class="section-title"><i class="bi bi-globe-americas"></i> Dashboard Nacional</h2>
+    <p class="section-subtitle">Vision consolidada de todos los centros PEVI del pais. Ruta: <code>/app/metricas/nacional/</code></p>
+
+    <p>Disponible exclusivamente para: <span class="badge badge-danger">Dir. Nacional</span></p>
+
+    <h3>Modo A: Comparacion Nacional (por defecto)</h3>
+    <p>Muestra una tabla comparativa de todos los centros PEVI con:</p>
+    <table class="manual-table">
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+        <tr><td>Centro</td><td>Nombre del centro PEVI</td></tr>
+        <tr><td>Region</td><td>Ubicacion geografica</td></tr>
+        <tr><td>Proyectos</td><td>Cantidad de proyectos</td></tr>
+        <tr><td>Energia (kWh)</td><td>Total de energia auditada</td></tr>
+        <tr><td>Emisiones</td><td>Total TonCO2</td></tr>
+        <tr><td>Promedio kWh/Proyecto</td><td>Indicador de intensidad</td></tr>
+    </table>
+    <p>Ranking ordenado por energia (descendente). KPIs agregados: Total Centros, Total Proyectos, Total Energia, Total Emisiones.</p>
+
+    <h3>Modo B: Detalle de Centro</h3>
+    <p>Seleccione un centro en el dropdown para ver su analisis detallado, con los mismos KPIs y graficos del Dashboard Estrategico pero filtrados a ese centro especifico.</p>
+</div>
+
+<!-- ==================== SITIO PUBLICO ==================== -->
+<div id="sitio-publico" class="section">
+    <h2 class="section-title"><i class="bi bi-globe"></i> Sitio Publico</h2>
+    <p class="section-subtitle">Paginas de acceso publico sin necesidad de autenticacion.</p>
+
+    <h3>Paginas disponibles</h3>
+    <table class="manual-table">
+        <tr><th>Pagina</th><th>Ruta</th><th>Contenido</th></tr>
+        <tr><td><i class="bi bi-house"></i> Inicio</td><td><code>/</code></td><td>Landing page con KPIs publicos (proyectos finalizados, centros activos) y noticias recientes</td></tr>
+        <tr><td><i class="bi bi-people"></i> Nosotros</td><td><code>/nosotros/</code></td><td>Informacion sobre el programa PEVI y sus objetivos</td></tr>
+        <tr><td><i class="bi bi-buildings"></i> Centros</td><td><code>/centros/</code></td><td>Directorio de centros PEVI con modals que muestran graficos de distribucion de proyectos, sectores atendidos y proyectos en el tiempo</td></tr>
+        <tr><td><i class="bi bi-book"></i> Biblioteca</td><td><code>/biblioteca/</code></td><td>Guias tecnicas de UPME: Sistemas de bombeo, motores, vapor, etc. Con enlaces a documentos PDF</td></tr>
+        <tr><td><i class="bi bi-bar-chart-line"></i> Resultados</td><td><code>/resultados/</code></td><td>Resultados agregados y anonimizados con filtros, graficos y exportacion</td></tr>
+    </table>
+
+    <h3>Pagina de Resultados (/resultados/)</h3>
+    <p>Esta pagina publica permite consultar resultados agregados del programa con multiples visualizaciones:</p>
+
+    <h4>Filtros</h4>
+    <ul style="padding-left:20px; margin-bottom:12px">
+        <li>Ano</li>
+        <li>Region / Centro</li>
+        <li>Sector Industrial</li>
+    </ul>
+
+    <h4>KPIs publicos</h4>
+    <p>Total Proyectos, Total Centros, Total Empresas, Sectores Unicos, Energia Total (MWh), Emisiones Totales (TonCO2).</p>
+
+    <h4>Visualizaciones</h4>
+    <ul style="padding-left:20px; margin-bottom:12px">
+        <li>Energia por fuente (grafico apilado)</li>
+        <li>Proyectos en el tiempo (linea, 6 anos)</li>
+        <li>Proyectos por sector (barras, top 8)</li>
+        <li>Proyectos por region (dona)</li>
+        <li>Proyectos por centro (barras, top 10)</li>
+    </ul>
+
+    <div class="tip-box">
+        <i class="bi bi-eye-slash"></i>
+        <div>Todos los datos publicos son <strong>agregados y anonimizados</strong>. No se expone informacion especifica de empresas ni proyectos individuales.</div>
+    </div>
+</div>
+
+<!-- ==================== ADMIN ==================== -->
+<div id="admin" class="section">
+    <h2 class="section-title"><i class="bi bi-shield-lock"></i> Panel de Super Administracion</h2>
+    <p class="section-subtitle">Gestion avanzada del sistema. Solo accesible para superusuarios.</p>
+
+    <p>Ruta: <code>/app/control/</code>. Acceso exclusivo para cuentas con permisos de superusuario.</p>
+
+    <h3>Funcionalidades del panel</h3>
+    <table class="manual-table">
+        <tr><th>Modulo</th><th>Ruta</th><th>Acciones</th></tr>
+        <tr><td><i class="bi bi-buildings"></i> Centros PEVI</td><td><code>/app/control/centros/</code></td><td>Crear, editar y eliminar centros PEVI</td></tr>
+        <tr><td><i class="bi bi-people"></i> Usuarios</td><td><code>/app/control/usuarios/</code></td><td>Gestionar cualquier usuario del sistema sin restricciones de centro</td></tr>
+        <tr><td><i class="bi bi-newspaper"></i> Noticias</td><td><code>/app/control/noticias/</code></td><td>Crear, editar y eliminar noticias que aparecen en el sitio publico</td></tr>
+    </table>
+
+    <h3>Django Admin</h3>
+    <p>Tambien disponible en <code>/admin/</code>. Proporciona acceso directo a todos los modelos del sistema, logs de actividad y configuraciones avanzadas.</p>
+
+    <div class="tip-box danger">
+        <i class="bi bi-exclamation-octagon"></i>
+        <div><strong>Precaucion:</strong> Las acciones en el panel de administracion no tienen las mismas validaciones de seguridad que la interfaz principal. Use con cuidado, especialmente al editar o eliminar datos directamente.</div>
+    </div>
+</div>
+
+<!-- ==================== GLOSARIO ==================== -->
+<div id="glosario" class="section">
+    <h2 class="section-title"><i class="bi bi-book"></i> Glosario de Terminos</h2>
+    <p class="section-subtitle">Definiciones de conceptos clave utilizados en el sistema.</p>
+
+    <table class="manual-table">
+        <tr><th style="width:180px">Termino</th><th>Definicion</th></tr>
+        <tr><td><strong>PEVI</strong></td><td>Programa de Evaluacion de Eficiencia Energetica Industrial. Programa nacional coordinado por UPME Colombia.</td></tr>
+        <tr><td><strong>UPME</strong></td><td>Unidad de Planeacion Minero Energetica. Entidad gubernamental colombiana que coordina el programa.</td></tr>
+        <tr><td><strong>Centro PEVI</strong></td><td>Universidad participante en el programa. Cada centro gestiona sus propios proyectos de auditoria.</td></tr>
+        <tr><td><strong>kWh</strong></td><td>Kilovatio-hora. Unidad estandar de energia utilizada como denominador comun para todas las fuentes.</td></tr>
+        <tr><td><strong>MBTU</strong></td><td>Miles de BTU (British Thermal Units). Unidad de energia termica, 1 MBTU = 293.07 kWh.</td></tr>
+        <tr><td><strong>TonCO2</strong></td><td>Toneladas de dioxido de carbono. Medida de emisiones de gases de efecto invernadero.</td></tr>
+        <tr><td><strong>IDES</strong></td><td>Indicador de Desempeno Energetico Especifico. Razon entre energia total y produccion total (kWh/unidad producida).</td></tr>
+        <tr><td><strong>Poder Calorifico</strong></td><td>Cantidad de energia liberada al quemar una unidad de combustible. Puede ser PC Superior (PCS) o PC Inferior (PCI).</td></tr>
+        <tr><td><strong>Factor de Emision</strong></td><td>Cantidad de CO2 emitida por unidad de combustible consumido (kgCO2 por unidad original).</td></tr>
+        <tr><td><strong>OPM</strong></td><td>Oportunidad de Mejora. Proyecto concreto de mejora energetica con analisis tecnico-financiero.</td></tr>
+        <tr><td><strong>VPN</strong></td><td>Valor Presente Neto. Indicador financiero que mide la rentabilidad de una inversion.</td></tr>
+        <tr><td><strong>TIR</strong></td><td>Tasa Interna de Retorno. Porcentaje de retorno esperado de una inversion.</td></tr>
+        <tr><td><strong>Payback</strong></td><td>Periodo de Recuperacion. Tiempo estimado para recuperar la inversion (meses).</td></tr>
+        <tr><td><strong>GLP</strong></td><td>Gas Licuado de Petroleo. Tambien conocido como Gas Propano.</td></tr>
+        <tr><td><strong>COP</strong></td><td>Pesos colombianos. Moneda oficial de Colombia utilizada en todos los calculos de costos.</td></tr>
+        <tr><td><strong>NIT</strong></td><td>Numero de Identificacion Tributaria. Identificador fiscal unico de las empresas colombianas.</td></tr>
+    </table>
+</div>
+
+<!-- Footer -->
+<div style="text-align:center; padding:40px 0 60px; color:var(--gray-400); font-size:0.78rem; border-top:1px solid var(--gray-200); margin-top:40px">
+    <p><strong>Plataforma PEVI</strong> &mdash; Programa de Evaluacion de Eficiencia Energetica Industrial</p>
+    <p>UPME Colombia &bull; MinEnergia &bull; ONUDI</p>
+    <p style="margin-top:8px">&copy; 2026 &mdash; Todos los derechos reservados</p>
+</div>
+
+</div><!-- /content-body -->
+</div><!-- /main-content -->
+
+<script>
+    // Initialize Mermaid
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'neutral',
+        themeVariables: {
+            primaryColor: '#e0f2fe',
+            primaryBorderColor: '#0284c7',
+            primaryTextColor: '#0f172a',
+            lineColor: '#94a3b8',
+            secondaryColor: '#f1f5f9',
+            tertiaryColor: '#fff'
+        },
+        flowchart: { curve: 'basis', padding: 16 },
+        stateDiagram: { defaultRenderer: 'dagre' }
+    });
+
+    // Active sidebar link tracking
+    const sections = document.querySelectorAll('.section, .cover-section');
+    const navLinks = document.querySelectorAll('.sidebar a');
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                const id = entry.target.id;
+                navLinks.forEach(function(link) {
+                    link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -75% 0px' });
+
+    sections.forEach(function(s) { if (s.id) observer.observe(s); });
+
+    // Close mobile sidebar on link click
+    navLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.remove('open');
+        });
+    });
+</script>
+
+</body>
+</html>

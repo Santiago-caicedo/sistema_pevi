@@ -16,7 +16,9 @@
       "Bash(./venv/Scripts/python.exe manage.py makemigrations:*)",
       "Bash(./venv/Scripts/python.exe manage.py migrate:*)",
       "Bash(./venv/Scripts/python.exe manage.py check:*)",
-      "Bash(/mnt/c/Users/ASUS/documents/sistema_pevi/venv/Scripts/python.exe manage.py shell:*)"
+      "Bash(/mnt/c/Users/ASUS/documents/sistema_pevi/venv/Scripts/python.exe manage.py shell:*)",
+      "Bash(pandoc:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }
