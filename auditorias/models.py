@@ -271,7 +271,7 @@ class CombustibleBase(FuenteEnergiaBase):
         elif self._meta.model_name == 'gaspropano':
             # GLP: kg × PC (MJ/kg) = kWh directamente (sin conversión MJ→kJ→kWh)
             factor_unidad = 1.0
-            factor_energia = 3.6
+            factor_energia = 3600.0
         # Gas Natural: m³ (sin conversión), PC en kJ/m³ → factores = 1.0
 
         if self.consumo_anual_orig and self.poder_calorifico:
