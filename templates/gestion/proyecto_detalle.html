@@ -584,7 +584,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if electricidad.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ electricidad.porcentaje_reduccion|floatformat:1 }}%
+                            {{ electricidad.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -640,7 +640,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if gas_natural.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ gas_natural.porcentaje_reduccion|floatformat:1 }}%
+                            {{ gas_natural.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -696,7 +696,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if carbon_mineral.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ carbon_mineral.porcentaje_reduccion|floatformat:1 }}%
+                            {{ carbon_mineral.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -752,7 +752,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if fuel_oil.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ fuel_oil.porcentaje_reduccion|floatformat:1 }}%
+                            {{ fuel_oil.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -808,7 +808,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if biomasa.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ biomasa.porcentaje_reduccion|floatformat:1 }}%
+                            {{ biomasa.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -864,7 +864,7 @@
                     </td>
                     <td class="text-center">
                         <span class="badge bg-{% if gas_propano.porcentaje_reduccion > 0 %}success{% else %}secondary{% endif %} rounded-pill px-3 py-2 fs-6">
-                            {{ gas_propano.porcentaje_reduccion|floatformat:1 }}%
+                            {{ gas_propano.porcentaje_reduccion|floatformat:2 }}%
                         </span>
                     </td>
                     <td class="text-center text-success fw-bold">
@@ -935,7 +935,7 @@
                     <div class="input-group input-group-lg">
                         <input type="number" name="porcentaje" id="inputPorcentaje"
                                class="form-control text-center fw-bold"
-                               min="0" max="100" step="0.1"
+                               min="0" max="100" step="0.01"
                                placeholder="0" required>
                         <span class="input-group-text bg-light fw-bold">%</span>
                     </div>
