@@ -161,7 +161,9 @@ def dashboard(request):
 
     # CASO D: Profesor Líder
     elif user.rol == 'PROFESOR':
-        proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user)
+        proyectos = ProyectoAuditoria.objects.filter(
+            Q(lider_proyecto=user) | Q(equipo=user)
+        ).distinct()
         rol_label = "Líder de Proyectos"
 
     # CASO E: Estudiante / Ingeniero
@@ -238,9 +240,11 @@ def lista_proyectos(request):
         
     # CASO C: Profesor
     elif user.rol == 'PROFESOR':
-        proyectos = ProyectoAuditoria.objects.filter(lider_proyecto=user).select_related('empresa')
+        proyectos = ProyectoAuditoria.objects.filter(
+            Q(lider_proyecto=user) | Q(equipo=user)
+        ).distinct().select_related('empresa')
         es_vista_nacional = False
-        titulo_vista = "Mis Proyectos Liderados"
+        titulo_vista = "Mis Proyectos"
         
     # CASO D: Estudiante
     elif user.rol == 'ESTUDIANTE':

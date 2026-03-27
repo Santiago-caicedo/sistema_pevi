@@ -4,7 +4,7 @@
 
 Sistema web de gestión de auditorías energéticas para el programa PEVI (Programa de Eficiencia Energética) coordinado por UPME Colombia. Permite a centros universitarios registrar, analizar y reportar consumos energéticos de empresas auditadas.
 
-**Stack tecnológico:** Django 5.2.8 + PostgreSQL + Bootstrap 5 + Chart.js + WeasyPrint
+**Stack tecnológico:** Django 5.2.8 + PostgreSQL + Bootstrap 5 + Chart.js + WeasyPrint + Anime.js + Leaflet
 
 **Producción:** https://pevicolombia.com (AWS EC2 + S3)
 
@@ -46,7 +46,7 @@ sistema_pevi/
 │
 ├── gestion/                   # APP CORE: Usuarios, Proyectos, Dashboard
 │   ├── models.py             # Usuario, CentroPevi, RegistroActividad
-│   ├── views.py              # 37 vistas principales (~1200 líneas)
+│   ├── views.py              # ~45 vistas principales (~1630 líneas)
 │   ├── forms.py              # Formularios con validación de seguridad
 │   ├── decorators.py         # Control de acceso RBAC
 │   ├── backends.py           # Auth por email O username
@@ -54,8 +54,8 @@ sistema_pevi/
 │   └── signals.py            # Signals para login/logout automático
 │
 ├── auditorias/                # APP: Datos de Auditorías Energéticas
-│   ├── models.py             # Empresa, ProyectoAuditoria, 6 fuentes energéticas
-│   ├── forms.py              # Formularios de registro energético
+│   ├── models.py             # Empresa, ProyectoAuditoria, 6 fuentes energéticas, OportunidadMejora
+│   ├── forms.py              # Formularios de registro energético + OportunidadMejoraForm
 │   └── management/commands/  # Comandos personalizados
 │       └── recalcular_kwh.py # Recalcula kWh de registros existentes
 │
@@ -66,12 +66,14 @@ sistema_pevi/
 │   ├── models.py             # Noticia
 │   └── views.py              # home, nosotros, centros, biblioteca, resultados
 │
-├── templates/                 # Templates Django (~25 archivos)
+├── templates/                 # Templates Django (35 archivos)
 │   ├── layouts/              # base.html (app), base_public.html (web)
-│   ├── gestion/              # Dashboard, CRUD, listados, informes PDF
-│   ├── metricas/             # Dashboards BI
-│   ├── registration/         # Login (5 logos universidades)
-│   └── web/                  # Landing page, centros con modals
+│   ├── gestion/              # Dashboard, CRUD, listados, informes PDF (11 templates)
+│   ├── metricas/             # Dashboards BI (2 templates)
+│   ├── control/              # Panel superadmin CRUD (7 templates)
+│   ├── registration/         # Login + password reset flow (6 templates)
+│   ├── web/                  # Landing page, centros con modals (5 templates)
+│   └── components/           # Componentes reutilizables (breadcrumbs)
 │
 ├── static/                    # Archivos estáticos (CSS, JS, imágenes)
 ├── media/                     # Archivos subidos (documentos de proyectos)
@@ -101,8 +103,13 @@ ProyectoAuditoria (1) ──┬─> (1) Electricidad
                         ├─> (1) FuelOil
                         ├─> (1) Biomasa
                         ├─> (1) GasPropano
-                        └─> (N) DocumentoProyecto
+                        ├─> (N) DocumentoProyecto
+                        └─> (N) OportunidadMejora
+
+Noticia ────────────────────> (1) Usuario [autor]
 ```
+
+> **Nota:** La relación 1:1 entre ProyectoAuditoria y fuentes energéticas NO está enforceada por constraint de unicidad en BD. Se asume vía `.first()` en queries.
 
 ### Sistema de Roles (Jerárquico)
 
@@ -112,6 +119,8 @@ ProyectoAuditoria (1) ──┬─> (1) Electricidad
 | Director Centro | `DIRECTOR_CENTRO` | Gestión de su centro, métricas BI |
 | Profesor | `PROFESOR` | Lidera proyectos, gestiona empresas |
 | Estudiante | `ESTUDIANTE` | Participa en equipos asignados |
+
+**Patrón de Rol Híbrido:** Un `DIRECTOR_NACIONAL` con `centro_pevi` asignado actúa también como director de ese centro (ve vista de centro en dashboard, property `es_director_centro` retorna True). Esto permite que un Nacional gestione un centro específico sin perder acceso global.
 
 ### Estados y Fases de Proyecto
 
@@ -146,8 +155,12 @@ Energía (kWh) = Energía (kJ) / 3600
 
 ### Cálculo de Emisiones
 ```python
-# Las emisiones se calculan sobre el consumo ORIGINAL, NO sobre kWh
-Emisiones (TonCO2) = (consumo_anual_orig × factor_emision) / 1000
+# IMPORTANTE: Las emisiones NO se auto-calculan en save().
+# El campo emisiones_totales es ENTRADA MANUAL del usuario.
+# La fórmula teórica es: (consumo_anual_orig × factor_emision) / 1000
+# El JavaScript en registro_energia_form.html calcula esto en tiempo real
+# como SUGERENCIA visual, pero el usuario puede editar el valor final.
+# No hay validación server-side de la fórmula de emisiones.
 ```
 
 ### Comando para Recalcular Datos Existentes
@@ -186,18 +199,30 @@ python manage.py recalcular_kwh
   4. Distribución de Costos - barras
 
 ### Oportunidades de Mejora (Reducción Energética)
+
+**Sistema 1: Reducción por Fuente Energética (% global)**
 - `auditorias/models.py` - `FuenteEnergiaBase`:
   - `porcentaje_reduccion` - Meta de reducción (%) por energético
   - `get_ahorro_energia_potencial()` - Calcula kWh ahorrables
   - `get_ahorro_costo_potencial()` - Calcula COP ahorrables
   - `get_ahorro_emisiones_potencial()` - Calcula TonCO2 evitables
 - `gestion/views.py` - `guardar_reduccion()` - Guarda % de reducción via AJAX
-- `templates/gestion/proyecto_detalle.html`:
-  - Panel de comparación visual (Consumo Actual → Consumo Proyectado)
-  - 3 KPI boxes (ahorro kWh, COP, TonCO2)
-  - Gráfico de barras horizontales por fuente energética
-  - Tabla con % reducción y ahorros calculados
-  - Modal para editar % de reducción
+
+**Sistema 2: OPM - Oportunidades de Mejora Individuales**
+- `auditorias/models.py` - `OportunidadMejora`:
+  - Campos: `codigo`, `descripcion`, `energetico` (choices), `ahorro_energia` (kWh/año), `costos_evitados` (MCOP/año), `emisiones_evitadas` (TonCO2/año)
+  - Financieros: `inversion` (COP), `vpn` (COP), `tir` (%), `payback` (meses)
+  - `observaciones` (TextField)
+- `gestion/views.py` - CRUD: `crear_oportunidad()`, `editar_oportunidad()`, `eliminar_oportunidad()`
+- `auditorias/forms.py` - `OportunidadMejoraForm` (excluye proyecto, created_at)
+
+**UI en proyecto_detalle.html:**
+- Panel de comparación visual (Consumo Actual → Consumo Proyectado)
+- 3 KPI boxes (ahorro kWh, COP, TonCO2)
+- Gráfico de barras horizontales por fuente energética
+- Tabla con % reducción y ahorros calculados
+- Modal para editar % de reducción
+- Tabla OPM con CRUD inline
 
 ### Dashboards y BI
 - `metricas/views.py` - `dashboard_estrategico()` - BI con filtros por estado/fecha
@@ -208,9 +233,15 @@ python manage.py recalcular_kwh
 - `templates/gestion/informe_pdf.html` - Template del informe
 
 ### Sitio Público
+- `web/models.py` - `Noticia`: titulo, slug (unique), imagen_portada, resumen, contenido, autor (FK→Usuario), fecha_publicacion, publicada
 - `web/views.py` - Vistas públicas (home, nosotros, centros, biblioteca, resultados)
-- `templates/web/centros.html` - Modals con gráficos Chart.js por centro
-- `templates/web/resultados.html` - Hero section con glassmorphism + filtros + exportar CSV/PDF
+- `templates/web/centros.html` - Modals con gráficos Chart.js por centro (estados, evolución temporal)
+- `templates/web/resultados.html` - Hero section con glassmorphism + filtros + exportar CSV/PDF + mapa Leaflet/Carto
+
+### Mapa Interactivo (Resultados Públicos)
+- `web/views.py` - `resultados()` genera `centros_mapa_json` con lat/lng/nombre/color por centro
+- Tiles: `*.basemaps.cartocdn.com` (CSP configurado en img-src)
+- Filtros: año, región, sector productivo
 
 ### Auto-asignación de Líder de Proyecto
 - `gestion/views.py` - `crear_proyecto()`:
@@ -244,22 +275,46 @@ python manage.py recalcular_kwh
 /app/proyectos/<id>/informe/pdf/       → generar_informe_pdf
 
 # Oportunidades de Mejora
-/app/proyectos/<id>/reduccion/         → guardar_reduccion (AJAX)
+/app/proyectos/<id>/reduccion/                       → guardar_reduccion (AJAX)
+/app/proyectos/<id>/oportunidades/nueva/             → crear_oportunidad
+/app/proyectos/<id>/oportunidades/<opm_id>/editar/   → editar_oportunidad
+/app/proyectos/<id>/oportunidades/<opm_id>/eliminar/ → eliminar_oportunidad
 
 # Gestión administrativa
 /app/empresas/                       → lista_empresas
 /app/empresas/nueva/                 → crear_empresa
+/app/empresas/<id>/editar/           → editar_empresa
 /app/equipo/                         → lista_usuarios
 /app/equipo/nuevo/                   → crear_usuario
 /app/equipo/<id>/editar/             → editar_usuario
+/app/equipo/<id>/eliminar/           → eliminar_usuario
 
 # Métricas BI (solo directivos)
 /app/metricas/estrategico/           → dashboard_estrategico
 /app/metricas/nacional/              → dashboard_nacional
 
-# Super Admin
-/app/control/                        → control_panel
-/admin/                              → Django Admin
+# Super Admin - Control Panel
+/app/control/                              → control_panel
+/app/control/centros/                      → control_centros_lista
+/app/control/centros/nuevo/                → control_centro_crear
+/app/control/centros/<id>/editar/          → control_centro_editar
+/app/control/centros/<id>/eliminar/        → control_centro_eliminar
+/app/control/usuarios/                     → control_usuarios_lista
+/app/control/usuarios/nuevo/               → control_usuario_crear
+/app/control/usuarios/<id>/editar/         → control_usuario_editar
+/app/control/usuarios/<id>/eliminar/       → control_usuario_eliminar
+/app/control/noticias/                     → control_noticias_lista
+/app/control/noticias/nueva/               → control_noticia_crear
+/app/control/noticias/<id>/editar/         → control_noticia_editar
+/app/control/noticias/<id>/eliminar/       → control_noticia_eliminar
+/admin/                                    → Django Admin
+
+# ==================== AUTENTICACIÓN ====================
+
+/accounts/password_reset/                  → password_reset_form
+/accounts/password_reset/done/             → password_reset_done
+/accounts/reset/<uidb64>/<token>/          → password_reset_confirm
+/accounts/reset/done/                      → password_reset_complete
 
 # ==================== SITIO PÚBLICO ====================
 
@@ -316,23 +371,39 @@ TRANSICIONES_VALIDAS = {
 
 El sistema implementa CSP para prevenir ataques XSS. Configurado en `config/middleware.py`.
 
-**Fuentes externas autorizadas:**
-| Dominio | Uso | Directiva |
-|---------|-----|-----------|
-| `cdn.jsdelivr.net` | Bootstrap CSS/JS, Icons, Chart.js | script-src, style-src, font-src |
-| `cdnjs.cloudflare.com` | Anime.js (animaciones sitio público) | script-src, style-src |
-| `fonts.googleapis.com` | Hojas de estilo Google Fonts | style-src |
-| `fonts.gstatic.com` | Archivos de fuentes (woff2) | font-src |
-| `vadomdata.s3.amazonaws.com` | Archivos estáticos/media en producción | img-src |
+**Directivas CSP completas:**
+
+| Directiva | Fuentes |
+|-----------|---------|
+| `script-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net`, `cdnjs.cloudflare.com` |
+| `style-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net`, `cdnjs.cloudflare.com`, `fonts.googleapis.com` |
+| `font-src` | `'self'`, `fonts.gstatic.com`, `cdn.jsdelivr.net` |
+| `img-src` | `'self'`, `data:`, `vadomdata.s3.amazonaws.com`, `p4.wallpaperbetter.com`, `wallpapers.com`, `img.freepik.com`, `lirp.cdn-website.com`, `*.basemaps.cartocdn.com` |
+| `connect-src` | `'self'`, `cdn.jsdelivr.net` |
+| `frame-ancestors` | `'none'` |
+| `form-action` | `'self'` |
+| `base-uri` | `'self'` |
+| `object-src` | `'none'` |
+
+**Fuentes externas por uso:**
+| Dominio | Uso |
+|---------|-----|
+| `cdn.jsdelivr.net` | Bootstrap CSS/JS, Icons, Chart.js |
+| `cdnjs.cloudflare.com` | Anime.js (animaciones sitio público) |
+| `fonts.googleapis.com` / `fonts.gstatic.com` | Google Fonts (Inter) |
+| `vadomdata.s3.amazonaws.com` | S3 producción (estáticos/media) |
+| `p4.wallpaperbetter.com`, `wallpapers.com`, `img.freepik.com` | Imágenes hero landing |
+| `lirp.cdn-website.com` | Imágenes sección landing |
+| `*.basemaps.cartocdn.com` | Tiles del mapa (resultados públicos) |
 
 **Headers de seguridad adicionales:**
 - `X-Content-Type-Options: nosniff` - Previene MIME sniffing
 - `X-Frame-Options: DENY` - Previene clickjacking
 - `Referrer-Policy: strict-origin-when-cross-origin` - Control de referrer
 
-**Si agregas una nueva librería externa:**
+**Si agregas una nueva librería externa o imagen externa:**
 1. Editar `config/middleware.py`
-2. Agregar el dominio a la directiva correspondiente (script-src, style-src, etc.)
+2. Agregar el dominio a la directiva correspondiente (script-src, style-src, img-src, etc.)
 3. Actualizar esta documentación
 
 ---
@@ -410,7 +481,7 @@ sudo chown www-data:www-data /opt/sistema_pevi/logs/*.log
 |-----|---------|-----|
 | Energía Total | Σ(kWh eléctricos + kWh térmicos) | Dashboard, matriz |
 | IDES | Energía_Total / Producción_Total | Desempeño energético |
-| Emisiones | Σ(consumo_orig × factor_emisión) / 1000 | Huella de carbono (TonCO2) |
+| Emisiones | Σ(emisiones_totales) por fuente (entrada manual) | Huella de carbono (TonCO2) |
 | Costo Normalizado | Costo_Total / Energía_kWh | Comparativas ($/kWh) |
 | Ahorro Potencial kWh | Σ(kWh × %reducción) / 100 | Oportunidades de mejora |
 | Ahorro Potencial COP | Σ(costo_anual × %reducción) / 100 | Impacto económico |
@@ -422,7 +493,9 @@ sudo chown www-data:www-data /opt/sistema_pevi/logs/*.log
 
 - **Framework CSS:** Bootstrap 5.3.0 (CDN)
 - **Iconos:** Bootstrap Icons 1.11.0
-- **Gráficas:** Chart.js 4.4.1 (dona con porcentajes, barras)
+- **Gráficas:** Chart.js 4.4.1 (dona con porcentajes, barras, barras horizontales)
+- **Animaciones:** Anime.js (scroll animations, counters, stagger en sitio público)
+- **Mapas:** Leaflet + Carto tiles (página de resultados públicos)
 - **Fuente:** Inter (Google Fonts)
 - **Templates:** Django Template Language (Jinja2-like)
 
@@ -453,11 +526,25 @@ sudo chown www-data:www-data /opt/sistema_pevi/logs/*.log
 ```bash
 # Desarrollo
 DEBUG=True
+DB_NAME=pevi_db
+DB_USER=postgres
+DB_PASSWORD=Naranja123
+DB_HOST=localhost
+DB_PORT=5432
 
 # Producción
 DEBUG=False
 S3_CLIENT_PREFIX=pevi
 # Credenciales AWS via IAM Role del EC2
+```
+
+### Email SMTP
+```python
+EMAIL_HOST = 'mail.vadomdata.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'info@vadomdata.com'  # Configurable via .env
+DEFAULT_FROM_EMAIL = 'PEVI Colombia <info@vadomdata.com>'
 ```
 
 ---
@@ -528,6 +615,53 @@ python manage.py recalcular_kwh            # Aplicar corrección
 - Configurado `MESSAGE_TAGS` en settings.py para Bootstrap
 - Block de mensajes en `templates/layouts/base.html`
 - Usar `messages.success()`, `messages.error()`, etc. en vistas
+
+### Transferencia de Liderazgo de Proyecto
+- `editar_proyecto()` implementa patrón de doble-POST para profesores
+- Primer POST: detecta cambio de líder → muestra advertencia + `confirmar_cambio_lider=True`
+- Segundo POST: requiere `confirmar_cambio_lider` en POST data para aplicar
+- No usa token/timestamp, si el usuario navega entre POSTs se pierde la confirmación
+
+### Control Panel (Superadmin)
+- Protegido por `@solo_superadmin` (verifica `is_superuser`, no rol)
+- CRUD completo para: CentroPevi, Usuario (con password + is_superuser), Noticia
+- Forms especializados: `CentroPeviForm` (23 campos), `UsuarioAdminForm`, `NoticiaAdminForm`
+- Templates en `templates/control/` (7 archivos)
+
+### Herencia de Modelos Energéticos
+```
+FuenteEnergiaBase (abstract)
+├── Electricidad (concreto) - consumo directo en kWh
+└── CombustibleBase (abstract) - conversión automática en save()
+    ├── GasNatural
+    ├── CarbonMineral
+    ├── FuelOil
+    ├── Biomasa (campo extra: tipo)
+    └── GasPropano
+```
+- `related_name="%(class)s_related"` genera: electricidad_related, gasnatural_related, etc.
+- Acceso polimórfico: `hasattr(fuente, 'consumo_anual_kwh')` vs `consumo_anual` (Electricidad)
+
+### CentroPevi - Campos Detallados
+Modelo con 23+ campos organizados en secciones:
+- **Identificación:** nombre, nombre_corto (siglas), codigo_interno, activo
+- **Branding:** logo, imagen_portada, color_primario (hex)
+- **Ubicación:** region, ciudad, direccion, latitud, longitud (para mapa)
+- **Contacto:** email_contacto, telefono, sitio_web
+- **Redes:** linkedin, twitter, instagram
+- **Director:** director_nombre, director_cargo, director_foto, director_email
+- **Métricas:** estudiantes_formados, año_vinculacion
+- **Properties:** proyectos_count, proyectos_finalizados_count, empresas_atendidas_count
+
+### Decoradores de Acceso
+| Decorador | Roles Permitidos | Uso |
+|-----------|-----------------|-----|
+| `@acceso_staff` | Todos (EST, PROF, DIR_C, DIR_N) | Acceso general app |
+| `@solo_lideres` | PROF, DIR_C, DIR_N | Crear proyectos/empresas |
+| `@solo_directivos` | DIR_C, DIR_N | Gestionar usuarios |
+| `@solo_superadmin` | is_superuser=True | Control panel |
+
+> Todos permiten superuser automáticamente (God Mode)
 
 ---
 
