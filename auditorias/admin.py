@@ -6,7 +6,8 @@ from .models import (
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
-    list_display = ('razon_social', 'nit', 'sector_productivo', 'ciudad')
+    list_display = ('razon_social', 'nit', 'sector_productivo', 'ciudad', 'centro')
+    list_filter = ('centro',)
     search_fields = ('razon_social', 'nit')
 
 @admin.register(ProyectoAuditoria)
