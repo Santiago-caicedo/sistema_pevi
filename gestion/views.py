@@ -535,11 +535,19 @@ def crear_proyecto(request):
             # SEGURIDAD: Validaciones previas al guardado (antes de la transacción)
             es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
 
-            # Validar líder del mismo centro
+            # Validar aislamiento de centro
             if not es_nacional:
                 ctx_error = {'form': form, 'titulo': 'Nuevo Proyecto',
                              'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
                              'equipo_actual': json.dumps([])}
+
+                # Bloquear empresa de otro centro
+                empresa = form.cleaned_data.get('empresa')
+                if empresa and empresa.centro != request.user.centro_pevi:
+                    log_acceso_denegado(request, 'Proyecto (nuevo)', 'Intento de usar empresa de otro centro')
+                    messages.error(request, "No puede crear un proyecto con una empresa de otro centro.")
+                    return render(request, 'gestion/proyecto_form.html', ctx_error)
+
                 lider = form.cleaned_data.get('lider_proyecto')
                 if lider and lider.centro_pevi != request.user.centro_pevi:
                     messages.error(request, "No puede asignar un líder de otro centro.")
@@ -561,11 +569,14 @@ def crear_proyecto(request):
                 if request.user.rol == 'PROFESOR' and not proyecto.lider_proyecto:
                     proyecto.lider_proyecto = request.user
 
-                # Asignar centro del creador
+                # SEGURIDAD: Forzar centro del creador (SIEMPRE, no negociable)
                 if request.user.centro_pevi:
                     proyecto.centro = request.user.centro_pevi
-                elif not proyecto.centro_id and not request.user.is_superuser:
-                    raise PermissionDenied("Error de asignación de Centro. Contacte soporte.")
+                elif es_nacional and not request.user.centro_pevi:
+                    # Nacional sin centro: heredar centro de la empresa seleccionada
+                    proyecto.centro = form.cleaned_data['empresa'].centro
+                else:
+                    raise PermissionDenied("No tiene centro asignado. Contacte soporte.")
 
                 proyecto.save()
                 form.save_m2m()  # Guardar equipo
@@ -610,11 +621,19 @@ def editar_proyecto(request, proyecto_id):
     if request.method == 'POST':
         form = ProyectoForm(request.POST, instance=proyecto, user=request.user)
         if form.is_valid():
-            # VALIDACIÓN DE AISLAMIENTO: Verificar que líder y equipo sean del mismo centro
+            # VALIDACIÓN DE AISLAMIENTO: Verificar centro, líder y equipo
             if not es_nacional:
                 ctx_error = {'form': form, 'titulo': 'Editar Proyecto',
                              'usuarios_por_rol': json.dumps(_get_usuarios_por_rol(request.user)),
                              'equipo_actual': json.dumps(list(proyecto.equipo.values_list('id', flat=True)))}
+
+                # Bloquear si la empresa seleccionada es de otro centro
+                empresa = form.cleaned_data.get('empresa')
+                if empresa and empresa.centro != request.user.centro_pevi:
+                    log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Intento de asignar empresa de otro centro')
+                    messages.error(request, "No puede asignar una empresa de otro centro.")
+                    return render(request, 'gestion/proyecto_form.html', ctx_error)
+
                 lider = form.cleaned_data.get('lider_proyecto')
                 if lider and lider.centro_pevi != request.user.centro_pevi:
                     messages.error(request, "No puede asignar un líder de otro centro.")
@@ -647,7 +666,11 @@ def editar_proyecto(request, proyecto_id):
 
             # TRANSACCIÓN ATÓMICA: Garantiza consistencia
             with transaction.atomic():
-                form.save()  # save() ya guarda relaciones M2M automáticamente
+                proyecto_editado = form.save(commit=False)
+                # SEGURIDAD: El centro del proyecto NUNCA cambia después de creado
+                proyecto_editado.centro = proyecto.centro
+                proyecto_editado.save()
+                form.save_m2m()
 
             log_editar(request, 'Proyecto', proyecto)
             messages.success(request, "Proyecto actualizado.")

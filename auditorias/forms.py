@@ -114,34 +114,53 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
                 )
 
     def clean(self):
-        """Valida consistencia de centro entre empresa, líder y equipo."""
+        """Valida consistencia de centro entre empresa, líder y equipo (TODOS los roles)."""
         cleaned_data = super().clean()
         empresa = cleaned_data.get('empresa')
         lider = cleaned_data.get('lider_proyecto')
         equipo = cleaned_data.get('equipo')
 
-        # Solo validar para Nacional/Superuser (los demás ya están filtrados)
-        if hasattr(self, '_user') and self._user:
-            if self._user.is_superuser or self._user.rol == 'DIRECTOR_NACIONAL':
-                if empresa:
-                    centro_empresa = empresa.centro
+        if not hasattr(self, '_user') or not self._user:
+            return cleaned_data
 
-                    # Validar que el líder sea del mismo centro que la empresa
-                    if lider and lider.centro_pevi and centro_empresa:
-                        if lider.centro_pevi != centro_empresa:
-                            self.add_error('lider_proyecto',
-                                f"El líder pertenece a {lider.centro_pevi.nombre_corto or lider.centro_pevi.nombre}, "
-                                f"pero la empresa es de {centro_empresa.nombre_corto or centro_empresa.nombre}.")
+        user = self._user
+        es_nacional = user.is_superuser or user.rol == 'DIRECTOR_NACIONAL'
 
-                    # Validar que el equipo sea del mismo centro que la empresa
-                    if equipo and centro_empresa:
-                        for miembro in equipo:
-                            if miembro.centro_pevi and miembro.centro_pevi != centro_empresa:
-                                self.add_error('equipo',
-                                    f"{miembro.get_full_name()} pertenece a otro centro.")
-                                break
+        # Para usuarios de centro: TODO debe pertenecer a su centro
+        if not es_nacional and user.centro_pevi:
+            if empresa and empresa.centro and empresa.centro != user.centro_pevi:
+                self.add_error('empresa',
+                    "No puede seleccionar una empresa de otro centro.")
 
-        return cleaned_data 
+            if lider and lider.centro_pevi and lider.centro_pevi != user.centro_pevi:
+                self.add_error('lider_proyecto',
+                    "No puede asignar un líder de otro centro.")
+
+            if equipo:
+                for miembro in equipo:
+                    if miembro.centro_pevi and miembro.centro_pevi != user.centro_pevi:
+                        self.add_error('equipo',
+                            f"{miembro.get_full_name()} no pertenece a su centro.")
+                        break
+
+        # Para Nacionales: validar consistencia interna (empresa ↔ líder ↔ equipo)
+        if es_nacional and empresa:
+            centro_empresa = empresa.centro
+
+            if lider and lider.centro_pevi and centro_empresa:
+                if lider.centro_pevi != centro_empresa:
+                    self.add_error('lider_proyecto',
+                        f"El líder pertenece a {lider.centro_pevi.nombre_corto or lider.centro_pevi.nombre}, "
+                        f"pero la empresa es de {centro_empresa.nombre_corto or centro_empresa.nombre}.")
+
+            if equipo and centro_empresa:
+                for miembro in equipo:
+                    if miembro.centro_pevi and miembro.centro_pevi != centro_empresa:
+                        self.add_error('equipo',
+                            f"{miembro.get_full_name()} pertenece a otro centro.")
+                        break
+
+        return cleaned_data
 
 class ProduccionForm(EstiloBootstrapMixin, forms.ModelForm):
     class Meta:
