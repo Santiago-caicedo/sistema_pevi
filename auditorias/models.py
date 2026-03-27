@@ -99,6 +99,24 @@ class ProyectoAuditoria(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.empresa_id and self.centro_id:
+            if self.empresa.centro_id != self.centro_id:
+                raise ValidationError({
+                    'empresa': 'El centro del proyecto debe coincidir con el centro de la empresa.'
+                })
+
+    def save(self, *args, **kwargs):
+        # Última línea de defensa: impedir guardado inconsistente
+        if self.empresa_id and self.centro_id:
+            if self.empresa.centro_id != self.centro_id:
+                raise ValueError(
+                    f'Inconsistencia de centro bloqueada: proyecto apunta a '
+                    f'"{self.centro}" pero la empresa es de "{self.empresa.centro}".'
+                )
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.nombre_proyecto} - {self.empresa.razon_social}"
     
