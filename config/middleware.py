@@ -32,21 +32,23 @@ class ContentSecurityPolicyMiddleware:
 
         # Dominios autorizados por tipo de recurso
         self.csp_directives = {
-            # Scripts: solo de estos CDNs y del propio servidor
+            # Scripts: solo de estos CDNs, S3 (admin en producción) y del propio servidor
             'script-src': [
                 "'self'",
                 "'unsafe-inline'",  # Requerido para scripts inline en templates
                 "cdn.jsdelivr.net",
                 "cdnjs.cloudflare.com",
+                "vadomdata.s3.amazonaws.com",
             ],
 
-            # Estilos: CDNs + Google Fonts + inline (Bootstrap usa estilos inline)
+            # Estilos: CDNs + Google Fonts + S3 (admin en producción) + inline
             'style-src': [
                 "'self'",
                 "'unsafe-inline'",  # Requerido para estilos inline en templates
                 "cdn.jsdelivr.net",
                 "cdnjs.cloudflare.com",
                 "fonts.googleapis.com",
+                "vadomdata.s3.amazonaws.com",
             ],
 
             # Fuentes: Google Fonts + Bootstrap Icons
