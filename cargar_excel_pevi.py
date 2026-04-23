@@ -365,14 +365,14 @@ def fase_cleanup(rep, dry_run):
             rep.log(f'  - también moviendo proyecto id={p.id}: {p.nombre_proyecto}', 'info')
 
         if not dry_run:
-            # Atomic: empresa + sus proyectos en una sola transacción
+            # Atomic: empresa + proyectos via .update() (raw SQL) para brincar
+            # la validación de save() del modelo ProyectoAuditoria que exige
+            # consistencia centro_proyecto == centro_empresa en todo momento.
+            # Como ambas filas se actualizan en la misma transacción, queda
+            # consistente al final.
             with transaction.atomic():
-                # Actualizar primero los proyectos para no chocar con el constraint
-                for p in proyectos:
-                    p.centro = nuevo_centro
-                    p.save()
-                e.centro = nuevo_centro
-                e.save()
+                ProyectoAuditoria.objects.filter(empresa_id=e.id).update(centro_id=nuevo_centro.id)
+                Empresa.objects.filter(id=e.id).update(centro_id=nuevo_centro.id)
         rep.count('empresas_movidas')
 
 
