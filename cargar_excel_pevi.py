@@ -541,102 +541,117 @@ def aplicar_carga(rep, plan, dry_run):
             continue
 
         r = item['excel_row']
-        excel_centro_str = r[META_COLS['centro']]
         excel_empresa_nombre = r[META_COLS['empresa']]
-        excel_sector = r[META_COLS['sector']] or 'Sin clasificar'
-        excel_lider = r[META_COLS['lider']]
-        excel_año = r[META_COLS['año']]
-        excel_fase = r[META_COLS['fase']]
-        excel_coment = r[META_COLS['comentarios']]
-        excel_prod = to_float(r[META_COLS['produccion']])
-        excel_unidad = r[META_COLS['unidad_produccion']] or 'unidades'
 
-        centro = centros_db[MAPEO_CENTROS_EXCEL[excel_centro_str]]
-
-        # ========== EMPRESA ==========
-        empresa = None
-        if item['accion'] == 'reusar_empresa':
-            empresa = Empresa.objects.filter(id=item['empresa_id']).first()
-            if empresa:
-                rep.log(f'[{excel_empresa_nombre}] usar empresa existente id={empresa.id}', 'ok')
+        # Cada fila corre en su propio savepoint: si falla, rollback solo de
+        # esta fila y se sigue con las demás (no envenena la transacción)
+        if dry_run:
+            _procesar_fila(rep, item, r, centros_db, profesor_map, dry_run=True)
         else:
-            # Crear empresa con NIT temporal único
-            nit_temp = f'TMP-{normalizar(excel_empresa_nombre).replace(" ", "")[:20]}'
-            base_nit = nit_temp
-            i = 0
-            while Empresa.objects.filter(nit=nit_temp).exists():
-                i += 1
-                nit_temp = f'{base_nit}-{i}'
-            rep.log(f'[{excel_empresa_nombre}] CREAR empresa nueva en {centro.nombre_corto} (NIT temporal: {nit_temp})', 'ok')
-            if not dry_run:
-                empresa = Empresa.objects.create(
-                    centro=centro,
-                    razon_social=excel_empresa_nombre[:200],
-                    nit=nit_temp[:20],
-                    sector_productivo=str(excel_sector)[:100],
-                    direccion=(centro.ciudad or 'Sin dirección')[:255],
-                    ciudad=(centro.ciudad or 'Sin ciudad')[:100],
-                    contacto_nombre='Sin contacto',
-                    contacto_email=f'sincontacto@{PLACEHOLDER_DOMAIN}',
-                    contacto_telefono='N/A',
-                )
-                rep.count('empresas_creadas')
-
-        if empresa is None and not dry_run:
-            rep.log(f'   No se pudo resolver empresa, fila omitida', 'err')
-            continue
-
-        # ========== LIDER ==========
-        lider = None
-        if excel_lider and str(excel_lider).strip() not in ('-', ''):
-            lider = profesor_map.get(normalizar(str(excel_lider)))
-            if not lider:
-                rep.log(f'   Líder "{excel_lider}" no encontrado — proyecto sin líder', 'warn')
-
-        # ========== PROYECTO (reutilizar por (empresa, año)) ==========
-        proy = None
-        if empresa is not None:
-            proy = ProyectoAuditoria.objects.filter(
-                empresa=empresa, fecha_inicio__year=int(excel_año)
-            ).first()
-        elif item['accion'] == 'reusar_empresa':
-            proy = ProyectoAuditoria.objects.filter(
-                empresa_id=item['empresa_id'], fecha_inicio__year=int(excel_año)
-            ).first()
-
-        if proy:
-            rep.log(f'   Reusar proyecto existente id={proy.id}: "{proy.nombre_proyecto[:60]}"', 'ok')
-            rep.count('proyectos_reusados')
-        else:
-            nombre_proy = f'Auditoría Energética {excel_año} - {excel_empresa_nombre}'[:200]
-            estado = estado_desde_comentario(excel_coment)
             try:
-                fase_db = FASE_EXCEL_TO_DB.get(int(excel_fase)) if excel_fase else None
-            except (ValueError, TypeError):
-                fase_db = None
-            rep.log(f'   CREAR proyecto "{nombre_proy[:60]}" (fase={fase_db}, estado={estado})', 'ok')
-            if not dry_run and empresa:
-                proy = ProyectoAuditoria.objects.create(
-                    centro=centro,
-                    empresa=empresa,
-                    lider_proyecto=lider,
-                    nombre_proyecto=nombre_proy,
-                    fecha_inicio=date(int(excel_año), 1, 1),
-                    estado=estado,
-                    fase=fase_db,
-                    produccion_total=excel_prod,
-                    unidad_produccion=str(excel_unidad)[:50],
-                )
-                rep.count('proyectos_creados')
+                with transaction.atomic():
+                    _procesar_fila(rep, item, r, centros_db, profesor_map, dry_run=False)
+            except Exception as ex:
+                rep.log(f'[{excel_empresa_nombre}] X FILA OMITIDA: {type(ex).__name__}: {ex}', 'err')
+                rep.count('filas_con_error')
 
-        # ========== FUENTES ENERGÉTICAS ==========
-        if proy and not dry_run:
-            cargar_fuentes(rep, proy, r)
-        elif dry_run:
-            # En dry-run solo reportamos qué fuentes se cargarían
-            for nombre, _, _, idx_check in FUENTES_DEF:
-                if to_float(r[idx_check]) > 0:
-                    rep.log(f'      → cargaría fuente {nombre}', 'info')
+
+def _procesar_fila(rep, item, r, centros_db, profesor_map, dry_run):
+    """Procesa una fila del Excel: empresa + proyecto + fuentes. Idempotente."""
+    excel_centro_str = r[META_COLS['centro']]
+    excel_empresa_nombre = r[META_COLS['empresa']]
+    excel_sector = r[META_COLS['sector']] or 'Sin clasificar'
+    excel_lider = r[META_COLS['lider']]
+    excel_año = r[META_COLS['año']]
+    excel_fase = r[META_COLS['fase']]
+    excel_coment = r[META_COLS['comentarios']]
+    excel_prod = to_float(r[META_COLS['produccion']])
+    excel_unidad = r[META_COLS['unidad_produccion']] or 'unidades'
+
+    centro = centros_db[MAPEO_CENTROS_EXCEL[excel_centro_str]]
+
+    # ========== EMPRESA ==========
+    empresa = None
+    if item['accion'] == 'reusar_empresa':
+        empresa = Empresa.objects.filter(id=item['empresa_id']).first()
+        if empresa:
+            rep.log(f'[{excel_empresa_nombre}] usar empresa existente id={empresa.id}', 'ok')
+    else:
+        # Crear empresa con NIT temporal único
+        nit_temp = f'TMP-{normalizar(excel_empresa_nombre).replace(" ", "")[:16]}'
+        base_nit = nit_temp[:20]
+        i = 0
+        while Empresa.objects.filter(nit=nit_temp).exists():
+            i += 1
+            nit_temp = f'{base_nit[:18]}-{i}'
+        rep.log(f'[{excel_empresa_nombre}] CREAR empresa nueva en {centro.nombre_corto} (NIT temporal: {nit_temp})', 'ok')
+        if not dry_run:
+            empresa = Empresa.objects.create(
+                centro=centro,
+                razon_social=excel_empresa_nombre[:200],
+                nit=nit_temp[:20],
+                sector_productivo=str(excel_sector)[:100],
+                direccion=(centro.ciudad or 'Sin dirección')[:255],
+                ciudad=(centro.ciudad or 'Sin ciudad')[:100],
+                contacto_nombre='Sin contacto',
+                contacto_email=f'sincontacto@{PLACEHOLDER_DOMAIN}',
+                contacto_telefono='N/A',
+            )
+            rep.count('empresas_creadas')
+
+    if empresa is None and not dry_run:
+        raise RuntimeError('No se pudo resolver empresa')
+
+    # ========== LIDER ==========
+    lider = None
+    if excel_lider and str(excel_lider).strip() not in ('-', ''):
+        lider = profesor_map.get(normalizar(str(excel_lider)))
+        if not lider:
+            rep.log(f'   Líder "{excel_lider}" no encontrado — proyecto sin líder', 'warn')
+
+    # ========== PROYECTO (reutilizar por (empresa, año)) ==========
+    proy = None
+    if empresa is not None:
+        proy = ProyectoAuditoria.objects.filter(
+            empresa=empresa, fecha_inicio__year=int(excel_año)
+        ).first()
+    elif item['accion'] == 'reusar_empresa':
+        proy = ProyectoAuditoria.objects.filter(
+            empresa_id=item['empresa_id'], fecha_inicio__year=int(excel_año)
+        ).first()
+
+    if proy:
+        rep.log(f'   Reusar proyecto existente id={proy.id}: "{proy.nombre_proyecto[:60]}"', 'ok')
+        rep.count('proyectos_reusados')
+    else:
+        nombre_proy = f'Auditoría Energética {excel_año} - {excel_empresa_nombre}'[:200]
+        estado = estado_desde_comentario(excel_coment)
+        try:
+            fase_db = FASE_EXCEL_TO_DB.get(int(excel_fase)) if excel_fase else None
+        except (ValueError, TypeError):
+            fase_db = None
+        rep.log(f'   CREAR proyecto "{nombre_proy[:60]}" (fase={fase_db}, estado={estado})', 'ok')
+        if not dry_run and empresa:
+            proy = ProyectoAuditoria.objects.create(
+                centro=centro,
+                empresa=empresa,
+                lider_proyecto=lider,
+                nombre_proyecto=nombre_proy,
+                fecha_inicio=date(int(excel_año), 1, 1),
+                estado=estado,
+                fase=fase_db,
+                produccion_total=excel_prod,
+                unidad_produccion=str(excel_unidad)[:50],
+            )
+            rep.count('proyectos_creados')
+
+    # ========== FUENTES ENERGÉTICAS ==========
+    if proy and not dry_run:
+        cargar_fuentes(rep, proy, r)
+    elif dry_run:
+        for nombre, _, _, idx_check in FUENTES_DEF:
+            if to_float(r[idx_check]) > 0:
+                rep.log(f'      → cargaría fuente {nombre}', 'info')
 
 
 def cargar_fuentes(rep, proy, r):
@@ -663,11 +678,12 @@ def cargar_fuentes(rep, proy, r):
             kwargs['porcentaje_reduccion'] = to_float(r[pct_idx]) * 100
 
         try:
-            model_cls.objects.create(**kwargs)
+            with transaction.atomic():
+                model_cls.objects.create(**kwargs)
             rep.log(f'      + {nombre_fuente} cargada (consumo={consumo})', 'ok')
             rep.count(f'fuentes_{nombre_fuente}')
         except Exception as ex:
-            rep.log(f'      X ERROR cargando {nombre_fuente}: {ex}', 'err')
+            rep.log(f'      X ERROR cargando {nombre_fuente}: {type(ex).__name__}: {ex}', 'err')
             rep.count('fuentes_errores')
 
 
@@ -744,14 +760,13 @@ def main():
                 rep.save('plan_carga.txt')
                 return 0
 
+        # NOTA: ya NO envolvemos en transaction.atomic() global. Cada fila
+        # corre con su propio savepoint dentro de aplicar_carga(). Si una falla,
+        # solo esa hace rollback y las demás siguen.
         try:
-            if dry_run:
-                aplicar_carga(rep, plan, dry_run=True)
-            else:
-                with transaction.atomic():
-                    aplicar_carga(rep, plan, dry_run=False)
+            aplicar_carga(rep, plan, dry_run=dry_run)
         except Exception as e:
-            rep.log(f'Error en carga: {e}', 'err')
+            rep.log(f'Error inesperado en carga: {e}', 'err')
             rep.log(traceback.format_exc(), 'err')
             rep.save('log_aplicacion.txt')
             return 1
