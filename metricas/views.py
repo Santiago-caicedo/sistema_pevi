@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
+from django.core.paginator import Paginator
 
 # Modelos
 from auditorias.models import ProyectoAuditoria
@@ -201,7 +202,17 @@ def dashboard_estrategico(request):
         lista_proyectos_dropdown = lista_proyectos_dropdown.filter(lider_proyecto_id=filtro_lider)
 
     # ---------------------------------------------------------
-    # 6. CONTEXTO FINAL (RETURN)
+    # 6. PAGINACIÓN DE TABLA
+    # ---------------------------------------------------------
+    tabla_paginator = Paginator(tabla_proyectos, 15)
+    tabla_page_number = request.GET.get('page')
+    tabla_page_obj = tabla_paginator.get_page(tabla_page_number)
+    params = request.GET.copy()
+    params.pop('page', None)
+    params_sin_page = params.urlencode()
+
+    # ---------------------------------------------------------
+    # 7. CONTEXTO FINAL (RETURN)
     # ---------------------------------------------------------
     context = {
         'page_title': "Dashboard de Ingeniería",
@@ -229,8 +240,10 @@ def dashboard_estrategico(request):
         'kpi_elec_kwh': int(global_kwh_electrico),
         'kpi_term_mbtu': round(mbtu_term, 2),
 
-        # Tabla Detallada
-        'tabla_proyectos': tabla_proyectos,
+        # Tabla Detallada (paginada)
+        'tabla_proyectos': tabla_page_obj,
+        'page_obj': tabla_page_obj,
+        'params_sin_page': params_sin_page,
 
         # JSON Charts (Serializados para JavaScript)
         'chart_labels': json.dumps(chart_labels),
@@ -377,6 +390,12 @@ def dashboard_nacional(request):
         FACTOR_MBTU = 0.00341214
         data_mbtu = [round(global_kwh_electrico * FACTOR_MBTU, 2), round(global_kwh_termico * FACTOR_MBTU, 2)]
 
+        # Paginación de la tabla de proyectos
+        tabla_paginator = Paginator(tabla_proyectos, 15)
+        tabla_page_obj = tabla_paginator.get_page(request.GET.get('page'))
+        params = request.GET.copy()
+        params.pop('page', None)
+
         # Actualizar Contexto con Datos de Detalle
         context.update({
             'kpi_proyectos': len(tabla_proyectos),
@@ -385,7 +404,9 @@ def dashboard_nacional(request):
             'kpi_emisiones': int(global_emisiones_total),
             'kpi_elec_kwh': int(global_kwh_electrico),
             'kpi_term_mbtu': round(global_kwh_termico * FACTOR_MBTU, 2),
-            'tabla_proyectos': tabla_proyectos,
+            'tabla_proyectos': tabla_page_obj,
+            'page_obj': tabla_page_obj,
+            'params_sin_page': params.urlencode(),
             'chart_labels': json.dumps(chart_labels),
             'chart_data_energia': json.dumps(data_kwh),
             'chart_data_costos': json.dumps(data_costo),

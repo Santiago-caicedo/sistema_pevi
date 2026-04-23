@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.db.models import Sum, Q
 from django.db import transaction
 from django.utils import timezone
+from django.core.paginator import Paginator
 
 # Librería PDF
 from weasyprint import HTML
@@ -62,6 +63,17 @@ def breadcrumb_equipo():
 def breadcrumb_control():
     """Retorna el breadcrumb del panel de control."""
     return {'label': 'Panel de Control', 'url': reverse('control_panel')}
+
+def paginar(request, queryset, por_pagina=15):
+    """Pagina un queryset y retorna (page_obj, params_sin_page)."""
+    paginator = Paginator(queryset, por_pagina)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    # Construir query string sin 'page' para conservar filtros en links de paginación
+    params = request.GET.copy()
+    params.pop('page', None)
+    params_sin_page = params.urlencode()
+    return page_obj, params_sin_page
 
 # Mapa de configuración para la Bitácora de Energía
 # Define qué formulario, título y lógica física usa cada tipo
@@ -275,9 +287,14 @@ def lista_proyectos(request):
     if filtro_centro and es_vista_nacional:
         proyectos = proyectos.filter(centro_id=filtro_centro)
 
-    # 3. CONTEXTO
+    # 3. PAGINACIÓN
+    page_obj, params_sin_page = paginar(request, proyectos.order_by('-updated_at'), 15)
+
+    # 4. CONTEXTO
     context = {
-        'proyectos': proyectos.order_by('-updated_at'),
+        'proyectos': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'page_subtitle': titulo_vista,
         'opciones_centros': opciones_centros,
         'opciones_lideres': opciones_lideres,
@@ -316,8 +333,12 @@ def lista_empresas(request):
     else:
         empresas = Empresa.objects.none()
 
+    page_obj, params_sin_page = paginar(request, empresas, 15)
+
     context = {
-        'empresas': empresas,
+        'empresas': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'breadcrumbs': [
             breadcrumb_home(),
             {'label': 'Empresas'},
@@ -401,8 +422,12 @@ def lista_usuarios(request):
         if user.centro_pevi:
             usuarios = Usuario.objects.filter(centro_pevi=user.centro_pevi).order_by('first_name')
 
+    page_obj, params_sin_page = paginar(request, usuarios, 15)
+
     context = {
-        'usuarios': usuarios,
+        'usuarios': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'breadcrumbs': [
             breadcrumb_home(),
             {'label': 'Equipo'},
@@ -1384,8 +1409,11 @@ def control_panel(request):
 def control_centros_lista(request):
     """Lista todos los Centros PEVI."""
     centros = CentroPevi.objects.all().order_by('nombre')
+    page_obj, params_sin_page = paginar(request, centros, 15)
     context = {
-        'centros': centros,
+        'centros': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_control(),
@@ -1473,8 +1501,11 @@ def control_centro_eliminar(request, centro_id):
 def control_usuarios_lista(request):
     """Lista todos los usuarios del sistema."""
     usuarios = Usuario.objects.select_related('centro_pevi').order_by('-date_joined')
+    page_obj, params_sin_page = paginar(request, usuarios, 15)
     context = {
-        'usuarios': usuarios,
+        'usuarios': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_control(),
@@ -1575,8 +1606,11 @@ def control_usuario_eliminar(request, usuario_id):
 def control_noticias_lista(request):
     """Lista todas las noticias."""
     noticias = Noticia.objects.order_by('-fecha_publicacion')
+    page_obj, params_sin_page = paginar(request, noticias, 15)
     context = {
-        'noticias': noticias,
+        'noticias': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_control(),

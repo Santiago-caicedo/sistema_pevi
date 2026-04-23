@@ -21,7 +21,9 @@
       "Bash(pip3 install:*)",
       "Bash(pip install:*)",
       "Bash(iconv -f UTF-16 -t UTF-8 /mnt/c/Users/ASUS/documents/sistema_pevi/requirements.txt)",
-      "Bash(grep -E \"\\\\.py$\")"
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(grep:*)",
+      "Read(//tmp/**)"
     ]
   }
 }
