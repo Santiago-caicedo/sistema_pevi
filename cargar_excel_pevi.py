@@ -142,6 +142,9 @@ COLS_GAS_NATURAL = [
     ('costo_mensual_promedio',  20),
     ('costo_total_anual',       21),
     ('poder_calorifico',        22),
+    ('consumo_mensual_kwh',     23),  # col 24: Consumo mensual (kWh.GN/mes)
+    ('consumo_anual_kwh',       24),  # col 25: Consumo anual (kWh.GN/año)
+    ('costo_kwh_equivalente',   25),  # col 26: $COP/kWh.GN
     ('factor_emision',          26),
     ('emisiones_totales',       27),
 ]
@@ -153,6 +156,9 @@ COLS_CARBON = [
     ('costo_mensual_promedio',  31),
     ('costo_total_anual',       32),
     ('poder_calorifico',        33),
+    ('consumo_mensual_kwh',     34),  # col 35
+    ('consumo_anual_kwh',       35),  # col 36
+    ('costo_kwh_equivalente',   36),  # col 37
     ('factor_emision',          37),
     ('emisiones_totales',       38),
 ]
@@ -164,6 +170,9 @@ COLS_FUELOIL = [
     ('costo_mensual_promedio',  42),
     ('costo_total_anual',       43),
     ('poder_calorifico',        44),
+    ('consumo_mensual_kwh',     45),  # col 46
+    ('consumo_anual_kwh',       46),  # col 47
+    ('costo_kwh_equivalente',   47),  # col 48
     ('factor_emision',          48),
     ('emisiones_totales',       49),
 ]
@@ -175,6 +184,9 @@ COLS_BIOMASA = [
     ('costo_mensual_promedio',  53),
     ('costo_total_anual',       54),
     ('poder_calorifico',        55),
+    ('consumo_mensual_kwh',     56),  # col 57
+    ('consumo_anual_kwh',       57),  # col 58
+    ('costo_kwh_equivalente',   58),  # col 59
     ('factor_emision',          59),
     ('emisiones_totales',       60),
 ]
@@ -186,6 +198,9 @@ COLS_GLP = [
     ('costo_mensual_promedio',  64),
     ('costo_total_anual',       65),
     ('poder_calorifico',        66),
+    ('consumo_mensual_kwh',     67),  # col 68
+    ('consumo_anual_kwh',       68),  # col 69
+    ('costo_kwh_equivalente',   69),  # col 70
     ('factor_emision',          70),
     ('emisiones_totales',       71),
 ]
