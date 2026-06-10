@@ -15,7 +15,7 @@ from weasyprint import HTML
 import tempfile
 
 # Modelos y Formularios del Sistema
-from .models import CentroPevi, Usuario
+from .models import CentroPevi, Usuario, SolicitudUsuario
 from .forms import UsuarioForm, UsuarioEditarForm
 from auditorias.models import ProyectoAuditoria, Empresa, OportunidadMejora
 from auditorias.forms import (
@@ -74,6 +74,39 @@ def paginar(request, queryset, por_pagina=15):
     params.pop('page', None)
     params_sin_page = params.urlencode()
     return page_obj, params_sin_page
+
+
+# ==============================================================================
+#  FORMULARIO PÚBLICO: SOLICITUD DE ACCESO (sin login)
+# ==============================================================================
+
+def solicitar_usuario(request):
+    """
+    Formulario público donde los centros registran sus solicitudes de cuenta.
+    Reemplaza el antiguo formulario de Google. No crea usuarios: solo guarda
+    una SolicitudUsuario en estado PENDIENTE para revisión en el panel.
+    """
+    from .forms import SolicitudUsuarioForm
+
+    enviado = False
+    if request.method == 'POST':
+        form = SolicitudUsuarioForm(request.POST)
+        if form.is_valid():
+            solicitud = form.save(commit=False)
+            solicitud.estado = SolicitudUsuario.ESTADO_PENDIENTE
+            solicitud.save()
+            log_crear(request, 'SolicitudUsuario', solicitud,
+                      f"Solicitud pública - Centro: {solicitud.centro_pevi.nombre}")
+            enviado = True
+            form = SolicitudUsuarioForm()  # limpiar para nueva entrada
+    else:
+        form = SolicitudUsuarioForm()
+
+    return render(request, 'web/solicitud_acceso.html', {
+        'form': form,
+        'enviado': enviado,
+    })
+
 
 # Mapa de configuración para la Bitácora de Energía
 # Define qué formulario, título y lógica física usa cada tipo
@@ -1388,6 +1421,7 @@ def control_panel(request):
         'total_noticias': Noticia.objects.count(),
         'total_proyectos': ProyectoAuditoria.objects.count(),
         'total_empresas': Empresa.objects.count(),
+        'solicitudes_pendientes': SolicitudUsuario.objects.filter(estado=SolicitudUsuario.ESTADO_PENDIENTE).count(),
 
         # Últimos registros
         'ultimos_centros': CentroPevi.objects.order_by('-id')[:5],
@@ -1519,8 +1553,18 @@ def control_usuarios_lista(request):
 @login_required
 @solo_superadmin
 def control_usuario_crear(request):
-    """Crea un nuevo usuario con rol y centro asignados."""
+    """
+    Crea un nuevo usuario con rol y centro asignados.
+    Si recibe ?solicitud=<id> (o el hidden 'solicitud_id' en POST), pre-llena los
+    datos desde una SolicitudUsuario y, al guardar, la marca como APROBADA.
+    """
     from .forms import UsuarioAdminForm
+
+    # Solicitud asociada (si se está aprobando una)
+    solicitud_id = request.POST.get('solicitud_id') or request.GET.get('solicitud')
+    solicitud = None
+    if solicitud_id:
+        solicitud = SolicitudUsuario.objects.filter(id=solicitud_id).first()
 
     if request.method == 'POST':
         form = UsuarioAdminForm(request.POST)
@@ -1534,15 +1578,36 @@ def control_usuario_crear(request):
                 usuario.is_staff = False
             usuario.save()
             log_crear(request, 'Usuario', usuario, f"Creado desde panel admin. Rol: {usuario.get_rol_display()}")
+
+            # Si proviene de una solicitud pendiente, marcarla como aprobada
+            if solicitud and solicitud.estado == SolicitudUsuario.ESTADO_PENDIENTE:
+                solicitud.estado = SolicitudUsuario.ESTADO_APROBADA
+                solicitud.procesada_por = request.user
+                solicitud.fecha_procesada = timezone.now()
+                solicitud.usuario_creado = usuario
+                solicitud.save()
+
             messages.success(request, f"Usuario '{usuario.username}' creado exitosamente.")
             return redirect('control_usuarios_lista')
     else:
-        form = UsuarioAdminForm()
+        initial = {}
+        if solicitud:
+            initial = {
+                'first_name': solicitud.nombres,
+                'last_name': solicitud.apellidos,
+                'email': solicitud.email,
+                'centro_pevi': solicitud.centro_pevi_id,
+                'rol': solicitud.rol_solicitado,
+                'cargo': solicitud.cargo,
+                'is_active': True,
+            }
+        form = UsuarioAdminForm(initial=initial)
 
     return render(request, 'control/usuario_form.html', {
         'form': form,
-        'titulo': 'Crear Usuario',
-        'accion': 'Crear'
+        'titulo': 'Crear Usuario' if not solicitud else f'Crear Usuario · Solicitud de {solicitud.nombre_completo}',
+        'accion': 'Crear',
+        'solicitud': solicitud,
     })
 
 
@@ -1702,3 +1767,50 @@ def control_noticia_eliminar(request, noticia_id):
         'nombre': noticia.titulo,
         'url_cancelar': 'control_noticias_lista'
     })
+
+
+# --- SOLICITUDES DE USUARIO (formulario público) ---
+
+@login_required
+@solo_superadmin
+def control_solicitudes_lista(request):
+    """Lista las solicitudes de usuario enviadas desde el formulario público."""
+    estado = request.GET.get('estado', SolicitudUsuario.ESTADO_PENDIENTE)
+
+    solicitudes = SolicitudUsuario.objects.select_related('centro_pevi', 'usuario_creado', 'procesada_por')
+    if estado in dict(SolicitudUsuario.ESTADOS):
+        solicitudes = solicitudes.filter(estado=estado)
+
+    page_obj, params_sin_page = paginar(request, solicitudes, 15)
+    context = {
+        'solicitudes': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
+        'filtro_estado': estado,
+        'estados': SolicitudUsuario.ESTADOS,
+        'count_pendientes': SolicitudUsuario.objects.filter(estado=SolicitudUsuario.ESTADO_PENDIENTE).count(),
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_control(),
+            {'label': 'Solicitudes'},
+        ],
+    }
+    return render(request, 'control/solicitudes_lista.html', context)
+
+
+@login_required
+@solo_superadmin
+def control_solicitud_rechazar(request, solicitud_id):
+    """Marca una solicitud como rechazada (solo POST, confirmado desde la lista)."""
+    solicitud = get_object_or_404(SolicitudUsuario, id=solicitud_id)
+
+    if request.method == 'POST':
+        solicitud.estado = SolicitudUsuario.ESTADO_RECHAZADA
+        solicitud.procesada_por = request.user
+        solicitud.fecha_procesada = timezone.now()
+        solicitud.nota_revision = request.POST.get('nota', '')[:255]
+        solicitud.save()
+        log_editar(request, 'SolicitudUsuario', solicitud, 'Solicitud rechazada')
+        messages.success(request, f"Solicitud de {solicitud.nombre_completo} rechazada.")
+
+    return redirect('control_solicitudes_lista')

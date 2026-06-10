@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Usuario, CentroPevi, RegistroActividad
+from .models import Usuario, CentroPevi, RegistroActividad, SolicitudUsuario
 
 # 1. Registrar Centro PEVI
 @admin.register(CentroPevi)
@@ -109,3 +109,14 @@ class RegistroActividadAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Solo superusuarios pueden eliminar logs."""
         return request.user.is_superuser
+
+
+# 4. Solicitudes de Usuario (formulario público)
+@admin.register(SolicitudUsuario)
+class SolicitudUsuarioAdmin(admin.ModelAdmin):
+    list_display = ('nombre_completo', 'email', 'centro_pevi', 'rol_solicitado', 'estado', 'fecha_solicitud', 'usuario_creado')
+    list_filter = ('estado', 'centro_pevi', 'rol_solicitado')
+    search_fields = ('nombres', 'apellidos', 'email')
+    date_hierarchy = 'fecha_solicitud'
+    readonly_fields = ('fecha_solicitud', 'procesada_por', 'fecha_procesada', 'usuario_creado')
+    ordering = ['-fecha_solicitud']

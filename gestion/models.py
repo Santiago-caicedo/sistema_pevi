@@ -244,3 +244,62 @@ class RegistroActividad(models.Model):
     def __str__(self):
         usuario_str = self.usuario.username if self.usuario else self.username_intento or 'Anónimo'
         return f"[{self.timestamp:%Y-%m-%d %H:%M}] {usuario_str} - {self.get_accion_display()}"
+
+
+class SolicitudUsuario(models.Model):
+    """
+    Solicitud de creación de cuenta enviada por un centro PEVI mediante el
+    formulario público. El Coordinador/superadmin la revisa en el panel de
+    control y crea (o rechaza) el usuario correspondiente.
+    """
+
+    # Roles que un centro puede solicitar (NO permite Director ni Coordinador)
+    ROLES_SOLICITABLES = [
+        (Usuario.ROL_PROFESOR, 'Profesor Líder de Proyecto'),
+        (Usuario.ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
+    ]
+
+    ESTADO_PENDIENTE = 'PENDIENTE'
+    ESTADO_APROBADA = 'APROBADA'
+    ESTADO_RECHAZADA = 'RECHAZADA'
+    ESTADOS = [
+        (ESTADO_PENDIENTE, 'Pendiente'),
+        (ESTADO_APROBADA, 'Aprobada'),
+        (ESTADO_RECHAZADA, 'Rechazada'),
+    ]
+
+    # Datos del solicitante
+    nombres = models.CharField(max_length=100)
+    apellidos = models.CharField(max_length=100)
+    email = models.EmailField()
+    centro_pevi = models.ForeignKey(CentroPevi, on_delete=models.PROTECT, related_name='solicitudes')
+    rol_solicitado = models.CharField(max_length=30, choices=ROLES_SOLICITABLES, default=Usuario.ROL_ESTUDIANTE)
+    cargo = models.CharField(max_length=100, blank=True)
+    telefono = models.CharField(max_length=30, blank=True)
+    justificacion = models.TextField(blank=True, help_text="Motivo o contexto de la solicitud")
+
+    # Estado / procesamiento
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE, db_index=True)
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    procesada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='solicitudes_procesadas'
+    )
+    fecha_procesada = models.DateTimeField(null=True, blank=True)
+    usuario_creado = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='solicitud_origen'
+    )
+    nota_revision = models.CharField(max_length=255, blank=True, help_text="Nota interna (ej: motivo de rechazo)")
+
+    class Meta:
+        verbose_name = "Solicitud de Usuario"
+        verbose_name_plural = "Solicitudes de Usuario"
+        ordering = ['-fecha_solicitud']
+
+    def __str__(self):
+        return f"{self.nombres} {self.apellidos} ({self.get_estado_display()})"
+
+    @property
+    def nombre_completo(self):
+        return f"{self.nombres} {self.apellidos}".strip()

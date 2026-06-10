@@ -7,7 +7,10 @@ from gestion.views import (
     # Panel de Control Superadmin
     control_panel, control_centros_lista, control_centro_crear, control_centro_editar, control_centro_eliminar,
     control_usuarios_lista, control_usuario_crear, control_usuario_editar, control_usuario_eliminar,
-    control_noticias_lista, control_noticia_crear, control_noticia_editar, control_noticia_eliminar
+    control_noticias_lista, control_noticia_crear, control_noticia_editar, control_noticia_eliminar,
+    control_solicitudes_lista, control_solicitud_rechazar,
+    # Formulario público de solicitud de acceso
+    solicitar_usuario,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -88,6 +91,15 @@ urlpatterns = [
     path('app/control/noticias/nueva/', control_noticia_crear, name='control_noticia_crear'),
     path('app/control/noticias/<int:noticia_id>/editar/', control_noticia_editar, name='control_noticia_editar'),
     path('app/control/noticias/<int:noticia_id>/eliminar/', control_noticia_eliminar, name='control_noticia_eliminar'),
+
+    # --- Solicitudes de acceso (revisión) ---
+    path('app/control/solicitudes/', control_solicitudes_lista, name='control_solicitudes_lista'),
+    path('app/control/solicitudes/<int:solicitud_id>/rechazar/', control_solicitud_rechazar, name='control_solicitud_rechazar'),
+
+    # ===========================================================================
+    # FORMULARIO PÚBLICO DE SOLICITUD DE ACCESO (sin login)
+    # ===========================================================================
+    path('solicitar-acceso/', solicitar_usuario, name='solicitar_usuario'),
 ]
 
 # Serving de archivos estáticos y media en desarrollo local

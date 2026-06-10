@@ -30,7 +30,9 @@
       "Bash(./venv/Scripts/python.exe -c \"import django; print\\('win-venv django', django.get_version\\(\\)\\)\")",
       "Bash(./venv/Scripts/python.exe -c ' *)",
       "Bash(./venv/Scripts/python.exe -m py_compile gestion/views.py gestion/forms.py gestion/models.py gestion/decorators.py auditorias/forms.py metricas/views.py)",
-      "Bash(./venv/Scripts/python.exe _verif_coordinador.py)"
+      "Bash(./venv/Scripts/python.exe _verif_coordinador.py)",
+      "Bash(./venv/Scripts/python.exe _verif_filtros.py)",
+      "Bash(./venv/Scripts/python.exe _verif_solicitudes.py)"
     ]
   }
 }

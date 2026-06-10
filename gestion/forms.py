@@ -227,3 +227,59 @@ class NoticiaAdminForm(EstiloBootstrapMixin, forms.ModelForm):
         help_texts = {
             'slug': 'URL amigable. Ej: nueva-alianza-upme',
         }
+
+
+# ==============================================================================
+#  FORMULARIO PÚBLICO: SOLICITUD DE USUARIO (sin login)
+# ==============================================================================
+
+from .models import SolicitudUsuario
+
+
+class SolicitudUsuarioForm(EstiloBootstrapMixin, forms.ModelForm):
+    """
+    Formulario público para que los centros soliciten la creación de cuentas.
+    Solo permite solicitar Profesor o Estudiante y exige elegir un centro activo.
+    Incluye un honeypot anti-spam ('website') que debe quedar vacío.
+    """
+
+    # Honeypot: oculto vía CSS; si un bot lo llena, descartamos la solicitud.
+    website = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={'autocomplete': 'off', 'tabindex': '-1'})
+    )
+
+    class Meta:
+        model = SolicitudUsuario
+        fields = ['nombres', 'apellidos', 'email', 'centro_pevi',
+                  'rol_solicitado', 'cargo', 'telefono', 'justificacion']
+        widgets = {
+            'justificacion': forms.Textarea(attrs={'rows': 3}),
+        }
+        labels = {
+            'centro_pevi': 'Centro PEVI al que perteneces',
+            'rol_solicitado': 'Rol solicitado',
+            'justificacion': 'Justificación / comentarios (opcional)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Solo centros activos
+        self.fields['centro_pevi'].queryset = CentroPevi.objects.filter(activo=True).order_by('nombre')
+        # Blindaje: limitar choices a Profesor/Estudiante (anti-tamper en UI)
+        self.fields['rol_solicitado'].choices = SolicitudUsuario.ROLES_SOLICITABLES
+        # Campos obligatorios
+        for f in ['nombres', 'apellidos', 'email', 'centro_pevi', 'rol_solicitado']:
+            self.fields[f].required = True
+
+    def clean_website(self):
+        # Honeypot: si viene con contenido, es spam.
+        if self.cleaned_data.get('website'):
+            raise ValidationError("Solicitud inválida.")
+        return ''
+
+    def clean_rol_solicitado(self):
+        rol = self.cleaned_data.get('rol_solicitado')
+        permitidos = [c[0] for c in SolicitudUsuario.ROLES_SOLICITABLES]
+        if rol not in permitidos:
+            raise ValidationError("Rol no permitido para solicitud.")
+        return rol

@@ -1,0 +1,118 @@
+{% extends 'layouts/base_public.html' %}
+{% load static %}
+
+{% block title %}Solicitar Acceso | PEVI Colombia{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Honeypot anti-spam: oculto para humanos */
+    .hp-field { position: absolute; left: -9999px; top: -9999px; height: 0; overflow: hidden; }
+    .solicitud-hero { background: radial-gradient(circle at 15% 20%, #1e293b 0%, #0f172a 90%); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="solicitud-hero py-5">
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center text-white">
+                <span class="badge border border-light rounded-pill px-3 py-2 mb-3 bg-white bg-opacity-10 text-uppercase">Programa PEVI</span>
+                <h1 class="fw-bold display-6 mb-2">Solicitud de Acceso</h1>
+                <p class="lead text-white-50 mb-0">Completa este formulario para que el coordinador del programa cree tu cuenta en la plataforma.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                {% if enviado %}
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-5 text-center">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:80px;height:80px;">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size:2.5rem;"></i>
+                        </div>
+                        <h4 class="fw-bold mb-2">¡Solicitud enviada!</h4>
+                        <p class="text-muted mb-0">Tu solicitud quedó registrada. El coordinador la revisará y creará tu cuenta. Recibirás tus credenciales por el canal habitual de tu centro.</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4 p-md-5">
+                        <h5 class="fw-bold mb-1">Datos del solicitante</h5>
+                        <p class="text-muted small mb-4">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+
+                            {# Honeypot anti-spam: debe quedar vacío #}
+                            <div class="hp-field" aria-hidden="true">
+                                <label>No llenar este campo</label>
+                                {{ form.website }}
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.nombres.id_for_label }}">Nombres <span class="text-danger">*</span></label>
+                                    {{ form.nombres }}
+                                    {% for e in form.nombres.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.apellidos.id_for_label }}">Apellidos <span class="text-danger">*</span></label>
+                                    {{ form.apellidos }}
+                                    {% for e in form.apellidos.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.email.id_for_label }}">Correo electrónico <span class="text-danger">*</span></label>
+                                    {{ form.email }}
+                                    {% for e in form.email.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.telefono.id_for_label }}">Teléfono</label>
+                                    {{ form.telefono }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.centro_pevi.id_for_label }}">Centro PEVI <span class="text-danger">*</span></label>
+                                    {{ form.centro_pevi }}
+                                    {% for e in form.centro_pevi.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium" for="{{ form.rol_solicitado.id_for_label }}">Rol solicitado <span class="text-danger">*</span></label>
+                                    {{ form.rol_solicitado }}
+                                    {% for e in form.rol_solicitado.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-medium" for="{{ form.cargo.id_for_label }}">Cargo / función</label>
+                                    {{ form.cargo }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-medium" for="{{ form.justificacion.id_for_label }}">Justificación / comentarios</label>
+                                    {{ form.justificacion }}
+                                </div>
+                            </div>
+
+                            <div class="d-grid d-md-flex justify-content-md-end mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5">
+                                    <i class="bi bi-send me-2"></i>Enviar solicitud
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <p class="text-center text-muted small mt-3">
+                    ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión aquí</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
