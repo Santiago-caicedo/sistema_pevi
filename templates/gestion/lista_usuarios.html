@@ -50,6 +50,8 @@
                             <span class="badge bg-soft-primary text-primary border border-primary-subtle mb-1">Director</span>
                         {% elif u.rol == 'DIRECTOR_NACIONAL' %}
                             <span class="badge bg-dark text-white border mb-1">Director Nacional</span>
+                        {% elif u.rol == 'COORDINADOR' %}
+                            <span class="badge bg-danger text-white border mb-1">Coordinador General</span>
                         {% elif u.rol == 'PROFESOR' %}
                             <span class="badge bg-soft-info text-info border border-info-subtle mb-1">Profesor Líder</span>
                         {% else %}

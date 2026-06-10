@@ -120,7 +120,7 @@ def verificar_acceso_proyecto(user, proyecto):
     """
     Helper de Seguridad: Valida si un usuario tiene derecho a ver/editar un proyecto específico.
     """
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         return True
     if user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == user.centro_pevi:
         return True
@@ -151,15 +151,16 @@ def dashboard(request):
 
     # 2. FILTRADO POR ROL Y CONTEXTO (Lógica Jerárquica)
 
-    # CASO A: Director Nacional con Centro Asignado (Ej: César Acevedo)
+    # CASO A: Nacional o Coordinador con Centro Asignado (patrón híbrido)
     # Prioridad: Mostrar operación de su Centro en el día a día.
-    if user.rol == 'DIRECTOR_NACIONAL' and user.centro_pevi:
+    if user.rol in ('DIRECTOR_NACIONAL', 'COORDINADOR') and user.centro_pevi:
         proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-        rol_label = f"Director Nacional / Centro {user.centro_pevi.nombre}"
+        etiqueta_rol = "Coordinación" if user.rol == 'COORDINADOR' else "Director Nacional"
+        rol_label = f"{etiqueta_rol} / Centro {user.centro_pevi.nombre}"
 
-    # CASO B: Superadmin o Director Nacional "Puro" (Sin centro específico)
+    # CASO B: Superadmin o Nacional "Puro" (Sin centro específico)
     # Prioridad: Visión de Dios (Todo el país)
-    elif user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    elif user.es_nacional:
         proyectos = ProyectoAuditoria.objects.all()
         rol_label = "Administración Nacional Consolidada"
 
@@ -201,7 +202,7 @@ def dashboard(request):
 
         # Flags para definir qué diseño mostrar (Ejecutivo vs Operativo)
         # Nota: Nacionales y Directores ven el diseño Ejecutivo (Tarjetas de colores)
-        'es_directivo': user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'] or user.is_superuser,
+        'es_directivo': user.es_directivo,
         'es_operativo': user.rol in ['PROFESOR', 'ESTUDIANTE'],
 
         # Breadcrumbs (Dashboard es la raíz, no necesita navegación)
@@ -229,7 +230,7 @@ def lista_proyectos(request):
     # 1. DEFINICIÓN DE PERMISOS (SCOPE)
     
     # CASO A: Es Nacional (Puro o Híbrido) -> VE TODO
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         proyectos = ProyectoAuditoria.objects.select_related('empresa', 'centro', 'lider_proyecto').all()
         
         opciones_centros = CentroPevi.objects.filter(activo=True).order_by('nombre')
@@ -326,7 +327,7 @@ def lista_empresas(request):
     user = request.user
 
     # AISLAMIENTO DE CENTROS: Cada centro solo ve sus empresas
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         empresas = Empresa.objects.all().order_by('razon_social')
     elif user.centro_pevi:
         empresas = Empresa.objects.filter(centro=user.centro_pevi).order_by('razon_social')
@@ -381,7 +382,7 @@ def editar_empresa(request, empresa_id):
     empresa = get_object_or_404(Empresa, id=empresa_id)
 
     # Validar acceso: Solo puede editar si es del mismo centro, nacional o superadmin
-    if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+    if not request.user.es_nacional:
         if empresa.centro != request.user.centro_pevi:
             log_acceso_denegado(request, f'Empresa {empresa_id}', 'Empresa de otro centro')
             raise PermissionDenied("No tienes permiso para editar esta empresa.")
@@ -415,7 +416,7 @@ def lista_usuarios(request):
     user = request.user
     usuarios = Usuario.objects.none()
 
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         usuarios = Usuario.objects.all().order_by('first_name')
     else:
         # Director de Centro solo ve su propia gente
@@ -476,14 +477,14 @@ def editar_usuario(request, usuario_id):
     target_user = get_object_or_404(Usuario, id=usuario_id)
 
     # Seguridad cruzada
-    if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+    if not request.user.es_nacional:
         # Validar mismo centro
         if target_user.centro_pevi != request.user.centro_pevi:
             log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
             raise PermissionDenied("No puedes editar personal de otro centro.")
 
-        # SEGURIDAD: Un Director de Centro NO puede editar a otro Director o superior
-        if target_user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL']:
+        # SEGURIDAD: Un Director de Centro NO puede editar a otro Director, Coordinador o superior
+        if target_user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR']:
             log_escalada_bloqueada(request, f'Editar usuario con rol {target_user.rol}')
             raise PermissionDenied("No puedes editar a usuarios con rol de Director o superior.")
 
@@ -514,7 +515,7 @@ def editar_usuario(request, usuario_id):
 def eliminar_usuario(request, usuario_id):
     target_user = get_object_or_404(Usuario, id=usuario_id)
     
-    if not request.user.is_superuser and request.user.rol != 'DIRECTOR_NACIONAL':
+    if not request.user.es_nacional:
         if target_user.centro_pevi != request.user.centro_pevi:
             log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
             raise PermissionDenied("No tienes permiso para eliminar este usuario.")
@@ -536,7 +537,7 @@ def eliminar_usuario(request, usuario_id):
 
 def _get_usuarios_por_rol(user):
     """Agrupa usuarios del centro por rol para el selector de equipo."""
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         qs = Usuario.objects.all()
     else:
         qs = Usuario.objects.filter(centro_pevi=user.centro_pevi)
@@ -558,7 +559,7 @@ def crear_proyecto(request):
         form = ProyectoForm(request.POST, user=request.user)
         if form.is_valid():
             # SEGURIDAD: Validaciones previas al guardado (antes de la transacción)
-            es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
+            es_nacional = request.user.es_nacional
 
             # Validar aislamiento de centro
             if not es_nacional:
@@ -637,7 +638,7 @@ def editar_proyecto(request, proyecto_id):
     # Validar propiedad
     es_propietario = (proyecto.lider_proyecto == request.user)
     es_director_suyo = (request.user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == request.user.centro_pevi)
-    es_nacional = request.user.is_superuser or request.user.rol == 'DIRECTOR_NACIONAL'
+    es_nacional = request.user.es_nacional
 
     if not (es_propietario or es_director_suyo or es_nacional):
         log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'No es propietario ni director')
@@ -1526,6 +1527,11 @@ def control_usuario_crear(request):
         if form.is_valid():
             usuario = form.save(commit=False)
             usuario.set_password(form.cleaned_data['password'])
+            # SEGURIDAD: Solo un superusuario real puede otorgar God-mode técnico.
+            # Un Coordinador con acceso al panel NO puede crear superusuarios/staff.
+            if not request.user.is_superuser:
+                usuario.is_superuser = False
+                usuario.is_staff = False
             usuario.save()
             log_crear(request, 'Usuario', usuario, f"Creado desde panel admin. Rol: {usuario.get_rol_display()}")
             messages.success(request, f"Usuario '{usuario.username}' creado exitosamente.")
@@ -1547,6 +1553,8 @@ def control_usuario_editar(request, usuario_id):
     from .forms import UsuarioAdminEditForm
 
     usuario = get_object_or_404(Usuario, id=usuario_id)
+    # SEGURIDAD: flags técnicos originales (para que un no-superusuario no los altere)
+    flags_originales = (usuario.is_superuser, usuario.is_staff)
 
     if request.method == 'POST':
         form = UsuarioAdminEditForm(request.POST, instance=usuario)
@@ -1556,6 +1564,9 @@ def control_usuario_editar(request, usuario_id):
             nueva_password = form.cleaned_data.get('nueva_password')
             if nueva_password:
                 usuario.set_password(nueva_password)
+            # Solo un superusuario real puede cambiar is_superuser / is_staff.
+            if not request.user.is_superuser:
+                usuario.is_superuser, usuario.is_staff = flags_originales
             usuario.save()
             log_editar(request, 'Usuario', usuario, 'Editado desde panel admin')
             messages.success(request, f"Usuario '{usuario.username}' actualizado.")

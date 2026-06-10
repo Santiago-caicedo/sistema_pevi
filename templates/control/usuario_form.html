@@ -130,6 +130,7 @@
                         <small class="text-muted">Desactivar para bloquear el acceso sin eliminar.</small>
                     </div>
 
+                    {% if user.is_superuser %}
                     <div class="mb-3">
                         <div class="form-check form-switch">
                             {{ form.is_staff }}
@@ -149,6 +150,11 @@
                         </div>
                         <small class="text-danger">CUIDADO: Acceso total al sistema.</small>
                     </div>
+                    {% else %}
+                    {# Coordinador: no puede otorgar God-mode técnico; los flags van ocultos en False #}
+                    <input type="hidden" name="is_staff" value="">
+                    <input type="hidden" name="is_superuser" value="">
+                    {% endif %}
 
                     <hr>
 

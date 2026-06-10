@@ -28,7 +28,7 @@ def dashboard_estrategico(request):
     # ---------------------------------------------------------
     # 1. DEFINICIÓN DEL ALCANCE (SCOPE DE SEGURIDAD)
     # ---------------------------------------------------------
-    if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
+    if user.es_nacional:
         # Ve todos los proyectos a nivel nacional
         qs = ProyectoAuditoria.objects.select_related('empresa', 'lider_proyecto', 'centro').all()
         titulo_scope = "Consolidado Nacional"
@@ -194,7 +194,7 @@ def dashboard_estrategico(request):
     else:
         # Base: Todo el país
         lista_proyectos_dropdown = ProyectoAuditoria.objects.all()
-        lista_lideres_dropdown = Usuario.objects.filter(rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL'])
+        lista_lideres_dropdown = Usuario.objects.filter(rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])
 
     # B. FILTRO EN CASCADA (Dependent Dropdown Logic)
     # Si hay un líder seleccionado, la lista de proyectos se reduce SOLO a los de ese líder
@@ -268,7 +268,7 @@ def dashboard_nacional(request):
     user = request.user
     
     # 1. SEGURIDAD ESTRICTA
-    if not (user.is_superuser or user.rol == 'DIRECTOR_NACIONAL'):
+    if not user.es_nacional:
         raise PermissionDenied("Acceso exclusivo a Dirección Nacional.")
 
     # 2. SELECTOR DE CENTROS

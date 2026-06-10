@@ -30,7 +30,7 @@ class UsuarioForm(EstiloBootstrapMixin, UserCreationForm):
         
         # LÓGICA DE JERARQUÍA DE ROLES
         if self.creator:
-            if self.creator.is_superuser or self.creator.rol == Usuario.ROL_NACIONAL:
+            if self.creator.es_nacional:
                 # Dios o Nacional: Pueden crear CUALQUIER rol
                 pass 
             elif self.creator.rol == Usuario.ROL_DIRECTOR:
@@ -71,7 +71,7 @@ class UsuarioEditarForm(EstiloBootstrapMixin, forms.ModelForm):
         
         # Misma lógica de restricción que al crear
         if self.creator:
-            if self.creator.is_superuser or self.creator.rol == Usuario.ROL_NACIONAL:
+            if self.creator.es_nacional:
                 pass
             elif self.creator.rol == Usuario.ROL_DIRECTOR:
                 self.fields['rol'].choices = [

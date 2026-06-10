@@ -98,12 +98,14 @@ class Usuario(AbstractUser):
     ROL_PROFESOR = 'PROFESOR'
     ROL_DIRECTOR = 'DIRECTOR_CENTRO'
     ROL_NACIONAL = 'DIRECTOR_NACIONAL' # Director PEVI Líder (Ve todo)
-    
+    ROL_COORDINADOR = 'COORDINADOR' # Coordinador General: admin del panel + anclado a un centro
+
     ROLES_CHOICES = [
         (ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
         (ROL_PROFESOR, 'Profesor Líder de Proyecto'),
         (ROL_DIRECTOR, 'Director de Centro PEVI'),
         (ROL_NACIONAL, 'Director Nacional (Líder PEVI)'),
+        (ROL_COORDINADOR, 'Coordinador General'),
     ]
 
     centro_pevi = models.ForeignKey(CentroPevi, on_delete=models.PROTECT, null=True, blank=True)
@@ -113,29 +115,37 @@ class Usuario(AbstractUser):
     # Helper properties para usar en los templates fácilmente
     @property
     def es_nacional(self):
-        """Es líder nacional o superusuario."""
-        return self.rol == self.ROL_NACIONAL or self.is_superuser
+        """Ve todo el país: líder nacional, coordinador general o superusuario."""
+        return self.rol in (self.ROL_NACIONAL, self.ROL_COORDINADOR) or self.is_superuser
 
     @property
     def es_director_centro(self):
         """
         Devuelve True si:
         1. Su rol es explícitamente Director de Centro.
-        2. O SI ES NACIONAL pero tiene un centro asignado (Caso César Acevedo).
+        2. O SI ES NACIONAL/COORDINADOR pero tiene un centro asignado (patrón híbrido).
         """
         es_director_puro = (self.rol == self.ROL_DIRECTOR)
-        es_nacional_con_centro = (self.rol == self.ROL_NACIONAL and self.centro_pevi is not None)
-        
-        return es_director_puro or es_nacional_con_centro or self.is_superuser
+        es_hibrido_con_centro = (
+            self.rol in (self.ROL_NACIONAL, self.ROL_COORDINADOR)
+            and self.centro_pevi is not None
+        )
+
+        return es_director_puro or es_hibrido_con_centro or self.is_superuser
 
     @property
     def es_profesor(self):
         return self.rol == self.ROL_PROFESOR
-    
+
     @property
     def es_directivo(self):
-        """Devuelve True si el usuario tiene capacidad de gestión (Director o Nacional)."""
-        return self.rol in [self.ROL_DIRECTOR, self.ROL_NACIONAL] or self.is_superuser
+        """Devuelve True si el usuario tiene capacidad de gestión (Director, Nacional o Coordinador)."""
+        return self.rol in [self.ROL_DIRECTOR, self.ROL_NACIONAL, self.ROL_COORDINADOR] or self.is_superuser
+
+    @property
+    def puede_panel_control(self):
+        """Acceso al Panel de Control de la app (no al /admin/ de Django)."""
+        return self.is_superuser or self.rol == self.ROL_COORDINADOR
 
     def __str__(self):
         return f"{self.username} - {self.get_rol_display()}"

@@ -43,8 +43,8 @@ class EmpresaForm(EstiloBootstrapMixin, forms.ModelForm):
         self._user = user  # Guardar para validación
 
         if user:
-            if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
-                # Superadmin/Nacional: Mostrar selector de centro (obligatorio)
+            if user.es_nacional:
+                # Superadmin/Nacional/Coordinador: Mostrar selector de centro (obligatorio)
                 from gestion.models import CentroPevi
                 self.fields['centro'].queryset = CentroPevi.objects.filter(activo=True)
                 self.fields['centro'].required = True
@@ -91,8 +91,8 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
 
         # AISLAMIENTO DE CENTROS: Filtrar todo por centro del usuario
         if user:
-            if user.is_superuser or user.rol == 'DIRECTOR_NACIONAL':
-                # Nacional ve todo (para casos excepcionales de asignación)
+            if user.es_nacional:
+                # Nacional/Coordinador ve todo (para casos excepcionales de asignación)
                 pass
             elif user.centro_pevi:
                 # Director Centro y Profesor: Solo ven recursos de su centro
@@ -105,7 +105,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
                 # Filtrar líderes por centro
                 self.fields['lider_proyecto'].queryset = Usuario.objects.filter(
                     centro_pevi=user.centro_pevi,
-                    rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL']
+                    rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR']
                 )
 
                 # Filtrar equipo por centro
@@ -124,7 +124,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
             return cleaned_data
 
         user = self._user
-        es_nacional = user.is_superuser or user.rol == 'DIRECTOR_NACIONAL'
+        es_nacional = user.es_nacional
 
         # Para usuarios de centro: TODO debe pertenecer a su centro
         if not es_nacional and user.centro_pevi:
