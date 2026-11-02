@@ -704,6 +704,34 @@ def eliminar_usuario(request, usuario_id):
         messages.success(request, "Usuario eliminado del sistema.")
     return redirect('lista_usuarios')
 
+@login_required
+@solo_directivos
+def mi_centro(request):
+    """El Coordinador de Centro edita la ficha pública de SU centro (página /centros/)."""
+    from .forms import MiCentroForm
+
+    _solo_coordinador_centro(request.user)
+    centro = request.user.centro_pevi
+
+    if request.method == 'POST':
+        form = MiCentroForm(request.POST, request.FILES, instance=centro)
+        if form.is_valid():
+            form.save()
+            log_editar(request, 'CentroPevi', centro, 'Ficha editada por el Coordinador de Centro')
+            messages.success(request, "Información del centro actualizada. Ya se ve en la página pública de Centros PEVI.")
+            return redirect('mi_centro')
+    else:
+        form = MiCentroForm(instance=centro)
+
+    return render(request, 'control/centro_form.html', {
+        'form': form,
+        'titulo': f'Mi centro: {centro.nombre_corto or centro.nombre}',
+        'accion': 'Guardar cambios',
+        'centro': centro,
+        'es_mi_centro': True,
+    })
+
+
 def _solo_coordinador_centro(user):
     if not (user.es_coordinador_centro and user.centro_pevi_id):
         raise PermissionDenied("Solo el Coordinador de Centro revisa las solicitudes de su centro.")

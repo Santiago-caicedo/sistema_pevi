@@ -126,6 +126,29 @@ class CentroPeviForm(EstiloBootstrapMixin, forms.ModelForm):
             'color_primario': forms.TextInput(attrs={'type': 'color', 'class': 'form-control form-control-color'}),
         }
 
+    def clean_latitud(self):
+        lat = self.cleaned_data.get('latitud')
+        if lat is not None and not -90 <= lat <= 90:
+            raise ValidationError("La latitud debe estar entre -90 y 90 (use punto decimal, ej: 7.1193).")
+        return lat
+
+    def clean_longitud(self):
+        lng = self.cleaned_data.get('longitud')
+        if lng is not None and not -180 <= lng <= 180:
+            raise ValidationError("La longitud debe estar entre -180 y 180 (use punto decimal, ej: -73.1227).")
+        return lng
+
+
+class MiCentroForm(CentroPeviForm):
+    """
+    Ficha del centro editable por su Coordinador de Centro.
+    Sin código interno ni 'activo' (ocultar el centro del sitio público es
+    decisión del Coordinador General / superusuario).
+    """
+
+    class Meta(CentroPeviForm.Meta):
+        fields = [f for f in CentroPeviForm.Meta.fields if f not in ('codigo_interno', 'activo')]
+
 
 class UsuarioAdminForm(EstiloBootstrapMixin, forms.ModelForm):
     """Formulario para crear usuarios desde el Panel de Control (Superadmin)."""

@@ -4,7 +4,7 @@ from gestion.views import (
     cambiar_estado_proyecto, crear_empresa, editar_empresa, detalle_empresa, crear_usuario, dashboard, crear_proyecto, detalle_proyecto, editar_proyecto, editar_usuario, eliminar_usuario, generar_informe_pdf,
     lista_proyectos, lista_empresas, lista_usuarios, registrar_consumo, registrar_produccion, subir_documento, guardar_reduccion,
     crear_oportunidad, editar_oportunidad, eliminar_oportunidad,
-    solicitudes_centro, rechazar_solicitud_centro,
+    solicitudes_centro, rechazar_solicitud_centro, mi_centro,
     # Panel de Control Superadmin
     control_panel, control_centros_lista, control_centro_crear, control_centro_editar, control_centro_eliminar,
     control_usuarios_lista, control_usuario_crear, control_usuario_editar, control_usuario_eliminar,
@@ -67,6 +67,7 @@ urlpatterns = [
     path('app/equipo/nuevo/', crear_usuario, name='crear_usuario'),
     path('app/equipo/<int:usuario_id>/editar/', editar_usuario, name='editar_usuario'),
     path('app/equipo/<int:usuario_id>/eliminar/', eliminar_usuario, name='eliminar_usuario'),
+    path('app/mi-centro/', mi_centro, name='mi_centro'),
     path('app/equipo/solicitudes/', solicitudes_centro, name='solicitudes_centro'),
     path('app/equipo/solicitudes/<int:solicitud_id>/rechazar/', rechazar_solicitud_centro, name='rechazar_solicitud_centro'),
 

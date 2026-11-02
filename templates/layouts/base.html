@@ -225,6 +225,10 @@
             </a>
 
             {% if user.es_coordinador_centro %}
+            <a href="{% url 'mi_centro' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'mi_centro' %}active{% endif %}">
+                <i class="bi bi-building-gear"></i> Mi centro
+            </a>
             <a href="{% url 'solicitudes_centro' %}"
                class="nav-link {% if 'solicitud' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-inbox"></i> Solicitudes

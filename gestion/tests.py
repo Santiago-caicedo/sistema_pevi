@@ -440,3 +440,58 @@ class CoordinadorCentroTests(BaseProyectoTestCase):
         self.sol_b.refresh_from_db()
         self.assertEqual((self.sol_a.estado, self.sol_b.estado), ('RECHAZADA', 'PENDIENTE'))
         self.assertEqual(r.status_code, 404)
+
+
+class MiCentroTests(BaseProyectoTestCase):
+    """El Coordinador de Centro edita la ficha pública de SU centro."""
+
+    url = reverse('mi_centro')
+
+    def setUp(self):
+        self.coord = self.crear_usuario('coord_mc', 'COORDINADOR_CENTRO', self.centro_a)
+
+    def datos(self, **extra):
+        data = {
+            'nombre': 'Centro A renombrado', 'nombre_corto': 'CA', 'region': 'Caribe',
+            'ciudad': 'Barranquilla', 'director_nombre': 'Dra. Ana Pérez', 'color_primario': '#004884',
+            'latitud': '10.98', 'longitud': '-74.80', 'estudiantes_formados': '0',
+        }
+        data.update(extra)
+        return data
+
+    def test_coordinador_edita_su_centro(self):
+        r = self.login(self.coord).post(self.url, self.datos())
+        self.assertEqual(r.status_code, 302)
+        self.centro_a.refresh_from_db()
+        self.assertEqual(self.centro_a.director_nombre, 'Dra. Ana Pérez')
+        self.assertEqual(self.centro_a.nombre, 'Centro A renombrado')
+
+    def test_no_puede_cambiar_codigo_ni_desactivar(self):
+        self.login(self.coord).post(self.url, self.datos(codigo_interno='HACK', activo=''))
+        self.centro_a.refresh_from_db()
+        self.assertEqual(self.centro_a.codigo_interno, 'CA')
+        self.assertTrue(self.centro_a.activo)
+
+    def test_no_toca_otros_centros(self):
+        self.login(self.coord).post(self.url, self.datos())
+        self.centro_b.refresh_from_db()
+        self.assertEqual(self.centro_b.nombre, 'Centro B')
+
+    def test_formulario_oculta_codigo_y_activo(self):
+        r = self.login(self.coord).get(self.url)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('codigo_interno', r.context['form'].fields)
+        self.assertNotIn('activo', r.context['form'].fields)
+        self.assertNotContains(r, 'Código UPME')
+
+    def test_longitud_mal_digitada_se_rechaza(self):
+        r = self.login(self.coord).post(self.url, self.datos(longitud='-7310523848650743'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('longitud', r.context['form'].errors)
+
+    def test_otros_roles_no_entran(self):
+        for u in (self.director_a, self.profesor_a, self.estudiante_a):
+            self.assertEqual(self.login(u).get(self.url).status_code, 403, u.rol)
+
+    def test_coordinador_sigue_sin_panel_de_control(self):
+        self.assertEqual(self.login(self.coord).get(reverse('control_centros_lista')).status_code, 403)
