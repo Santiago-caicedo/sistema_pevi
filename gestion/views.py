@@ -367,12 +367,24 @@ def lista_empresas(request):
     else:
         empresas = Empresa.objects.none()
 
+    # Buscador: razón social, NIT, sector, ciudad o contacto
+    filtro_q = request.GET.get('q', '').strip()
+    if filtro_q:
+        empresas = empresas.filter(
+            Q(razon_social__icontains=filtro_q) |
+            Q(nit__icontains=filtro_q) |
+            Q(sector_productivo__icontains=filtro_q) |
+            Q(ciudad__icontains=filtro_q) |
+            Q(contacto_nombre__icontains=filtro_q)
+        )
+
     page_obj, params_sin_page = paginar(request, empresas, 15)
 
     context = {
         'empresas': page_obj,
         'page_obj': page_obj,
         'params_sin_page': params_sin_page,
+        'filtro_q': filtro_q,
         'breadcrumbs': [
             breadcrumb_home(),
             {'label': 'Empresas'},
