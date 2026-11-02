@@ -582,6 +582,8 @@ python manage.py recalcular_kwh --dry-run  # Ver cambios en kWh
 python manage.py recalcular_kwh            # Aplicar corrección
 python manage.py proyectos_duplicados           # Reporte de proyectos duplicados (misma empresa + nombre)
 python manage.py proyectos_duplicados --aplicar # Borra duplicados VACÍOS y agrega al creador al equipo
+python manage.py eliminar_proyecto <id>              # Muestra el proyecto (no borra)
+python manage.py eliminar_proyecto <id> --confirmar  # Borra un proyecto VACÍO (se niega si tiene datos)
 
 # === ADMIN ===
 # http://localhost:8000/admin/

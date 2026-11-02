@@ -106,6 +106,34 @@ class ProyectosDuplicadosCommandTests(TestCase):
         self.assertIn('No se encontraron', salida)
         self.assertEqual(ProyectoAuditoria.objects.count(), 2)
 
+    def test_eliminar_proyecto_sin_confirmar_no_borra(self):
+        p = self.crear_proyecto()
+        out = StringIO()
+        call_command('eliminar_proyecto', p.id, stdout=out)
+        self.assertIn('MODO REPORTE', out.getvalue())
+        self.assertTrue(ProyectoAuditoria.objects.filter(id=p.id).exists())
+
+    def test_eliminar_proyecto_confirmado_borra_y_registra(self):
+        p = self.crear_proyecto()
+        call_command('eliminar_proyecto', p.id, '--confirmar', stdout=StringIO())
+        self.assertFalse(ProyectoAuditoria.objects.filter(id=p.id).exists())
+        self.assertTrue(RegistroActividad.objects.filter(
+            accion='ELIMINAR', modelo_afectado='Proyecto', objeto_id=p.id,
+        ).exists())
+
+    def test_eliminar_proyecto_con_datos_se_niega(self):
+        from django.core.management.base import CommandError
+        p = self.crear_proyecto()
+        self.agregar_electricidad(p)
+        with self.assertRaises(CommandError):
+            call_command('eliminar_proyecto', p.id, '--confirmar', stdout=StringIO())
+        self.assertTrue(ProyectoAuditoria.objects.filter(id=p.id).exists())
+
+    def test_eliminar_proyecto_inexistente(self):
+        from django.core.management.base import CommandError
+        with self.assertRaises(CommandError):
+            call_command('eliminar_proyecto', 99999, stdout=StringIO())
+
     def test_registra_eliminacion_en_bitacora(self):
         self.crear_proyecto(minutos=0)
         duplicado = self.crear_proyecto(minutos=1)
