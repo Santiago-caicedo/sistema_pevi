@@ -273,23 +273,13 @@ def resultados(request):
         'hay_filtros': bool(filtro_año or filtro_region or filtro_sector),
         'resumen_filtros': resumen_filtros,
 
-        # Datos para gráficos, mapa y exportación (vía json_script, sin |safe)
+        # Datos para gráficos y mapa (vía json_script, sin |safe)
         'datos_graficos': {
             'mapa': [c for c in centros_tabla if c['lat'] is not None and c['lng'] is not None],
             'anual': serie_anual,
             'sectores': serie_sectores,
             'regiones': serie_regiones,
             'centros': serie_centros,
-            'matriz': matriz_energia,
-            'resumen_filtros': resumen_filtros,
-            'indicadores': [
-                ['Auditorías registradas', total_proyectos],
-                ['Empresas atendidas', total_empresas],
-                ['Centros PEVI activos', total_centros],
-                ['Sectores productivos', sectores_unicos],
-                ['Energía analizada (MWh/año)', round(total_energia_mwh)],
-                ['Emisiones reportadas (t CO2/año)', round(total_emisiones_ton)],
-            ],
         },
     }
 

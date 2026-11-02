@@ -42,7 +42,6 @@
     .rb-eyebrow { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rb-blue); margin: 0 0 8px; }
     .rb-header h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin: 0 0 10px; }
     .rb-lead { font-size: 18px; line-height: 1.55; color: var(--rb-muted); max-width: 640px; margin: 0; }
-    .rb-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .rb-btn {
         display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px;
         font: 600 15px 'Work Sans', sans-serif; border-radius: 4px; cursor: pointer; text-decoration: none;
@@ -188,7 +187,7 @@
     /* ---------- Impresión / PDF ---------- */
     @media print {
         body { padding-top: 0 !important; background: #fff !important; }
-        .govco-bar, .navbar-upme, .footer-main, .rb-filtros form, .rb-actions, .rb-breadcrumb,
+        .govco-bar, .navbar-upme, .footer-main, .rb-filtros form, .rb-breadcrumb,
         .rb-section-cobertura #rb-mapa, .rb-participa, .rb-figura summary { display: none !important; }
         .rb, .rb-header, .rb-filtros { background: #fff !important; }
         .rb-cobertura { grid-template-columns: 1fr; }
@@ -222,14 +221,6 @@
                         Cifras agregadas de las auditorías energéticas que la red de Centros PEVI
                         realiza en la industria colombiana.
                     </p>
-                </div>
-                <div class="rb-actions">
-                    <button type="button" class="rb-btn" id="rb-descargar-csv">
-                        <i class="bi bi-download" aria-hidden="true"></i> Descargar datos (CSV)
-                    </button>
-                    <button type="button" class="rb-btn rb-btn-primary" id="rb-imprimir">
-                        <i class="bi bi-printer" aria-hidden="true"></i> Imprimir o guardar PDF
-                    </button>
                 </div>
             </div>
 
@@ -642,40 +633,6 @@
     }
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(dibujarGraficos);
 
-    // ---------------- Exportar ----------------
-    function celda(v) {
-        var s = String(v === null || v === undefined ? '' : v);
-        return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    }
-    document.getElementById('rb-descargar-csv').addEventListener('click', function () {
-        var filas = [
-            ['Resultados del Programa PEVI - datos agregados'],
-            ['Selección', datos.resumen_filtros],
-            ['Fecha de descarga', new Date().toLocaleDateString('es-CO')],
-            [],
-            ['Indicador', 'Valor']
-        ].concat(datos.indicadores, [[], ['Fuente energética', 'MWh/año', 'Participación (%)']],
-            datos.matriz.map(function (f) { return [f.nombre, f.mwh, f.pct.toFixed(1).replace('.', ',')]; }),
-            [[], ['Centro PEVI', 'Auditorías']], datos.centros.map(function (r) { return [r.etiqueta, r.valor]; }),
-            [[], ['Región', 'Auditorías']], datos.regiones.map(function (r) { return [r.etiqueta, r.valor]; }),
-            [[], ['Sector productivo', 'Auditorías']], datos.sectores.map(function (r) { return [r.etiqueta, r.valor]; }),
-            [[], ['Año de inicio', 'Auditorías']], datos.anual.map(function (r) { return [r.etiqueta, r.valor]; })
-        );
-        // Punto y coma: separador que Excel en español abre directamente en columnas
-        var csv = filas.map(function (f) { return f.map(celda).join(';'); }).join('\r\n');
-        var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'PEVI_resultados_' + new Date().toISOString().slice(0, 10) + '.csv';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    });
-
-    document.getElementById('rb-imprimir').addEventListener('click', function () {
-        document.querySelectorAll('.rb-figura details').forEach(function (d) { d.open = true; });
-        window.print();
-    });
 })();
 </script>
 {% endblock %}
