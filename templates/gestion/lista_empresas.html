@@ -13,7 +13,15 @@
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                 <input type="text" name="q" value="{{ filtro_q }}" class="form-control bg-light border-start-0" placeholder="Buscar empresa, NIT, ciudad...">
             </div>
-            {% if filtro_q %}
+            {% if user.es_nacional %}
+            <select name="centro" class="form-select form-select-sm bg-light" style="width: 220px;" onchange="this.form.submit()">
+                <option value="">Todos los centros</option>
+                {% for c in centros %}
+                <option value="{{ c.id }}" {% if c.id == filtro_centro %}selected{% endif %}>{{ c.nombre_corto|default:c.nombre }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+            {% if filtro_q or filtro_centro %}
             <a href="{% url 'lista_empresas' %}" class="btn btn-light btn-sm" title="Limpiar búsqueda"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </form>
@@ -27,6 +35,7 @@
             <thead>
                 <tr>
                     <th class="ps-4">Razón Social / NIT</th>
+                    {% if user.es_nacional %}<th>Centro PEVI</th>{% endif %}
                     <th>Sector Productivo</th>
                     <th>Ubicación</th>
                     <th>Contacto</th>
@@ -40,6 +49,9 @@
                         <div class="fw-bold text-dark">{{ emp.razon_social }}</div>
                         <div class="small text-muted font-monospace">{{ emp.nit }}</div>
                     </td>
+                    {% if user.es_nacional %}
+                    <td class="small text-secondary">{% if emp.centro %}{{ emp.centro.nombre_corto|default:emp.centro.nombre }}{% else %}<span class="text-danger">Sin centro</span>{% endif %}</td>
+                    {% endif %}
                     <td>
                         <span class="badge bg-light text-dark border">{{ emp.sector_productivo }}</span>
                     </td>
@@ -53,6 +65,11 @@
                         <div class="small text-muted">{{ emp.contacto_email }}</div>
                     </td>
                     <td class="text-end pe-4">
+                        {% if user.es_nacional %}
+                        <a href="{% url 'detalle_empresa' emp.id %}" class="btn btn-light btn-sm border text-primary" title="Ver expediente">
+                            <i class="bi bi-folder2-open"></i>
+                        </a>
+                        {% endif %}
                         <a href="{% url 'editar_empresa' emp.id %}" class="btn btn-light btn-sm border text-muted" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
@@ -60,9 +77,9 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">
+                    <td colspan="{% if user.es_nacional %}6{% else %}5{% endif %}" class="text-center py-5 text-muted">
                         <i class="bi bi-building fs-1 mb-3 d-block opacity-50"></i>
-                        {% if filtro_q %}No se encontraron empresas para "{{ filtro_q }}".{% else %}No hay empresas registradas aún.{% endif %}
+                        {% if filtro_q or filtro_centro %}No se encontraron empresas con los filtros aplicados.{% else %}No hay empresas registradas aún.{% endif %}
                     </td>
                 </tr>
                 {% endfor %}

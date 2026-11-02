@@ -378,6 +378,14 @@ def lista_empresas(request):
             Q(contacto_nombre__icontains=filtro_q)
         )
 
+    # Filtro por centro (solo vista nacional: superuser, Director Nacional, Coordinador)
+    filtro_centro = request.GET.get('centro', '')
+    if user.es_nacional and filtro_centro.isdigit():
+        empresas = empresas.filter(centro_id=filtro_centro)
+    else:
+        filtro_centro = ''
+
+    empresas = empresas.select_related('centro')
     page_obj, params_sin_page = paginar(request, empresas, 15)
 
     context = {
@@ -385,6 +393,8 @@ def lista_empresas(request):
         'page_obj': page_obj,
         'params_sin_page': params_sin_page,
         'filtro_q': filtro_q,
+        'filtro_centro': int(filtro_centro) if filtro_centro else '',
+        'centros': CentroPevi.objects.order_by('nombre') if user.es_nacional else [],
         'breadcrumbs': [
             breadcrumb_home(),
             {'label': 'Empresas'},
@@ -419,6 +429,62 @@ def crear_empresa(request):
         ],
     }
     return render(request, 'gestion/empresa_form.html', context)
+
+
+@login_required
+@solo_lideres
+def detalle_empresa(request, empresa_id):
+    """
+    Expediente de la empresa: datos generales, proyectos realizados y totales
+    consolidados. Solo vista nacional (superuser, Director Nacional, Coordinador).
+    """
+    if not request.user.es_nacional:
+        log_acceso_denegado(request, f'Empresa {empresa_id} expediente', 'Solo vista nacional')
+        raise PermissionDenied("No tienes permiso para ver el expediente de esta empresa.")
+
+    empresa = get_object_or_404(Empresa.objects.select_related('centro'), id=empresa_id)
+    proyectos = (
+        empresa.auditorias
+        .select_related('centro', 'lider_proyecto')
+        .prefetch_related('equipo', 'oportunidades_mejora')
+        .order_by('-fecha_inicio')
+    )
+
+    # Totales consolidados de todas las auditorías de la empresa
+    totales = {'kwh': 0, 'emisiones': 0, 'costo': 0, 'opm': 0, 'ahorro_opm_kwh': 0}
+    filas = []
+    for p in proyectos:
+        fuentes = [
+            p.electricidad_related.first(), p.gasnatural_related.first(),
+            p.carbonmineral_related.first(), p.fueloil_related.first(),
+            p.biomasa_related.first(), p.gaspropano_related.first(),
+        ]
+        costo = sum(f.costo_total_anual for f in fuentes if f)
+        kwh = p.get_total_kwh()
+        emisiones = p.get_total_emisiones()
+        opms = list(p.oportunidades_mejora.all())
+
+        totales['kwh'] += kwh
+        totales['emisiones'] += emisiones
+        totales['costo'] += costo
+        totales['opm'] += len(opms)
+        totales['ahorro_opm_kwh'] += sum(o.ahorro_energia for o in opms)
+
+        filas.append({'proyecto': p, 'kwh': kwh, 'emisiones': emisiones, 'costo': costo, 'opm': len(opms)})
+
+    context = {
+        'empresa': empresa,
+        'filas': filas,
+        'totales': totales,
+        'num_proyectos': len(filas),
+        'num_finalizados': sum(1 for f in filas if f['proyecto'].estado == 'FINALIZADO'),
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_empresas(),
+            {'label': empresa.razon_social},
+        ],
+    }
+    return render(request, 'gestion/empresa_detalle.html', context)
 
 
 @login_required

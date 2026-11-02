@@ -45,7 +45,7 @@ sistema_pevi/
 │   └── wsgi.py               # Punto de entrada WSGI
 │
 ├── gestion/                   # APP CORE: Usuarios, Proyectos, Dashboard
-│   ├── models.py             # Usuario, CentroPevi, RegistroActividad
+│   ├── models.py             # Usuario, CentroPevi, RegistroActividad, SolicitudUsuario
 │   ├── views.py              # ~45 vistas principales (~1630 líneas)
 │   ├── forms.py              # Formularios con validación de seguridad
 │   ├── decorators.py         # Control de acceso RBAC
@@ -116,11 +116,20 @@ Noticia ────────────────────> (1) Usuari
 | Rol | Código | Permisos |
 |-----|--------|----------|
 | Director Nacional | `DIRECTOR_NACIONAL` | Acceso total, visión país, tablero nacional |
+| Coordinador General | `COORDINADOR` | Como Director Nacional + acceso al **Panel de Control** de la app; centro **obligatorio**. NO es superusuario (no entra a `/admin/` de Django) |
 | Director Centro | `DIRECTOR_CENTRO` | Gestión de su centro, métricas BI |
 | Profesor | `PROFESOR` | Lidera proyectos, gestiona empresas |
 | Estudiante | `ESTUDIANTE` | Participa en equipos asignados |
 
-**Patrón de Rol Híbrido:** Un `DIRECTOR_NACIONAL` con `centro_pevi` asignado actúa también como director de ese centro (ve vista de centro en dashboard, property `es_director_centro` retorna True). Esto permite que un Nacional gestione un centro específico sin perder acceso global.
+**Patrón de Rol Híbrido:** Un `DIRECTOR_NACIONAL` o `COORDINADOR` con `centro_pevi` asignado actúa también como director de ese centro (ve vista de centro en dashboard, property `es_director_centro` retorna True). Esto permite gestionar un centro específico sin perder acceso global. El `COORDINADOR` siempre tiene centro (obligatorio).
+
+**Propiedades de rol centralizadas** (`gestion/models.py`, usadas en vez de comparar strings de rol en las vistas):
+- `es_nacional` → True para `DIRECTOR_NACIONAL`, `COORDINADOR` o superuser (ve todo el país)
+- `es_director_centro` → Director puro, o Nacional/Coordinador **con** centro, o superuser
+- `es_directivo` → Director, Nacional, Coordinador o superuser
+- `puede_panel_control` → superuser o Coordinador (acceso a `/app/control/`, NO a `/admin/`)
+
+**Coordinador vs Superusuario (seguridad):** el Coordinador obtiene sus permisos por el `rol`, NO por `is_superuser`. En `control_usuario_crear`/`control_usuario_editar`, **solo un superusuario real** puede otorgar `is_superuser`/`is_staff`; un Coordinador no puede crear superusuarios ni degradar uno existente (forzado en vista + casillas ocultas en `control/usuario_form.html`).
 
 ### Estados y Fases de Proyecto
 
@@ -307,6 +316,8 @@ python manage.py recalcular_kwh
 /app/control/noticias/nueva/               → control_noticia_crear
 /app/control/noticias/<id>/editar/         → control_noticia_editar
 /app/control/noticias/<id>/eliminar/       → control_noticia_eliminar
+/app/control/solicitudes/                  → control_solicitudes_lista
+/app/control/solicitudes/<id>/rechazar/    → control_solicitud_rechazar
 /admin/                                    → Django Admin
 
 # ==================== AUTENTICACIÓN ====================
@@ -323,6 +334,7 @@ python manage.py recalcular_kwh
 /centros/                            → centros_public (con modals)
 /biblioteca/                         → biblioteca
 /resultados/                         → resultados_public (filtros + exportar)
+/solicitar-acceso/                   → solicitar_usuario (form público SIN login, solicitud de cuenta)
 ```
 
 ---
@@ -622,11 +634,21 @@ python manage.py recalcular_kwh            # Aplicar corrección
 - Segundo POST: requiere `confirmar_cambio_lider` en POST data para aplicar
 - No usa token/timestamp, si el usuario navega entre POSTs se pierde la confirmación
 
-### Control Panel (Superadmin)
-- Protegido por `@solo_superadmin` (verifica `is_superuser`, no rol)
+### Control Panel (Superadmin y Coordinador)
+- Protegido por `@solo_superadmin` (admite `is_superuser` **o** rol `COORDINADOR`)
 - CRUD completo para: CentroPevi, Usuario (con password + is_superuser), Noticia
-- Forms especializados: `CentroPeviForm` (23 campos), `UsuarioAdminForm`, `NoticiaAdminForm`
-- Templates en `templates/control/` (7 archivos)
+- **Solicitudes de acceso:** revisión de las altas pedidas por los centros (ver sección abajo)
+- Forms especializados: `CentroPeviForm` (23 campos), `UsuarioAdminForm`, `NoticiaAdminForm`, `SolicitudUsuarioForm`
+- Templates en `templates/control/`
+- `is_superuser`/`is_staff` solo otorgables por un superusuario real (ver Sistema de Roles)
+
+### Solicitudes de Acceso (formulario público → panel)
+Reemplaza un Google Form: los centros piden cuentas desde una URL pública y el Coordinador/superadmin las crea.
+- Modelo `gestion.models.SolicitudUsuario` (nombres, apellidos, email, centro_pevi, rol_solicitado [solo PROFESOR/ESTUDIANTE], cargo, telefono, justificacion, estado PENDIENTE/APROBADA/RECHAZADA, procesada_por, usuario_creado).
+- **Form público (SIN login):** `/solicitar-acceso/` → `solicitar_usuario`, usa `base_public.html`, con honeypot anti-spam. Solo guarda una solicitud PENDIENTE (no crea cuentas).
+- **Panel:** `/app/control/solicitudes/` → `control_solicitudes_lista` (filtro por estado); rechazar vía `control_solicitud_rechazar`.
+- **Aprobar:** abre `control_usuario_crear?solicitud=<id>` con el form **pre-llenado**; al guardar marca la solicitud APROBADA y la enlaza al usuario creado.
+- Enlace al form desde `registration/login.html`; tarjeta con badge de pendientes en `control/panel.html`.
 
 ### Herencia de Modelos Energéticos
 ```
@@ -656,12 +678,12 @@ Modelo con 23+ campos organizados en secciones:
 ### Decoradores de Acceso
 | Decorador | Roles Permitidos | Uso |
 |-----------|-----------------|-----|
-| `@acceso_staff` | Todos (EST, PROF, DIR_C, DIR_N) | Acceso general app |
-| `@solo_lideres` | PROF, DIR_C, DIR_N | Crear proyectos/empresas |
-| `@solo_directivos` | DIR_C, DIR_N | Gestionar usuarios |
-| `@solo_superadmin` | is_superuser=True | Control panel |
+| `@acceso_staff` | Todos (EST, PROF, DIR_C, DIR_N, COORD) | Acceso general app |
+| `@solo_lideres` | PROF, DIR_C, DIR_N, COORD | Crear proyectos/empresas |
+| `@solo_directivos` | DIR_C, DIR_N, COORD | Gestionar usuarios |
+| `@solo_superadmin` | is_superuser **o** COORDINADOR | Control panel (`/app/control/`) |
 
-> Todos permiten superuser automáticamente (God Mode)
+> Todos permiten superuser automáticamente (God Mode). `@solo_superadmin` ya NO es exclusivo de `is_superuser`: también admite el rol `COORDINADOR` (pero el Coordinador no accede a `/admin/` de Django).
 
 ---
 
