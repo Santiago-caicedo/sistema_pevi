@@ -159,9 +159,22 @@ def verificar_acceso_proyecto(user, proyecto):
         return True
     if user.rol == 'PROFESOR' and proyecto.lider_proyecto == user:
         return True
-    if user.rol == 'ESTUDIANTE' and proyecto.equipo.filter(id=user.id).exists():
+    if user.rol in ('PROFESOR', 'ESTUDIANTE') and proyecto.equipo.filter(id=user.id).exists():
         return True
     return False
+
+
+def puede_gestionar_proyecto(user, proyecto):
+    """
+    Gestión estructural (editar datos básicos, cambiar estado): solo el líder,
+    el director del centro del proyecto o la vista nacional. Los miembros del
+    equipo (profesores o estudiantes) ven y registran datos, pero no gestionan.
+    """
+    if user.es_nacional:
+        return True
+    if user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == user.centro_pevi:
+        return True
+    return proyecto.lider_proyecto == user
 
 # ==============================================================================
 #  1. DASHBOARD Y LISTADOS (Vistas de Resumen)
@@ -666,6 +679,12 @@ def _get_usuarios_por_rol(user):
 @login_required
 @solo_lideres
 def crear_proyecto(request):
+    # Usuarios de centro sin centro asignado: avisar antes de que llenen el formulario
+    if not request.user.es_nacional and not request.user.centro_pevi:
+        messages.error(request, "Tu usuario no tiene un Centro PEVI asignado, por lo que no puedes crear proyectos. "
+                                "Contacta al director de tu centro o al coordinador.")
+        return redirect('lista_proyectos')
+
     if request.method == 'POST':
         form = ProyectoForm(request.POST, user=request.user)
         if form.is_valid():
@@ -717,6 +736,11 @@ def crear_proyecto(request):
 
                 proyecto.save()
                 form.save_m2m()  # Guardar equipo
+
+                # Profesor que crea el proyecto con OTRO líder: queda en el equipo
+                # para no perder acceso a lo que acaba de crear
+                if request.user.rol == 'PROFESOR' and proyecto.lider_proyecto != request.user:
+                    proyecto.equipo.add(request.user)
 
             log_crear(request, 'Proyecto', proyecto, f"Empresa: {proyecto.empresa.razon_social}")
             messages.success(request, "Proyecto iniciado correctamente.")
@@ -987,6 +1011,7 @@ def detalle_proyecto(request, proyecto_id):
         
         # Permisos frontend
         'puede_editar_estructura': (request.user.rol != 'ESTUDIANTE') or request.user.is_superuser,
+        'puede_gestionar': puede_gestionar_proyecto(request.user, proyecto),
         'es_superadmin': request.user.is_superuser,
 
         # Oportunidades de Mejora
@@ -1430,10 +1455,10 @@ def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
     """
     proyecto = get_object_or_404(ProyectoAuditoria, id=proyecto_id)
 
-    # Validación de seguridad extra (Propiedad)
-    if not verificar_acceso_proyecto(request.user, proyecto):
-        log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Sin acceso al proyecto')
-        raise PermissionDenied("No tienes permiso sobre este proyecto.")
+    # Validación de seguridad extra (Propiedad): ser del equipo no basta para cambiar estado
+    if not puede_gestionar_proyecto(request.user, proyecto):
+        log_acceso_denegado(request, f'Proyecto {proyecto_id}', 'Sin permiso de gestión del proyecto')
+        raise PermissionDenied("Solo el líder o el director pueden cambiar el estado del proyecto.")
 
     estado_actual = proyecto.estado
 
