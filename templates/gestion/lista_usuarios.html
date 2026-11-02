@@ -14,9 +14,16 @@
                 <input type="text" class="form-control bg-light border-start-0" placeholder="Buscar usuario...">
             </div>
         </div>
-        <a href="{% url 'crear_usuario' %}" class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm fw-medium hover-lift">
-            <i class="bi bi-person-plus me-2"></i> Nuevo Miembro
-        </a>
+        <div class="d-flex gap-2">
+            {% if user.es_coordinador_centro %}
+            <a href="{% url 'solicitudes_centro' %}" class="btn btn-outline-warning btn-sm px-3 py-2 rounded-pill fw-medium">
+                <i class="bi bi-inbox me-1"></i> Solicitudes de acceso
+            </a>
+            {% endif %}
+            <a href="{% url 'crear_usuario' %}" class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm fw-medium hover-lift">
+                <i class="bi bi-person-plus me-2"></i> Nuevo Miembro
+            </a>
+        </div>
     </div>
 
     <div class="table-responsive" style="overflow: visible;">
@@ -48,6 +55,8 @@
                     <td>
                         {% if u.rol == 'DIRECTOR_CENTRO' %}
                             <span class="badge bg-soft-primary text-primary border border-primary-subtle mb-1">Director</span>
+                        {% elif u.rol == 'COORDINADOR_CENTRO' %}
+                            <span class="badge bg-soft-warning text-warning border border-warning-subtle mb-1">Coordinador de Centro</span>
                         {% elif u.rol == 'DIRECTOR_NACIONAL' %}
                             <span class="badge bg-dark text-white border mb-1">Director Nacional</span>
                         {% elif u.rol == 'COORDINADOR' %}

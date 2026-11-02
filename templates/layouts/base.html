@@ -220,9 +220,16 @@
             {% endif %}
 
             <a href="{% url 'lista_usuarios' %}" 
-               class="nav-link {% if 'equipo' in request.resolver_match.url_name %}active{% endif %}">
+               class="nav-link {% if 'usuario' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-people"></i> Equipo
             </a>
+
+            {% if user.es_coordinador_centro %}
+            <a href="{% url 'solicitudes_centro' %}"
+               class="nav-link {% if 'solicitud' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-inbox"></i> Solicitudes
+            </a>
+            {% endif %}
             {% endif %}
             
             {% if user.puede_panel_control %}

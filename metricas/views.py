@@ -32,7 +32,7 @@ def dashboard_estrategico(request):
         # Ve todos los proyectos a nivel nacional
         qs = ProyectoAuditoria.objects.select_related('empresa', 'lider_proyecto', 'centro').all()
         titulo_scope = "Consolidado Nacional"
-    elif user.rol == 'DIRECTOR_CENTRO':
+    elif user.gestiona_centro:
         # Ve solo los proyectos de su centro
         qs = ProyectoAuditoria.objects.filter(centro=user.centro_pevi).select_related('empresa', 'lider_proyecto')
         titulo_scope = f"Centro: {user.centro_pevi.nombre}"
@@ -187,14 +187,14 @@ def dashboard_estrategico(request):
     # ---------------------------------------------------------
     
     # A. Definir Scope Base según Rol
-    if user.rol == 'DIRECTOR_CENTRO':
+    if user.gestiona_centro:
         # Base: Solo su centro
         lista_proyectos_dropdown = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-        lista_lideres_dropdown = Usuario.objects.filter(centro_pevi=user.centro_pevi, rol__in=['PROFESOR', 'DIRECTOR_CENTRO'])
+        lista_lideres_dropdown = Usuario.objects.filter(centro_pevi=user.centro_pevi, rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'COORDINADOR_CENTRO'])
     else:
         # Base: Todo el país
         lista_proyectos_dropdown = ProyectoAuditoria.objects.all()
-        lista_lideres_dropdown = Usuario.objects.filter(rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])
+        lista_lideres_dropdown = Usuario.objects.filter(rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'COORDINADOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])
 
     # B. FILTRO EN CASCADA (Dependent Dropdown Logic)
     # Si hay un líder seleccionado, la lista de proyectos se reduce SOLO a los de ese líder

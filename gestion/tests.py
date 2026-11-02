@@ -302,3 +302,141 @@ class CambiarEstadoProyectoTests(BaseProyectoTestCase):
     def test_profesor_del_equipo_no_edita_proyecto(self):
         r = self.login(self.profesor_a2).get(reverse('editar_proyecto', args=[self.proyecto.id]))
         self.assertEqual(r.status_code, 403)
+
+
+class CoordinadorCentroTests(BaseProyectoTestCase):
+    """Coordinador de Centro: acceso total a SU centro, nada de otros centros."""
+
+    def setUp(self):
+        from gestion.models import SolicitudUsuario
+        self.coord = self.crear_usuario('coord_a', 'COORDINADOR_CENTRO', self.centro_a)
+        self.c = self.login(self.coord)
+        # Proyecto del centro A en el que el coordinador NO es líder ni del equipo
+        self.proyecto_a = ProyectoAuditoria.objects.create(
+            centro=self.centro_a, empresa=self.empresa_a, lider_proyecto=self.profesor_a,
+            nombre_proyecto='PA', fecha_inicio=date.today(),
+        )
+        self.proyecto_b = ProyectoAuditoria.objects.create(
+            centro=self.centro_b, empresa=self.empresa_b, lider_proyecto=self.profesor_b,
+            nombre_proyecto='PB', fecha_inicio=date.today(),
+        )
+        self.sol_a = SolicitudUsuario.objects.create(
+            nombres='Ana', apellidos='Ruiz', email='ana@test.co',
+            centro_pevi=self.centro_a, rol_solicitado='PROFESOR')
+        self.sol_b = SolicitudUsuario.objects.create(
+            nombres='Beto', apellidos='Paz', email='beto@test.co',
+            centro_pevi=self.centro_b, rol_solicitado='ESTUDIANTE')
+
+    # --- Proyectos y empresas de su centro ---
+    def test_ve_y_gestiona_proyectos_de_su_centro(self):
+        r = self.c.get(reverse('detalle_proyecto', args=[self.proyecto_a.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.context['puede_gestionar'])
+        self.assertEqual(self.c.get(reverse('editar_proyecto', args=[self.proyecto_a.id])).status_code, 200)
+
+    def test_no_ve_proyectos_de_otro_centro(self):
+        self.assertEqual(self.c.get(reverse('detalle_proyecto', args=[self.proyecto_b.id])).status_code, 403)
+
+    def test_lista_de_proyectos_solo_su_centro(self):
+        ids = {p.id for p in self.c.get(reverse('lista_proyectos')).context['proyectos']}
+        self.assertIn(self.proyecto_a.id, ids)
+        self.assertNotIn(self.proyecto_b.id, ids)
+
+    def test_crea_proyecto_en_su_centro(self):
+        r = self.c.post(reverse('crear_proyecto'), self.datos_proyecto(self.empresa_a, lider=self.profesor_a))
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(ProyectoAuditoria.objects.filter(
+            centro=self.centro_a, nombre_proyecto='Auditoría Planta 1').exists())
+
+    def test_ve_empresas_metricas_y_dashboard(self):
+        self.assertEqual(self.c.get(reverse('lista_empresas')).status_code, 200)
+        self.assertEqual(self.c.get(reverse('dashboard_estrategico')).status_code, 200)
+        self.assertEqual(self.c.get(reverse('dashboard')).status_code, 200)
+
+    def test_sin_panel_de_control_ni_tablero_nacional(self):
+        self.assertEqual(self.c.get(reverse('control_panel')).status_code, 403)
+        self.assertEqual(self.c.get(reverse('dashboard_nacional')).status_code, 403)
+
+    # --- Reabrir finalizados ---
+    def test_reabre_proyecto_finalizado_de_su_centro(self):
+        self.proyecto_a.estado = 'FINALIZADO'
+        self.proyecto_a.save()
+        self.c.get(reverse('cambiar_estado', args=[self.proyecto_a.id, 'EJECUCION']))
+        self.proyecto_a.refresh_from_db()
+        self.assertEqual(self.proyecto_a.estado, 'EJECUCION')
+
+    def test_director_no_reabre_finalizado(self):
+        self.proyecto_a.estado = 'FINALIZADO'
+        self.proyecto_a.save()
+        self.login(self.director_a).get(reverse('cambiar_estado', args=[self.proyecto_a.id, 'EJECUCION']))
+        self.proyecto_a.refresh_from_db()
+        self.assertEqual(self.proyecto_a.estado, 'FINALIZADO')
+
+    # --- Usuarios ---
+    def _datos_usuario(self, username, rol):
+        return {'username': username, 'first_name': 'N', 'last_name': 'A', 'email': f'{username}@t.co',
+                'rol': rol, 'cargo': '', 'password1': 'ClaveSegura#2026', 'password2': 'ClaveSegura#2026'}
+
+    def test_crea_director_en_su_centro(self):
+        self.c.post(reverse('crear_usuario'), self._datos_usuario('nuevo_dir', 'DIRECTOR_CENTRO'))
+        u = Usuario.objects.get(username='nuevo_dir')
+        self.assertEqual((u.rol, u.centro_pevi, u.is_superuser), ('DIRECTOR_CENTRO', self.centro_a, False))
+
+    def test_no_crea_roles_superiores(self):
+        for rol in ('DIRECTOR_NACIONAL', 'COORDINADOR', 'COORDINADOR_CENTRO'):
+            username = 'x_' + rol.lower()
+            self.c.post(reverse('crear_usuario'), self._datos_usuario(username, rol))
+            self.assertFalse(Usuario.objects.filter(username=username).exists(), rol)
+
+    def test_director_no_crea_directores(self):
+        self.login(self.director_a).post(reverse('crear_usuario'), self._datos_usuario('dir2', 'DIRECTOR_CENTRO'))
+        self.assertFalse(Usuario.objects.filter(username='dir2').exists())
+
+    def test_edita_director_de_su_centro_pero_no_de_otro(self):
+        director_b = self.crear_usuario('director_b', 'DIRECTOR_CENTRO', self.centro_b)
+        self.assertEqual(self.c.get(reverse('editar_usuario', args=[self.director_a.id])).status_code, 200)
+        self.assertEqual(self.c.get(reverse('editar_usuario', args=[director_b.id])).status_code, 403)
+
+    def test_no_edita_ni_elimina_nacional(self):
+        self.assertEqual(self.c.get(reverse('editar_usuario', args=[self.nacional.id])).status_code, 403)
+        self.assertEqual(self.c.get(reverse('eliminar_usuario', args=[self.nacional.id])).status_code, 403)
+        self.assertTrue(Usuario.objects.filter(id=self.nacional.id).exists())
+
+    def test_director_no_elimina_coordinador(self):
+        r = self.login(self.director_a).get(reverse('eliminar_usuario', args=[self.coord.id]))
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(Usuario.objects.filter(id=self.coord.id).exists())
+
+    # --- Solicitudes de acceso ---
+    def test_lista_solo_solicitudes_de_su_centro(self):
+        r = self.c.get(reverse('solicitudes_centro'))
+        self.assertEqual({s.id for s in r.context['solicitudes']}, {self.sol_a.id})
+
+    def test_director_no_ve_solicitudes(self):
+        self.assertEqual(self.login(self.director_a).get(reverse('solicitudes_centro')).status_code, 403)
+
+    def test_aprobar_solicitud_crea_usuario_y_la_marca(self):
+        r = self.c.get(reverse('crear_usuario') + f'?solicitud={self.sol_a.id}')
+        self.assertEqual(r.context['form'].initial['email'], 'ana@test.co')
+        datos = self._datos_usuario('ana', 'PROFESOR')
+        datos['solicitud_id'] = self.sol_a.id
+        self.c.post(reverse('crear_usuario'), datos)
+        self.sol_a.refresh_from_db()
+        self.assertEqual(self.sol_a.estado, 'APROBADA')
+        self.assertEqual(self.sol_a.usuario_creado.username, 'ana')
+        self.assertEqual(self.sol_a.usuario_creado.centro_pevi, self.centro_a)
+
+    def test_no_aprueba_solicitud_de_otro_centro(self):
+        datos = self._datos_usuario('beto', 'ESTUDIANTE')
+        datos['solicitud_id'] = self.sol_b.id
+        self.c.post(reverse('crear_usuario'), datos)
+        self.sol_b.refresh_from_db()
+        self.assertEqual(self.sol_b.estado, 'PENDIENTE')
+
+    def test_rechaza_solo_de_su_centro(self):
+        self.c.post(reverse('rechazar_solicitud_centro', args=[self.sol_a.id]))
+        r = self.c.post(reverse('rechazar_solicitud_centro', args=[self.sol_b.id]))
+        self.sol_a.refresh_from_db()
+        self.sol_b.refresh_from_db()
+        self.assertEqual((self.sol_a.estado, self.sol_b.estado), ('RECHAZADA', 'PENDIENTE'))
+        self.assertEqual(r.status_code, 404)

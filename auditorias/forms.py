@@ -105,7 +105,7 @@ class ProyectoForm(EstiloBootstrapMixin, forms.ModelForm):
                 # Filtrar líderes por centro
                 self.fields['lider_proyecto'].queryset = Usuario.objects.filter(
                     centro_pevi=user.centro_pevi,
-                    rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR']
+                    rol__in=['PROFESOR', 'DIRECTOR_CENTRO', 'COORDINADOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR']
                 )
 
                 # Filtrar equipo por centro

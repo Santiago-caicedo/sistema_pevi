@@ -99,11 +99,16 @@ class Usuario(AbstractUser):
     ROL_DIRECTOR = 'DIRECTOR_CENTRO'
     ROL_NACIONAL = 'DIRECTOR_NACIONAL' # Director PEVI Líder (Ve todo)
     ROL_COORDINADOR = 'COORDINADOR' # Coordinador General: admin del panel + anclado a un centro
+    ROL_COORD_CENTRO = 'COORDINADOR_CENTRO' # Coordinador de Centro: poder total, pero SOLO en su centro
+
+    # Roles que gestionan un centro completo (todo lo de su centro, nada de otros)
+    ROLES_GESTION_CENTRO = (ROL_DIRECTOR, ROL_COORD_CENTRO)
 
     ROLES_CHOICES = [
         (ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
         (ROL_PROFESOR, 'Profesor Líder de Proyecto'),
         (ROL_DIRECTOR, 'Director de Centro PEVI'),
+        (ROL_COORD_CENTRO, 'Coordinador de Centro PEVI'),
         (ROL_NACIONAL, 'Director Nacional (Líder PEVI)'),
         (ROL_COORDINADOR, 'Coordinador General'),
     ]
@@ -125,7 +130,7 @@ class Usuario(AbstractUser):
         1. Su rol es explícitamente Director de Centro.
         2. O SI ES NACIONAL/COORDINADOR pero tiene un centro asignado (patrón híbrido).
         """
-        es_director_puro = (self.rol == self.ROL_DIRECTOR)
+        es_director_puro = self.gestiona_centro
         es_hibrido_con_centro = (
             self.rol in (self.ROL_NACIONAL, self.ROL_COORDINADOR)
             and self.centro_pevi is not None
@@ -134,13 +139,30 @@ class Usuario(AbstractUser):
         return es_director_puro or es_hibrido_con_centro or self.is_superuser
 
     @property
+    def gestiona_centro(self):
+        """Director o Coordinador de Centro: acceso total, pero solo a SU centro."""
+        return self.rol in self.ROLES_GESTION_CENTRO
+
+    @property
+    def es_coordinador_centro(self):
+        return self.rol == self.ROL_COORD_CENTRO
+
+    def puede_reabrir_proyecto(self, proyecto):
+        """Forzar cualquier cambio de estado (incl. reabrir FINALIZADO)."""
+        if self.is_superuser:
+            return True
+        return (self.es_coordinador_centro
+                and self.centro_pevi_id is not None
+                and proyecto.centro_id == self.centro_pevi_id)
+
+    @property
     def es_profesor(self):
         return self.rol == self.ROL_PROFESOR
 
     @property
     def es_directivo(self):
         """Devuelve True si el usuario tiene capacidad de gestión (Director, Nacional o Coordinador)."""
-        return self.rol in [self.ROL_DIRECTOR, self.ROL_NACIONAL, self.ROL_COORDINADOR] or self.is_superuser
+        return self.rol in [self.ROL_DIRECTOR, self.ROL_COORD_CENTRO, self.ROL_NACIONAL, self.ROL_COORDINADOR] or self.is_superuser
 
     @property
     def puede_panel_control(self):

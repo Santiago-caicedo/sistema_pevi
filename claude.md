@@ -118,6 +118,7 @@ Noticia ────────────────────> (1) Usuari
 | Director Nacional | `DIRECTOR_NACIONAL` | Acceso total, visión país, tablero nacional |
 | Coordinador General | `COORDINADOR` | Como Director Nacional + acceso al **Panel de Control** de la app; centro **obligatorio**. NO es superusuario (no entra a `/admin/` de Django) |
 | Director Centro | `DIRECTOR_CENTRO` | Gestión de su centro, métricas BI |
+| Coordinador de Centro | `COORDINADOR_CENTRO` | Todo lo del Director **solo en su centro** + crear/editar Directores de su centro + reabrir proyectos FINALIZADOS de su centro + aprobar/rechazar solicitudes de acceso de su centro (`/app/equipo/solicitudes/`). Sin Panel de Control ni tablero nacional |
 | Profesor | `PROFESOR` | Lidera proyectos, gestiona empresas |
 | Estudiante | `ESTUDIANTE` | Participa en equipos asignados |
 
@@ -125,8 +126,12 @@ Noticia ────────────────────> (1) Usuari
 
 **Propiedades de rol centralizadas** (`gestion/models.py`, usadas en vez de comparar strings de rol en las vistas):
 - `es_nacional` → True para `DIRECTOR_NACIONAL`, `COORDINADOR` o superuser (ve todo el país)
-- `es_director_centro` → Director puro, o Nacional/Coordinador **con** centro, o superuser
-- `es_directivo` → Director, Nacional, Coordinador o superuser
+- `es_director_centro` → Director o Coordinador de Centro, o Nacional/Coordinador **con** centro, o superuser
+- `es_directivo` → Director, Coordinador de Centro, Nacional, Coordinador o superuser
+- `gestiona_centro` → `DIRECTOR_CENTRO` o `COORDINADOR_CENTRO` (usar en vez de `rol == 'DIRECTOR_CENTRO'`)
+- `es_coordinador_centro` → rol `COORDINADOR_CENTRO`
+- `puede_reabrir_proyecto(proyecto)` → superuser, o Coordinador de Centro sobre un proyecto de su centro
+- Jerarquía de roles asignables: `gestion/forms.py` → `roles_asignables(creator)` (Director: PROF/EST; Coord. Centro: DIR/PROF/EST; Nacional: todos). Editar/eliminar usuarios usa `_puede_administrar_usuario()` en `gestion/views.py`
 - `puede_panel_control` → superuser o Coordinador (acceso a `/app/control/`, NO a `/admin/`)
 
 **Coordinador vs Superusuario (seguridad):** el Coordinador obtiene sus permisos por el `rol`, NO por `is_superuser`. En `control_usuario_crear`/`control_usuario_editar`, **solo un superusuario real** puede otorgar `is_superuser`/`is_staff`; un Coordinador no puede crear superusuarios ni degradar uno existente (forzado en vista + casillas ocultas en `control/usuario_form.html`).
@@ -297,6 +302,8 @@ python manage.py recalcular_kwh
 /app/equipo/nuevo/                   → crear_usuario
 /app/equipo/<id>/editar/             → editar_usuario
 /app/equipo/<id>/eliminar/           → eliminar_usuario
+/app/equipo/solicitudes/             → solicitudes_centro (solo Coordinador de Centro)
+/app/equipo/solicitudes/<id>/rechazar/ → rechazar_solicitud_centro
 
 # Métricas BI (solo directivos)
 /app/metricas/estrategico/           → dashboard_estrategico
@@ -682,9 +689,9 @@ Modelo con 23+ campos organizados en secciones:
 ### Decoradores de Acceso
 | Decorador | Roles Permitidos | Uso |
 |-----------|-----------------|-----|
-| `@acceso_staff` | Todos (EST, PROF, DIR_C, DIR_N, COORD) | Acceso general app |
-| `@solo_lideres` | PROF, DIR_C, DIR_N, COORD | Crear proyectos/empresas |
-| `@solo_directivos` | DIR_C, DIR_N, COORD | Gestionar usuarios |
+| `@acceso_staff` | Todos (EST, PROF, DIR_C, COORD_C, DIR_N, COORD) | Acceso general app |
+| `@solo_lideres` | PROF, DIR_C, COORD_C, DIR_N, COORD | Crear proyectos/empresas |
+| `@solo_directivos` | DIR_C, COORD_C, DIR_N, COORD | Gestionar usuarios |
 | `@solo_superadmin` | is_superuser **o** COORDINADOR | Control panel (`/app/control/`) |
 
 > Todos permiten superuser automáticamente (God Mode). `@solo_superadmin` ya NO es exclusivo de `is_superuser`: también admite el rol `COORDINADOR` (pero el Coordinador no accede a `/admin/` de Django).

@@ -3,6 +3,30 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from .models import Usuario
 
+
+def roles_asignables(creator):
+    """
+    Roles que `creator` puede asignar/administrar.
+    None = sin restricción (Nacional, Coordinador General, superusuario).
+    """
+    if creator is None or creator.es_nacional:
+        return None
+    if creator.rol == Usuario.ROL_COORD_CENTRO:
+        # Coordinador de Centro: también puede crear Directores de su centro
+        return [Usuario.ROL_DIRECTOR, Usuario.ROL_PROFESOR, Usuario.ROL_ESTUDIANTE]
+    if creator.rol == Usuario.ROL_DIRECTOR:
+        return [Usuario.ROL_PROFESOR, Usuario.ROL_ESTUDIANTE]
+    return []  # Profesor/Estudiante: nada
+
+
+def aplicar_jerarquia_roles(field, creator):
+    """Deja en el <select> de rol solo las opciones que el creador puede asignar."""
+    if creator is None:
+        return
+    permitidos = roles_asignables(creator)
+    if permitidos is not None:
+        field.choices = [(c, l) for c, l in Usuario.ROLES_CHOICES if c in permitidos]
+
 class EstiloBootstrapMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -29,29 +53,14 @@ class UsuarioForm(EstiloBootstrapMixin, UserCreationForm):
         super().__init__(*args, **kwargs)
         
         # LÓGICA DE JERARQUÍA DE ROLES
-        if self.creator:
-            if self.creator.es_nacional:
-                # Dios o Nacional: Pueden crear CUALQUIER rol
-                pass 
-            elif self.creator.rol == Usuario.ROL_DIRECTOR:
-                # Director de Centro: SOLO puede crear Profesores o Estudiantes
-                self.fields['rol'].choices = [
-                    (Usuario.ROL_PROFESOR, 'Profesor Líder de Proyecto'),
-                    (Usuario.ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
-                ]
-            else:
-                # Si un estudiante hackea y llega aquí, le quitamos todas las opciones
-                self.fields['rol'].choices = []
+        aplicar_jerarquia_roles(self.fields['rol'], self.creator)
 
     def clean_rol(self):
-        """Validación final anti-hackeo."""
+        """Validación final anti-hackeo (si inyectan un rol superior por POST, se bloquea)."""
         rol = self.cleaned_data.get('rol')
-        
-        # Si un Director intenta inyectar 'DIRECTOR_NACIONAL' por POST, esto lo detiene
-        if self.creator and self.creator.rol == Usuario.ROL_DIRECTOR:
-            if rol not in [Usuario.ROL_PROFESOR, Usuario.ROL_ESTUDIANTE]:
-                raise ValidationError("No tienes permisos para asignar este rol superior.")
-        
+        permitidos = roles_asignables(self.creator)
+        if permitidos is not None and rol not in permitidos:
+            raise ValidationError("No tienes permisos para asignar este rol superior.")
         return rol
 
 
@@ -70,23 +79,13 @@ class UsuarioEditarForm(EstiloBootstrapMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # Misma lógica de restricción que al crear
-        if self.creator:
-            if self.creator.es_nacional:
-                pass
-            elif self.creator.rol == Usuario.ROL_DIRECTOR:
-                self.fields['rol'].choices = [
-                    (Usuario.ROL_PROFESOR, 'Profesor Líder de Proyecto'),
-                    (Usuario.ROL_ESTUDIANTE, 'Estudiante / Ingeniero Junior'),
-                ]
-                
-                # Proteger el campo 'is_active' si quieres que solo admins desactiven (opcional)
-                # self.fields['is_active'].disabled = True 
+        aplicar_jerarquia_roles(self.fields['rol'], self.creator)
 
     def clean_rol(self):
         rol = self.cleaned_data.get('rol')
-        if self.creator and self.creator.rol == Usuario.ROL_DIRECTOR:
-            if rol not in [Usuario.ROL_PROFESOR, Usuario.ROL_ESTUDIANTE]:
-                raise ValidationError("Intento de escalada de privilegios bloqueado.")
+        permitidos = roles_asignables(self.creator)
+        if permitidos is not None and rol not in permitidos:
+            raise ValidationError("Intento de escalada de privilegios bloqueado.")
         return rol
 
 

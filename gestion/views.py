@@ -16,7 +16,7 @@ import tempfile
 
 # Modelos y Formularios del Sistema
 from .models import CentroPevi, Usuario, SolicitudUsuario
-from .forms import UsuarioForm, UsuarioEditarForm
+from .forms import UsuarioForm, UsuarioEditarForm, roles_asignables
 from auditorias.models import ProyectoAuditoria, Empresa, OportunidadMejora
 from auditorias.forms import (
     ProyectoForm, ProduccionForm, DocumentoForm, EmpresaForm,
@@ -155,7 +155,7 @@ def verificar_acceso_proyecto(user, proyecto):
     """
     if user.es_nacional:
         return True
-    if user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == user.centro_pevi:
+    if user.gestiona_centro and proyecto.centro == user.centro_pevi:
         return True
     if user.rol == 'PROFESOR' and proyecto.lider_proyecto == user:
         return True
@@ -172,7 +172,7 @@ def puede_gestionar_proyecto(user, proyecto):
     """
     if user.es_nacional:
         return True
-    if user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == user.centro_pevi:
+    if user.gestiona_centro and proyecto.centro == user.centro_pevi:
         return True
     return proyecto.lider_proyecto == user
 
@@ -210,13 +210,14 @@ def dashboard(request):
         proyectos = ProyectoAuditoria.objects.all()
         rol_label = "Administración Nacional Consolidada"
 
-    # CASO C: Director de Centro Estándar
-    elif user.rol == 'DIRECTOR_CENTRO':
+    # CASO C: Director o Coordinador de Centro
+    elif user.gestiona_centro:
+        etiqueta_rol = "Coordinación" if user.es_coordinador_centro else "Dirección"
         if user.centro_pevi:
             proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi)
-            rol_label = f"Dirección {user.centro_pevi.nombre}"
+            rol_label = f"{etiqueta_rol} {user.centro_pevi.nombre}"
         else:
-            rol_label = "Director sin Centro Asignado"
+            rol_label = f"{etiqueta_rol} sin Centro Asignado"
 
     # CASO D: Profesor Líder
     elif user.rol == 'PROFESOR':
@@ -287,8 +288,8 @@ def lista_proyectos(request):
         es_vista_nacional = True
         titulo_vista = "Portafolio Nacional de Proyectos"
 
-    # CASO B: Director de Centro
-    elif user.rol == 'DIRECTOR_CENTRO':
+    # CASO B: Director o Coordinador de Centro
+    elif user.gestiona_centro:
         if user.centro_pevi:
             proyectos = ProyectoAuditoria.objects.filter(centro=user.centro_pevi).select_related('empresa', 'lider_proyecto')
             # Líderes locales que tengan proyectos
@@ -560,33 +561,86 @@ def lista_usuarios(request):
     }
     return render(request, 'gestion/lista_usuarios.html', context)
 
+def _solicitud_del_centro(user, solicitud_id):
+    """
+    Devuelve la SolicitudUsuario PENDIENTE que `user` puede aprobar, o None.
+    Nacional ve todas; Coordinador de Centro solo las de su centro.
+    """
+    if not solicitud_id or not str(solicitud_id).isdigit():
+        return None
+    qs = SolicitudUsuario.objects.filter(id=solicitud_id, estado=SolicitudUsuario.ESTADO_PENDIENTE)
+    if user.es_nacional:
+        return qs.first()
+    if user.es_coordinador_centro and user.centro_pevi_id:
+        return qs.filter(centro_pevi_id=user.centro_pevi_id).first()
+    return None
+
+
+def _puede_administrar_usuario(actor, target):
+    """Editar/eliminar: mismo centro y un rol que el actor podría asignar."""
+    if actor.es_nacional:
+        return True
+    if not actor.centro_pevi_id or target.centro_pevi_id != actor.centro_pevi_id:
+        return False
+    return target.rol in (roles_asignables(actor) or [])
+
+
 @login_required
 @solo_directivos
 def crear_usuario(request):
+    # Aprobación de una solicitud de acceso (Coordinador de Centro / Nacional)
+    solicitud = _solicitud_del_centro(
+        request.user, request.POST.get('solicitud_id') or request.GET.get('solicitud'))
+
     if request.method == 'POST':
         # Pasamos creator=request.user para activar la seguridad
         form = UsuarioForm(request.POST, creator=request.user)
         if form.is_valid():
             nuevo = form.save(commit=False)
-            
+
             # Forzamos asignación de centro (Seguridad extra)
             if request.user.centro_pevi and not request.user.is_superuser:
                 nuevo.centro_pevi = request.user.centro_pevi
-                
+            elif solicitud and not nuevo.centro_pevi:
+                nuevo.centro_pevi = solicitud.centro_pevi
+
             # Forzamos que NO sea superusuario ni staff (Seguridad extra)
             nuevo.is_superuser = False
             nuevo.is_staff = False
-            
+
             nuevo.save()
             log_crear(request, 'Usuario', nuevo, f"Rol: {nuevo.get_rol_display()}")
+
+            if solicitud:
+                solicitud.estado = SolicitudUsuario.ESTADO_APROBADA
+                solicitud.procesada_por = request.user
+                solicitud.fecha_procesada = timezone.now()
+                solicitud.usuario_creado = nuevo
+                solicitud.save()
+                messages.success(request, f"Solicitud aprobada: usuario {nuevo.username} creado.")
+                if request.user.es_coordinador_centro:
+                    return redirect('solicitudes_centro')
+                return redirect('lista_usuarios')
+
             messages.success(request, f"Usuario {nuevo.username} creado.")
             return redirect('lista_usuarios')
     else:
-        form = UsuarioForm(creator=request.user)
+        initial = {}
+        if solicitud:
+            initial = {
+                'username': solicitud.email.split('@')[0],
+                'first_name': solicitud.nombres,
+                'last_name': solicitud.apellidos,
+                'email': solicitud.email,
+                'rol': solicitud.rol_solicitado,
+                'cargo': solicitud.cargo,
+            }
+        form = UsuarioForm(creator=request.user, initial=initial)
 
     context = {
         'form': form,
-        'titulo': 'Nuevo Usuario',
+        'titulo': f'Aprobar solicitud de {solicitud.nombre_completo}' if solicitud else 'Nuevo Usuario',
+        'solicitud': solicitud,
         'breadcrumbs': [
             breadcrumb_home(),
             breadcrumb_equipo(),
@@ -600,17 +654,14 @@ def crear_usuario(request):
 def editar_usuario(request, usuario_id):
     target_user = get_object_or_404(Usuario, id=usuario_id)
 
-    # Seguridad cruzada
-    if not request.user.es_nacional:
-        # Validar mismo centro
+    # Seguridad cruzada: mismo centro + jerarquía de roles
+    # (Director: solo Profesores/Estudiantes; Coordinador de Centro: también Directores)
+    if not _puede_administrar_usuario(request.user, target_user):
         if target_user.centro_pevi != request.user.centro_pevi:
             log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
             raise PermissionDenied("No puedes editar personal de otro centro.")
-
-        # SEGURIDAD: Un Director de Centro NO puede editar a otro Director, Coordinador o superior
-        if target_user.rol in ['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR']:
-            log_escalada_bloqueada(request, f'Editar usuario con rol {target_user.rol}')
-            raise PermissionDenied("No puedes editar a usuarios con rol de Director o superior.")
+        log_escalada_bloqueada(request, f'Editar usuario con rol {target_user.rol}')
+        raise PermissionDenied("No puedes editar a usuarios de tu mismo nivel o superior.")
 
     if request.method == 'POST':
         # Pasamos creator=request.user
@@ -639,10 +690,9 @@ def editar_usuario(request, usuario_id):
 def eliminar_usuario(request, usuario_id):
     target_user = get_object_or_404(Usuario, id=usuario_id)
     
-    if not request.user.es_nacional:
-        if target_user.centro_pevi != request.user.centro_pevi:
-            log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro')
-            raise PermissionDenied("No tienes permiso para eliminar este usuario.")
+    if not _puede_administrar_usuario(request.user, target_user):
+        log_acceso_denegado(request, f'Usuario {usuario_id}', 'Usuario de otro centro o de rol superior')
+        raise PermissionDenied("No tienes permiso para eliminar este usuario.")
 
     if target_user == request.user:
         messages.error(request, "No puedes eliminarte a ti mismo.")
@@ -653,6 +703,59 @@ def eliminar_usuario(request, usuario_id):
         log_eliminar(request, 'Usuario', usuario_id_log, usuario_repr)
         messages.success(request, "Usuario eliminado del sistema.")
     return redirect('lista_usuarios')
+
+def _solo_coordinador_centro(user):
+    if not (user.es_coordinador_centro and user.centro_pevi_id):
+        raise PermissionDenied("Solo el Coordinador de Centro revisa las solicitudes de su centro.")
+
+
+@login_required
+@solo_directivos
+def solicitudes_centro(request):
+    """Solicitudes de acceso del centro del Coordinador (aprobar = crear usuario pre-llenado)."""
+    _solo_coordinador_centro(request.user)
+    estado = request.GET.get('estado', SolicitudUsuario.ESTADO_PENDIENTE)
+
+    base = SolicitudUsuario.objects.filter(centro_pevi=request.user.centro_pevi)
+    solicitudes = base.select_related('centro_pevi', 'usuario_creado', 'procesada_por')
+    if estado in dict(SolicitudUsuario.ESTADOS):
+        solicitudes = solicitudes.filter(estado=estado)
+
+    page_obj, params_sin_page = paginar(request, solicitudes, 15)
+    context = {
+        'solicitudes': page_obj,
+        'page_obj': page_obj,
+        'params_sin_page': params_sin_page,
+        'filtro_estado': estado,
+        'count_pendientes': base.filter(estado=SolicitudUsuario.ESTADO_PENDIENTE).count(),
+        'breadcrumbs': [
+            breadcrumb_home(),
+            breadcrumb_equipo(),
+            {'label': 'Solicitudes de acceso'},
+        ],
+    }
+    return render(request, 'gestion/solicitudes_centro.html', context)
+
+
+@login_required
+@solo_directivos
+def rechazar_solicitud_centro(request, solicitud_id):
+    """Rechaza una solicitud PENDIENTE del centro del Coordinador (solo POST)."""
+    _solo_coordinador_centro(request.user)
+    solicitud = get_object_or_404(
+        SolicitudUsuario, id=solicitud_id, centro_pevi=request.user.centro_pevi,
+        estado=SolicitudUsuario.ESTADO_PENDIENTE)
+
+    if request.method == 'POST':
+        solicitud.estado = SolicitudUsuario.ESTADO_RECHAZADA
+        solicitud.procesada_por = request.user
+        solicitud.fecha_procesada = timezone.now()
+        solicitud.nota_revision = request.POST.get('nota', '')[:255]
+        solicitud.save()
+        log_editar(request, 'SolicitudUsuario', solicitud, 'Solicitud rechazada (Coordinador de Centro)')
+        messages.success(request, f"Solicitud de {solicitud.nombre_completo} rechazada.")
+    return redirect('solicitudes_centro')
+
 
 # ==============================================================================
 #  3. GESTIÓN DE PROYECTOS (CRUD)
@@ -772,7 +875,7 @@ def editar_proyecto(request, proyecto_id):
 
     # Validar propiedad
     es_propietario = (proyecto.lider_proyecto == request.user)
-    es_director_suyo = (request.user.rol == 'DIRECTOR_CENTRO' and proyecto.centro == request.user.centro_pevi)
+    es_director_suyo = (request.user.gestiona_centro and proyecto.centro == request.user.centro_pevi)
     es_nacional = request.user.es_nacional
 
     if not (es_propietario or es_director_suyo or es_nacional):
@@ -1012,7 +1115,7 @@ def detalle_proyecto(request, proyecto_id):
         # Permisos frontend
         'puede_editar_estructura': (request.user.rol != 'ESTUDIANTE') or request.user.is_superuser,
         'puede_gestionar': puede_gestionar_proyecto(request.user, proyecto),
-        'es_superadmin': request.user.is_superuser,
+        'es_superadmin': request.user.puede_reabrir_proyecto(proyecto),
 
         # Oportunidades de Mejora
         'total_ahorro_energia': total_ahorro_energia,
@@ -1462,8 +1565,9 @@ def cambiar_estado_proyecto(request, proyecto_id, nuevo_estado):
 
     estado_actual = proyecto.estado
 
-    # SUPERADMIN: Puede forzar cualquier transición de estado
-    if request.user.is_superuser:
+    # SUPERADMIN o COORDINADOR DE CENTRO (en su centro): pueden forzar cualquier
+    # transición de estado, incluido reabrir un proyecto FINALIZADO
+    if request.user.puede_reabrir_proyecto(proyecto):
         estados_validos = [e[0] for e in ProyectoAuditoria.ESTADOS]
         if nuevo_estado not in estados_validos:
             messages.error(request, f"Estado '{nuevo_estado}' no es válido.")

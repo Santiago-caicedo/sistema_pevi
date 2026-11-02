@@ -26,19 +26,19 @@ def role_required(allowed_roles=[]):
 # --- DEFINICIÓN DE PERFILES DE ACCESO ---
 
 # 1. SOLO DIRECTIVOS (Para ver Empresas y Equipo)
-# Director de Centro, Director Nacional y Coordinador General
+# Director/Coordinador de Centro, Director Nacional y Coordinador General
 def solo_directivos(view_func):
-    return role_required(['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])(view_func)
+    return role_required(['DIRECTOR_CENTRO', 'COORDINADOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])(view_func)
 
 # 2. SOLO LÍDERES (Para Crear Proyectos)
 # Directores, Coordinador y Profesores (Los estudiantes NO crean proyectos)
 def solo_lideres(view_func):
-    return role_required(['DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR', 'PROFESOR'])(view_func)
+    return role_required(['DIRECTOR_CENTRO', 'COORDINADOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR', 'PROFESOR'])(view_func)
 
 # 3. ACCESO STAFF (Para ver listas generales)
 # Todos menos externos (si los hubiera). Por ahora todos los roles internos.
 def acceso_staff(view_func):
-    return role_required(['ESTUDIANTE', 'PROFESOR', 'DIRECTOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])(view_func)
+    return role_required(['ESTUDIANTE', 'PROFESOR', 'DIRECTOR_CENTRO', 'COORDINADOR_CENTRO', 'DIRECTOR_NACIONAL', 'COORDINADOR'])(view_func)
 
 
 # 4. PANEL DE CONTROL (Super Admin de la app)

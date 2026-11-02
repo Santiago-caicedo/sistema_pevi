@@ -25,6 +25,14 @@
             <div class="card-body p-4">
                 <form method="post">
                     {% csrf_token %}
+                    {% if solicitud %}
+                    <input type="hidden" name="solicitud_id" value="{{ solicitud.id }}">
+                    <div class="alert alert-info rounded-3 small mb-3">
+                        <i class="bi bi-inbox me-1"></i> Aprobando la solicitud de acceso de
+                        <strong>{{ solicitud.nombre_completo }}</strong>. Revisa los datos, define una contraseña y guarda.
+                        {% if solicitud.justificacion %}<br><span class="text-muted">Justificación: {{ solicitud.justificacion }}</span>{% endif %}
+                    </div>
+                    {% endif %}
                     
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger rounded-3 mb-3">
