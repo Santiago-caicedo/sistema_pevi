@@ -1,1253 +1,681 @@
 {% extends 'layouts/base_public.html' %}
 {% load static %}
 {% load humanize %}
+{% load i18n %}
+
+{% block title %}Resultados del Programa PEVI | PEVI Colombia{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    /* ==================================================================
+       Boletín de resultados PEVI — estilo institucional (GOV.CO)
+       ================================================================== */
+    .rb {
+        --rb-ink: #1b2430;
+        --rb-navy: #004884;
+        --rb-blue: #3366cc;
+        --rb-muted: #4b5563;
+        --rb-rule: #d9dee5;
+        --rb-rule-soft: #e9edf2;
+        --rb-bg: #f4f6f8;
+        --rb-surface: #ffffff;
+        --rb-head: 'Montserrat', 'Work Sans', sans-serif;
+        color: var(--rb-ink);
+        background: var(--rb-bg);
+        font-variant-numeric: tabular-nums;
+    }
+    .rb h1, .rb h2, .rb h3 { font-family: var(--rb-head); color: var(--rb-navy); letter-spacing: -0.01em; }
+    .rb a:not(.rb-btn) { color: var(--rb-blue); }
+    .rb :focus-visible { outline: 3px solid #f2b705; outline-offset: 2px; }
+    .rb-container { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+    .rb-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* ---------- Encabezado del boletín ---------- */
+    .rb-header { background: var(--rb-surface); border-bottom: 1px solid var(--rb-rule); padding: 28px 0 0; }
+    .rb-breadcrumb { font-size: 14px; color: var(--rb-muted); margin-bottom: 20px; }
+    .rb-breadcrumb a { text-decoration: none; }
+    .rb-breadcrumb a:hover { text-decoration: underline; }
+    .rb-breadcrumb span[aria-hidden] { margin: 0 6px; color: #9aa3ae; }
+    .rb-title-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+    .rb-eyebrow { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rb-blue); margin: 0 0 8px; }
+    .rb-header h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin: 0 0 10px; }
+    .rb-lead { font-size: 18px; line-height: 1.55; color: var(--rb-muted); max-width: 640px; margin: 0; }
+    .rb-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .rb-btn {
+        display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px;
+        font: 600 15px 'Work Sans', sans-serif; border-radius: 4px; cursor: pointer; text-decoration: none;
+        border: 1px solid var(--rb-navy); background: var(--rb-surface); color: var(--rb-navy);
+        transition: background-color .15s, color .15s;
+    }
+    .rb-btn:hover { background: #e8f0fa; color: var(--rb-navy); }
+    .rb-btn-primary { background: var(--rb-navy); color: #fff; }
+    .rb-btn-primary:hover { background: #003566; color: #fff; }
+
+    /* Ficha técnica del boletín */
+    .rb-ficha { display: grid; grid-template-columns: repeat(4, 1fr); margin: 28px 0 0; border-top: 1px solid var(--rb-rule); }
+    .rb-ficha div { padding: 14px 16px 16px 0; }
+    .rb-ficha div + div { padding-left: 16px; border-left: 1px solid var(--rb-rule-soft); }
+    .rb-ficha dt { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rb-muted); margin-bottom: 4px; }
+    .rb-ficha dd { margin: 0; font-size: 15px; font-weight: 500; }
+
+    /* ---------- Filtros ---------- */
+    .rb-filtros { background: var(--rb-surface); border-bottom: 1px solid var(--rb-rule); padding: 16px 0; }
+    .rb-filtros form { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+    .rb-field { display: flex; flex-direction: column; gap: 6px; min-width: 170px; flex: 1 1 170px; }
+    .rb-field label { font-size: 14px; font-weight: 600; }
+    .rb-field select {
+        min-height: 44px; padding: 0 12px; font: 400 15px 'Work Sans', sans-serif; color: var(--rb-ink);
+        border: 1px solid #9aa3ae; border-radius: 4px; background-color: #fff;
+    }
+    .rb-field select:focus { border-color: var(--rb-blue); }
+    .rb-filtros-acciones { display: flex; gap: 10px; align-items: center; }
+    .rb-link-limpiar { font-size: 15px; font-weight: 500; }
+    .rb-mostrando { font-size: 14px; color: var(--rb-muted); margin: 12px 0 0; }
+    .rb-mostrando strong { color: var(--rb-ink); font-weight: 600; }
+
+    /* ---------- Secciones ---------- */
+    .rb-section { padding: 48px 0; }
+    .rb-section + .rb-section { padding-top: 0; }
+    .rb-section-head { margin-bottom: 20px; }
+    .rb-section-head h2 { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+    .rb-section-head p { color: var(--rb-muted); margin: 0; max-width: 720px; }
+    .rb-panel { background: var(--rb-surface); border: 1px solid var(--rb-rule); border-radius: 4px; }
+
+    /* ---------- Cifras principales ---------- */
+    .rb-cifras { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .rb-cifra { padding: 24px 24px 22px; border-top: 1px solid var(--rb-rule-soft); }
+    .rb-cifra:nth-child(-n+3) { border-top: 0; }
+    .rb-cifra:not(:nth-child(3n+1)) { border-left: 1px solid var(--rb-rule-soft); }
+    .rb-cifra-valor { font-size: clamp(30px, 3.4vw, 40px); font-weight: 600; line-height: 1.1; color: var(--rb-navy); }
+    .rb-cifra-unidad { font-size: 16px; font-weight: 500; color: var(--rb-muted); margin-left: 4px; }
+    .rb-cifra-label { font-size: 15px; font-weight: 500; margin-top: 6px; }
+    .rb-cifra-nota { font-size: 13px; color: var(--rb-muted); margin-top: 2px; }
+
+    /* ---------- Matriz energética (elemento central) ---------- */
+    .rb-matriz { padding: 24px; }
+    .rb-matriz-total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .rb-matriz-total span { font-size: 15px; color: var(--rb-muted); }
+    .rb-matriz-total strong { font-size: 22px; font-weight: 600; color: var(--rb-navy); }
+    .rb-barra { display: flex; height: 44px; border-radius: 2px; overflow: hidden; background: var(--rb-rule-soft); }
+    .rb-barra-seg { height: 100%; min-width: 3px; }
+    .rb-barra-seg + .rb-barra-seg { box-shadow: inset 2px 0 0 #fff; }
+    .rb-tabla { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .rb-tabla caption { caption-side: top; padding: 0 0 8px; font-size: 14px; color: var(--rb-muted); }
+    .rb-tabla th { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--rb-muted); text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--rb-rule); }
+    .rb-tabla td { padding: 10px 12px; border-bottom: 1px solid var(--rb-rule-soft); }
+    .rb-tabla .num { text-align: right; white-space: nowrap; }
+    .rb-tabla tfoot td { font-weight: 600; border-bottom: 0; border-top: 2px solid var(--rb-rule); }
+    .rb-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 10px; vertical-align: -1px; }
+    .rb-matriz .rb-tabla { margin-top: 22px; }
+
+    /* ---------- Cobertura ---------- */
+    .rb-cobertura { display: grid; grid-template-columns: 7fr 5fr; }
+    #rb-mapa .leaflet-tile-pane { filter: grayscale(1) contrast(0.92) brightness(1.04); }
+    #rb-mapa { height: 460px; border-right: 1px solid var(--rb-rule); z-index: 0; }
+    .rb-cobertura-tabla { max-height: 460px; overflow: auto; }
+    .rb-cobertura-tabla .rb-tabla th { position: sticky; top: 0; background: #fff; }
+    .rb-sigla { font-weight: 600; }
+    .rb-sub { display: block; font-size: 13px; color: var(--rb-muted); }
+    .rb-marker {
+        display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
+        background: var(--rb-navy, #004884); color: #fff; font: 600 12px 'Work Sans', sans-serif; border: 2px solid #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    }
+    .rb-marker.is-empty { background: #8a94a1; }
+
+    /* ---------- Gráficos ---------- */
+    .rb-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .rb-figura { margin: 0; padding: 20px 20px 12px; display: flex; flex-direction: column; }
+    .rb-figura h3 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+    .rb-figura > p { font-size: 14px; color: var(--rb-muted); margin: 0 0 16px; }
+    .rb-chart { position: relative; height: 280px; }
+    .rb-vacio { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--rb-muted); font-size: 15px; background: repeating-linear-gradient(0deg, transparent 0 55px, var(--rb-rule-soft) 55px 56px); }
+    .rb-figura details { margin-top: 12px; border-top: 1px solid var(--rb-rule-soft); padding-top: 8px; }
+    .rb-figura summary { cursor: pointer; font-size: 14px; font-weight: 500; color: var(--rb-blue); padding: 6px 0; min-height: 32px; }
+    .rb-figura details .rb-tabla { font-size: 14px; margin: 6px 0 4px; }
+
+    /* ---------- Nota metodológica ---------- */
+    .rb-metodo { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .rb-metodo div { padding: 20px 24px; border-top: 1px solid var(--rb-rule-soft); }
+    .rb-metodo div:nth-child(-n+2) { border-top: 0; }
+    .rb-metodo div:nth-child(even) { border-left: 1px solid var(--rb-rule-soft); }
+    .rb-metodo dt { font-family: var(--rb-head); font-size: 15px; font-weight: 700; color: var(--rb-navy); margin-bottom: 6px; }
+    .rb-metodo dd { margin: 0; font-size: 15px; line-height: 1.6; color: var(--rb-muted); }
+
+    /* ---------- Participación ---------- */
+    .rb-participa { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; padding: 28px; border-left: 4px solid var(--rb-navy); }
+    .rb-participa h2 { font-size: 20px; margin: 0 0 6px; }
+    .rb-participa p { margin: 0; color: var(--rb-muted); max-width: 620px; }
+
+    /* ---------- Estado vacío general ---------- */
+    .rb-aviso { padding: 20px 24px; border-left: 4px solid var(--rb-blue); background: #eef3fb; margin-bottom: 24px; }
+    .rb-aviso p { margin: 0; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 991px) {
+        .rb-header { padding-top: 48px; } /* la barra fija es más alta en móvil */
+        .rb-ficha { grid-template-columns: 1fr 1fr; }
+        .rb-ficha div:nth-child(3) { padding-left: 0; border-left: 0; }
+        .rb-ficha div:nth-child(n+3) { border-top: 1px solid var(--rb-rule-soft); }
+        .rb-cobertura { grid-template-columns: 1fr; }
+        #rb-mapa { height: 360px; border-right: 0; border-bottom: 1px solid var(--rb-rule); }
+        .rb-cobertura-tabla { max-height: none; }
+        .rb-grid-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767px) {
+        .rb-cifras { grid-template-columns: 1fr 1fr; }
+        .rb-cifra:nth-child(-n+3) { border-top: 1px solid var(--rb-rule-soft); }
+        .rb-cifra:nth-child(-n+2) { border-top: 0; }
+        .rb-cifra:not(:nth-child(3n+1)) { border-left: 0; }
+        .rb-cifra:nth-child(even) { border-left: 1px solid var(--rb-rule-soft); }
+        .rb-cifra { padding: 18px 16px; }
+        .rb-metodo { grid-template-columns: 1fr; }
+        .rb-metodo div:nth-child(2) { border-top: 1px solid var(--rb-rule-soft); }
+        .rb-metodo div:nth-child(even) { border-left: 0; }
+        .rb-section { padding: 36px 0; }
+    }
+    @media (max-width: 479px) {
+        .rb-ficha { grid-template-columns: 1fr; }
+        .rb-ficha div { padding-left: 0 !important; border-left: 0 !important; }
+        .rb-ficha div + div { border-top: 1px solid var(--rb-rule-soft); }
+        .rb-cifras { grid-template-columns: 1fr; }
+        .rb-cifra:nth-child(even) { border-left: 0; }
+        .rb-cifra:nth-child(2) { border-top: 1px solid var(--rb-rule-soft); }
+    }
+
+    /* ---------- Impresión / PDF ---------- */
+    @media print {
+        body { padding-top: 0 !important; background: #fff !important; }
+        .govco-bar, .navbar-upme, .footer-main, .rb-filtros form, .rb-actions, .rb-breadcrumb,
+        .rb-section-cobertura #rb-mapa, .rb-participa, .rb-figura summary { display: none !important; }
+        .rb, .rb-header, .rb-filtros { background: #fff !important; }
+        .rb-cobertura { grid-template-columns: 1fr; }
+        .rb-cobertura-tabla { max-height: none; overflow: visible; }
+        .rb-figura details { display: block; }
+        .rb-figura details > *:not(summary) { display: block; }
+        .rb-section { padding: 18px 0; break-inside: avoid; }
+        .rb-panel, .rb-figura { break-inside: avoid; }
+        .rb-barra-seg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .rb-swatch { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
+{% language 'es-co' %}
+<main class="rb" id="contenido">
 
-<!-- HERO SECTION - RESULTADOS PEVI -->
-<section class="hero-results position-relative overflow-hidden">
-    <!-- Fondo con gradiente animado -->
-    <div class="hero-bg"></div>
+    <!-- ============ ENCABEZADO ============ -->
+    <header class="rb-header">
+        <div class="rb-container">
+            <nav class="rb-breadcrumb" aria-label="Ruta de navegación">
+                <a href="{% url 'home_public' %}">Inicio</a><span aria-hidden="true">/</span>Resultados
+            </nav>
 
-    <!-- Elementos decorativos flotantes -->
-    <div class="floating-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-        <div class="shape shape-4"></div>
-    </div>
-
-    <!-- Grid pattern overlay -->
-    <div class="grid-overlay"></div>
-
-    <div class="container position-relative z-2">
-
-        <!-- Header con badge y título -->
-        <div class="hero-header text-center pt-5 pb-4">
-            <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill mb-4 animate-fade-in" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
-                <span class="pulse-dot"></span>
-                <span class="text-white fw-medium small text-uppercase ls-2">Datos en tiempo real</span>
+            <div class="rb-title-row">
+                <div>
+                    <p class="rb-eyebrow">Boletín de resultados</p>
+                    <h1>Resultados del Programa PEVI</h1>
+                    <p class="rb-lead">
+                        Cifras agregadas de las auditorías energéticas que la red de Centros PEVI
+                        realiza en la industria colombiana.
+                    </p>
+                </div>
+                <div class="rb-actions">
+                    <button type="button" class="rb-btn" id="rb-descargar-csv">
+                        <i class="bi bi-download" aria-hidden="true"></i> Descargar datos (CSV)
+                    </button>
+                    <button type="button" class="rb-btn rb-btn-primary" id="rb-imprimir">
+                        <i class="bi bi-printer" aria-hidden="true"></i> Imprimir o guardar PDF
+                    </button>
+                </div>
             </div>
 
-            <h1 class="display-3 fw-bold text-white mb-3 animate-slide-up">
-                Impacto del <span class="text-gradient">Programa PEVI</span>
-            </h1>
-
-            <p class="lead text-white text-opacity-75 mx-auto mb-0 animate-slide-up-delay" style="max-width: 650px;">
-                Resultados agregados de las auditorías energéticas realizadas por nuestra red de universidades a nivel nacional
-            </p>
+            <dl class="rb-ficha">
+                <div><dt>Fuente</dt><dd>Sistema de información PEVI</dd></div>
+                <div><dt>Fecha de corte</dt><dd>{{ fecha_corte|date:"j \d\e F \d\e Y"|lower }}</dd></div>
+                <div><dt>Cobertura</dt><dd>{{ total_centros }} centro{{ total_centros|pluralize }} PEVI en el país</dd></div>
+                <div><dt>Unidades</dt><dd>MWh/año · t CO₂/año</dd></div>
+            </dl>
         </div>
+    </header>
 
-        <!-- KPIs Principales - Diseño destacado -->
-        <div class="hero-stats py-5">
-            <div class="row g-4 justify-content-center">
-
-                <!-- KPI Principal - Grande -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="stat-card-main h-100">
-                        <div class="stat-card-inner">
-                            <div class="stat-icon-lg">
-                                <i class="bi bi-lightning-charge-fill"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-number-lg counter-animate" data-count="{{ total_energia_mwh|floatformat:0 }}">{{ total_energia_mwh|floatformat:0|intcomma }}</span>
-                                <span class="stat-unit">MWh</span>
-                                <p class="stat-label mb-0">Energía Total Analizada</p>
-                            </div>
-                            <div class="stat-decoration"></div>
-                        </div>
-                    </div>
+    <!-- ============ FILTROS ============ -->
+    <section class="rb-filtros" aria-label="Filtros del boletín">
+        <div class="rb-container">
+            <form method="get" id="rb-form-filtros">
+                <div class="rb-field">
+                    <label for="f-anio">Año de inicio</label>
+                    <select id="f-anio" name="año">
+                        <option value="">Todos los años</option>
+                        {% for año in años_disponibles %}
+                        <option value="{{ año }}" {% if filtro_año == año|stringformat:"d" %}selected{% endif %}>{{ año }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-                <!-- KPI Principal - Grande -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="stat-card-main stat-card-green h-100">
-                        <div class="stat-card-inner">
-                            <div class="stat-icon-lg">
-                                <i class="bi bi-globe-americas"></i>
-                            </div>
-                            <div class="stat-content">
-                                <span class="stat-number-lg counter-animate" data-count="{{ total_emisiones_ton|floatformat:0 }}">{{ total_emisiones_ton|floatformat:0|intcomma }}</span>
-                                <span class="stat-unit">TonCO₂</span>
-                                <p class="stat-label mb-0">Huella de Carbono Medida</p>
-                            </div>
-                            <div class="stat-decoration"></div>
-                        </div>
-                    </div>
+                <div class="rb-field">
+                    <label for="f-region">Región</label>
+                    <select id="f-region" name="region">
+                        <option value="">Todas las regiones</option>
+                        {% for region in regiones_disponibles %}
+                        <option value="{{ region }}" {% if filtro_region == region %}selected{% endif %}>{{ region }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-            </div>
-
-            <!-- KPIs Secundarios -->
-            <div class="row g-3 mt-2 justify-content-center">
-                <div class="col-6 col-md-3 col-lg-2">
-                    <div class="stat-card-mini">
-                        <div class="stat-mini-icon"><i class="bi bi-clipboard-check-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_proyectos }}">{{ total_proyectos|intcomma }}</div>
-                        <div class="stat-mini-label">Auditorías</div>
-                    </div>
+                <div class="rb-field">
+                    <label for="f-sector">Sector productivo</label>
+                    <select id="f-sector" name="sector">
+                        <option value="">Todos los sectores</option>
+                        {% for sector in sectores_disponibles %}
+                        <option value="{{ sector }}" {% if filtro_sector == sector %}selected{% endif %}>{{ sector }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="col-6 col-md-3 col-lg-2">
-                    <div class="stat-card-mini">
-                        <div class="stat-mini-icon"><i class="bi bi-building-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_empresas }}">{{ total_empresas|intcomma }}</div>
-                        <div class="stat-mini-label">Empresas</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3 col-lg-2">
-                    <div class="stat-card-mini">
-                        <div class="stat-mini-icon"><i class="bi bi-mortarboard-fill"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ total_centros }}">{{ total_centros|intcomma }}</div>
-                        <div class="stat-mini-label">Universidades</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3 col-lg-2">
-                    <div class="stat-card-mini">
-                        <div class="stat-mini-icon"><i class="bi bi-gear-wide-connected"></i></div>
-                        <div class="stat-mini-number counter-animate" data-count="{{ sectores_unicos }}">{{ sectores_unicos|intcomma }}</div>
-                        <div class="stat-mini-label">Sectores</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Panel de Filtros y Exportación -->
-        <div class="filter-panel mb-5">
-            <div class="filter-card">
-                <div class="filter-header">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-sliders2 text-primary"></i>
-                        <span class="fw-semibold text-dark">Filtrar Resultados</span>
-                    </div>
+                <div class="rb-filtros-acciones">
+                    <button type="submit" class="rb-btn rb-btn-primary">Aplicar filtros</button>
                     {% if hay_filtros %}
-                    <div class="active-filters">
-                        {% if filtro_año %}<span class="filter-tag"><i class="bi bi-calendar3"></i> {{ filtro_año }}</span>{% endif %}
-                        {% if filtro_region %}<span class="filter-tag"><i class="bi bi-geo-alt"></i> {{ filtro_region }}</span>{% endif %}
-                        {% if filtro_sector %}<span class="filter-tag"><i class="bi bi-building"></i> {{ filtro_sector }}</span>{% endif %}
-                        <a href="{% url 'resultados_public' %}" class="filter-clear" title="Limpiar filtros"><i class="bi bi-x-lg"></i></a>
-                    </div>
+                    <a href="{% url 'resultados_public' %}" class="rb-link-limpiar">Quitar filtros</a>
                     {% endif %}
                 </div>
-
-                <form method="get" class="filter-body">
-                    <div class="filter-grid">
-                        <div class="filter-item">
-                            <label class="filter-label">Año</label>
-                            <select name="año" class="filter-select" onchange="this.form.submit()">
-                                <option value="">Todos</option>
-                                {% for año in años_disponibles %}
-                                <option value="{{ año }}" {% if filtro_año == año|stringformat:"d" %}selected{% endif %}>{{ año }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="filter-item">
-                            <label class="filter-label">Región</label>
-                            <select name="region" class="filter-select" onchange="this.form.submit()">
-                                <option value="">Todas</option>
-                                {% for region in regiones_disponibles %}
-                                <option value="{{ region }}" {% if filtro_region == region %}selected{% endif %}>{{ region }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="filter-item">
-                            <label class="filter-label">Sector</label>
-                            <select name="sector" class="filter-select" onchange="this.form.submit()">
-                                <option value="">Todos</option>
-                                {% for sector in sectores_disponibles %}
-                                <option value="{{ sector }}" {% if filtro_sector == sector %}selected{% endif %}>{{ sector }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="filter-item filter-actions">
-                            <label class="filter-label">Exportar</label>
-                            <div class="export-buttons">
-                                <button type="button" onclick="exportarCSV()" class="btn-export">
-                                    <i class="bi bi-file-earmark-excel"></i> CSV
-                                </button>
-                                <button type="button" onclick="exportarPDF()" class="btn-export btn-export-alt">
-                                    <i class="bi bi-file-earmark-pdf"></i> PDF
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <p class="text-center text-white text-opacity-50 small mt-3 mb-0">
-                <i class="bi bi-shield-lock me-1"></i> Datos agregados y anonimizados para proteger la información comercial
-            </p>
+            </form>
+            <p class="rb-mostrando" aria-live="polite">Mostrando: <strong>{{ resumen_filtros }}</strong></p>
         </div>
-
-    </div>
-
-    <!-- Wave separator -->
-    <div class="hero-wave">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#f8fafc"/>
-        </svg>
-    </div>
-</section>
-
-<section class="py-5" style="background: #f8fafc;">
-    <div class="container">
-        <div class="row align-items-center mb-4">
-            <div class="col">
-                <h4 class="fw-bold text-dark mb-1">
-                    <i class="bi bi-geo-alt-fill text-primary me-2"></i>Cobertura Nacional
-                </h4>
-                <p class="text-muted mb-0">Distribución geográfica de los Centros PEVI participantes</p>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-            <div id="mapa-colombia" style="height: 500px; background: #e2e8f0;"></div>
-        </div>
-    </div>
-</section>
-
-<section class="py-5 bg-white">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h6 class="text-primary fw-bold text-uppercase ls-1 mb-2">
-                <i class="bi bi-bar-chart-fill me-1"></i> Análisis Agregado
-            </h6>
-            <h2 class="fw-bold text-dark">Distribución del Consumo Energético</h2>
-            <p class="text-muted mx-auto" style="max-width: 600px;">
-                Datos consolidados de todas las auditorías finalizadas, clasificados por tipo de fuente y sector industrial.
-            </p>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h6 class="fw-bold text-dark mb-1">
-                            <i class="bi bi-pie-chart-fill text-primary me-2"></i>Energía por Tipo de Fuente
-                        </h6>
-                        <p class="small text-muted mb-0">Distribución del consumo en MWh por fuente energética</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="chart-container" style="height: 300px;">
-                            <canvas id="chartEnergiaTipo"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h6 class="fw-bold text-dark mb-1">
-                            <i class="bi bi-graph-up-arrow text-success me-2"></i>Evolución de Auditorías
-                        </h6>
-                        <p class="small text-muted mb-0">Número de proyectos finalizados por año</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="chart-container" style="height: 300px;">
-                            <canvas id="chartEvolucion"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h6 class="fw-bold text-dark mb-1">
-                            <i class="bi bi-buildings text-warning me-2"></i>Proyectos por Sector Industrial
-                        </h6>
-                        <p class="small text-muted mb-0">Sectores productivos con mayor cantidad de auditorías</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="chart-container" style="height: 300px;">
-                            <canvas id="chartSectores"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h6 class="fw-bold text-dark mb-1">
-                            <i class="bi bi-map-fill text-info me-2"></i>Distribución por Región
-                        </h6>
-                        <p class="small text-muted mb-0">Cobertura geográfica de las auditorías realizadas</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="chart-container" style="height: 300px;">
-                            <canvas id="chartRegiones"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-5 bg-light">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h6 class="fw-bold text-dark mb-1">
-                            <i class="bi bi-mortarboard-fill text-primary me-2"></i>Participación por Centro PEVI
-                        </h6>
-                        <p class="small text-muted mb-0">Número de auditorías realizadas por cada universidad</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="chart-container" style="height: 350px;">
-                            <canvas id="chartCentros"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient-dark text-white">
-                    <div class="card-body p-4 d-flex flex-column justify-content-center">
-                        <div class="mb-4">
-                            <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-2 mb-3">
-                                <i class="bi bi-info-circle me-1"></i> Nota Metodológica
-                            </span>
-                            <h5 class="fw-bold mb-3">Datos Anonimizados</h5>
-                            <p class="text-white text-opacity-75 small mb-0">
-                                Toda la información presentada corresponde a datos agregados de las auditorías energéticas
-                                finalizadas. No se revelan nombres de empresas, ubicaciones específicas ni datos que
-                                permitan identificar a los participantes del programa.
-                            </p>
-                        </div>
-                        <hr class="border-white border-opacity-25 my-4">
-                        <div>
-                            <h6 class="fw-bold mb-2">
-                                <i class="bi bi-shield-check me-2"></i>Confidencialidad
-                            </h6>
-                            <p class="text-white text-opacity-75 small mb-0">
-                                Los datos de consumo y emisiones se presentan de forma consolidada para proteger
-                                la información comercial de las empresas participantes.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-5 bg-primary text-white position-relative overflow-hidden">
-    <div class="position-absolute top-0 end-0 rounded-circle bg-white opacity-10" style="width: 300px; height: 300px; transform: translate(30%, -30%);"></div>
-    <div class="container position-relative z-1 text-center">
-        <h3 class="fw-bold mb-3">¿Quiere que su empresa sea parte de estos resultados?</h3>
-        <p class="text-white text-opacity-75 mb-4 mx-auto" style="max-width: 600px;">
-            Únase al programa PEVI y optimice el consumo energético de su planta industrial con el respaldo de las mejores universidades del país.
-        </p>
-        <a href="{% url 'centros_public' %}" class="btn btn-light btn-lg rounded-pill px-5 fw-bold shadow">
-            <i class="bi bi-arrow-right me-2"></i>Conocer los Centros PEVI
-        </a>
-    </div>
-</section>
-
-<style>
-    .ls-1 { letter-spacing: 1px; }
-    .ls-2 { letter-spacing: 2px; }
-
-    /* =========================================
-       HERO SECTION - NUEVO DISEÑO
-       ========================================= */
-    .hero-results {
-        position: relative;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    .hero-bg {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0369a1 70%, #0284c7 100%);
-        z-index: 0;
-    }
-
-    .hero-bg::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(ellipse at 30% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
-                    radial-gradient(ellipse at 70% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
-    }
-
-    /* Elementos decorativos flotantes */
-    .floating-shapes {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .shape {
-        position: absolute;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
-        animation: float 20s ease-in-out infinite;
-    }
-
-    .shape-1 { width: 400px; height: 400px; top: -100px; right: -100px; animation-delay: 0s; }
-    .shape-2 { width: 300px; height: 300px; bottom: 10%; left: -50px; animation-delay: -5s; }
-    .shape-3 { width: 200px; height: 200px; top: 40%; right: 10%; animation-delay: -10s; }
-    .shape-4 { width: 150px; height: 150px; bottom: 30%; left: 20%; animation-delay: -15s; }
-
-    @keyframes float {
-        0%, 100% { transform: translate(0, 0) rotate(0deg); }
-        25% { transform: translate(10px, -20px) rotate(5deg); }
-        50% { transform: translate(-5px, 10px) rotate(-3deg); }
-        75% { transform: translate(-15px, -10px) rotate(3deg); }
-    }
-
-    /* Grid overlay */
-    .grid-overlay {
-        position: absolute;
-        inset: 0;
-        background-image:
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .z-2 { z-index: 2; }
-
-    /* Pulse dot */
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background: #22c55e;
-        border-radius: 50%;
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(1.2); }
-    }
-
-    /* Text gradient */
-    .text-gradient {
-        background: linear-gradient(135deg, #38bdf8 0%, #22d3ee 50%, #34d399 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    /* Animaciones de entrada */
-    .animate-fade-in {
-        animation: fadeIn 0.8s ease-out forwards;
-    }
-
-    .animate-slide-up {
-        animation: slideUp 0.8s ease-out forwards;
-    }
-
-    .animate-slide-up-delay {
-        animation: slideUp 0.8s ease-out 0.2s forwards;
-        opacity: 0;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* =========================================
-       STAT CARDS - PRINCIPALES
-       ========================================= */
-    .stat-card-main {
-        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 24px;
-        padding: 2rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.4s ease, box-shadow 0.4s ease;
-    }
-
-    .stat-card-main:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-    }
-
-    .stat-card-main .stat-card-inner {
-        position: relative;
-        z-index: 2;
-    }
-
-    .stat-icon-lg {
-        width: 70px;
-        height: 70px;
-        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        color: white;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
-    }
-
-    .stat-card-green .stat-icon-lg {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
-    }
-
-    .stat-number-lg {
-        font-size: 3.5rem;
-        font-weight: 800;
-        color: white;
-        line-height: 1;
-        letter-spacing: -2px;
-    }
-
-    .stat-unit {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: rgba(255,255,255,0.7);
-        margin-left: 0.5rem;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.6);
-        margin-top: 0.5rem;
-    }
-
-    .stat-decoration {
-        position: absolute;
-        width: 200px;
-        height: 200px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 70%);
-        top: -50px;
-        right: -50px;
-        z-index: 1;
-    }
-
-    /* =========================================
-       STAT CARDS - MINI
-       ========================================= */
-    .stat-card-mini {
-        background: rgba(255,255,255,0.08);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 16px;
-        padding: 1.25rem;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card-mini:hover {
-        background: rgba(255,255,255,0.12);
-        transform: translateY(-4px);
-    }
-
-    .stat-mini-icon {
-        font-size: 1.5rem;
-        color: rgba(255,255,255,0.5);
-        margin-bottom: 0.5rem;
-    }
-
-    .stat-mini-number {
-        font-size: 2rem;
-        font-weight: 700;
-        color: white;
-        line-height: 1.2;
-    }
-
-    .stat-mini-label {
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.5);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    /* =========================================
-       FILTER PANEL
-       ========================================= */
-    .filter-panel {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    .filter-card {
-        background: rgba(255,255,255,0.98);
-        border-radius: 20px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-        overflow: hidden;
-    }
-
-    .filter-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-    }
-
-    .active-filters {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .filter-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.75rem;
-        background: #e0f2fe;
-        color: #0369a1;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    .filter-clear {
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #fee2e2;
-        color: #dc2626;
-        border-radius: 50%;
-        font-size: 0.7rem;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-
-    .filter-clear:hover {
-        background: #fecaca;
-        color: #b91c1c;
-    }
-
-    .filter-body {
-        padding: 1.5rem;
-    }
-
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-    }
-
-    @media (max-width: 768px) {
-        .filter-grid {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .filter-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .filter-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .filter-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #64748b;
-    }
-
-    .filter-select {
-        padding: 0.75rem 1rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #1e293b;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .filter-select:hover {
-        border-color: #cbd5e1;
-    }
-
-    .filter-select:focus {
-        outline: none;
-        border-color: #0284c7;
-        box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
-    }
-
-    .export-buttons {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-export {
-        flex: 1;
-        padding: 0.75rem 1rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        background: white;
-        color: #475569;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-    }
-
-    .btn-export:hover {
-        border-color: #22c55e;
-        color: #22c55e;
-        background: #f0fdf4;
-    }
-
-    .btn-export-alt:hover {
-        border-color: #ef4444;
-        color: #ef4444;
-        background: #fef2f2;
-    }
-
-    /* Wave separator */
-    .hero-wave {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        z-index: 2;
-        line-height: 0;
-    }
-
-    .hero-wave svg {
-        width: 100%;
-        height: 80px;
-    }
-
-    /* =========================================
-       ESTILOS GENERALES (resto de la página)
-       ========================================= */
-    .bg-gradient-dark {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    }
-
-    .chart-container {
-        position: relative;
-        width: 100%;
-    }
-    .chart-container canvas {
-        max-height: 100%;
-    }
-
-    #mapa-colombia {
-        border-radius: 0;
-    }
-
-    .leaflet-popup-content-wrapper {
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    }
-    .leaflet-popup-content {
-        margin: 12px 16px;
-        font-family: inherit;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 992px) {
-        .stat-number-lg {
-            font-size: 2.5rem;
-        }
-        .hero-results {
-            min-height: auto;
-            padding-top: 2rem;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .stat-card-main {
-            padding: 1.5rem;
-        }
-        .stat-icon-lg {
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
-        }
-        .stat-number-lg {
-            font-size: 2rem;
-        }
-        .display-3 {
-            font-size: 2rem;
-        }
-    }
-</style>
-
-<!-- Librerías externas -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== DEBUG RESULTADOS PEVI ===');
-
-    // =========================================================================
-    // DATOS DESDE DJANGO (Una sola vez, con nombres consistentes)
-    // =========================================================================
-    const centrosMapaData = {{ centros_mapa_json|safe }};
-    const energiaLabels = {{ energia_por_tipo_labels|safe }};
-    const energiaData = {{ energia_por_tipo_data|safe }};
-    const anosLabels = {{ años_labels|safe }};
-    const anosData = {{ años_data|safe }};
-    const sectoresLabels = {{ sectores_labels|safe }};
-    const sectoresData = {{ sectores_data|safe }};
-    const regionesLabels = {{ regiones_labels|safe }};
-    const regionesData = {{ regiones_data|safe }};
-    const centrosLabels = {{ centros_labels|safe }};
-    const centrosData = {{ centros_data|safe }};
-
-    console.log('Centros Mapa:', centrosMapaData);
-    console.log('Energia:', energiaLabels, energiaData);
-    console.log('Anos:', anosLabels, anosData);
-    console.log('Sectores:', sectoresLabels, sectoresData);
-    console.log('Regiones:', regionesLabels, regionesData);
-    console.log('Centros:', centrosLabels, centrosData);
-
-    // =========================================================================
-    // MAPA DE COLOMBIA CON LEAFLET
-    // =========================================================================
-    try {
-        const map = L.map('mapa-colombia', {
-            scrollWheelZoom: false
-        }).setView([4.5709, -74.2973], 6);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(map);
-
-        if (centrosMapaData.length === 0) {
-            const noDataDiv = document.createElement('div');
-            noDataDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-geo-alt fs-1 mb-2 d-block opacity-50"></i><p>Los centros aún no tienen coordenadas configuradas</p></div>';
-            noDataDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:rgba(255,255,255,0.9);padding:20px;border-radius:10px;';
-            document.getElementById('mapa-colombia').appendChild(noDataDiv);
-        }
-
-        centrosMapaData.forEach(function(centro) {
-            const markerHtml = '<div style="background:' + centro.color + ';width:36px;height:36px;border-radius:50%;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:12px;">' + centro.proyectos + '</div>';
-
-            const customIcon = L.divIcon({
-                html: markerHtml,
-                className: 'custom-marker',
-                iconSize: [36, 36],
-                iconAnchor: [18, 18]
-            });
-
-            L.marker([centro.lat, centro.lng], { icon: customIcon })
-                .addTo(map)
-                .bindPopup('<div class="text-center"><strong>' + centro.nombre + '</strong><br><small>' + centro.region + '</small><br><span class="badge bg-primary">' + centro.proyectos + ' Auditorías</span></div>');
-        });
-        console.log('Mapa OK');
-    } catch(e) {
-        console.error('Error en mapa:', e);
-    }
-
-    // =========================================================================
-    // CONFIGURACIÓN GLOBAL DE CHART.JS
-    // =========================================================================
-    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
-    Chart.defaults.plugins.legend.labels.usePointStyle = true;
-
-    const coloresPrimarios = ['#0284c7', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
-    const coloresGradiente = ['rgba(2,132,199,0.8)', 'rgba(5,150,105,0.8)', 'rgba(217,119,6,0.8)', 'rgba(220,38,38,0.8)', 'rgba(124,58,237,0.8)', 'rgba(219,39,119,0.8)'];
-
-    // =========================================================================
-    // GRÁFICO: ENERGÍA POR TIPO
-    // =========================================================================
-    try {
-        const tieneEnergia = energiaData.some(function(v) { return v > 0; });
-        console.log('Tiene energia:', tieneEnergia);
-
-        if (tieneEnergia) {
-            new Chart(document.getElementById('chartEnergiaTipo'), {
-                type: 'doughnut',
-                data: {
-                    labels: energiaLabels,
-                    datasets: [{
-                        data: energiaData,
-                        backgroundColor: coloresGradiente,
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { padding: 15, font: { size: 11 } } }
-                    }
-                }
-            });
-        } else {
-            const canvas = document.getElementById('chartEnergiaTipo');
-            const ctx = canvas.getContext('2d');
-            ctx.font = '14px sans-serif';
-            ctx.fillStyle = '#94a3b8';
-            ctx.textAlign = 'center';
-            ctx.fillText('Sin datos de energia', canvas.width / 2, canvas.height / 2);
-        }
-        console.log('Chart Energia OK');
-    } catch(e) {
-        console.error('Error chart energia:', e);
-    }
-
-    // =========================================================================
-    // GRÁFICO: EVOLUCIÓN TEMPORAL
-    // =========================================================================
-    try {
-        new Chart(document.getElementById('chartEvolucion'), {
-            type: 'line',
-            data: {
-                labels: anosLabels,
-                datasets: [{
-                    label: 'Auditorias',
-                    data: anosData,
-                    borderColor: '#0284c7',
-                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#0284c7',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-        console.log('Chart Evolucion OK');
-    } catch(e) {
-        console.error('Error chart evolucion:', e);
-    }
-
-    // =========================================================================
-    // GRÁFICO: SECTORES INDUSTRIALES
-    // =========================================================================
-    try {
-        new Chart(document.getElementById('chartSectores'), {
-            type: 'bar',
-            data: {
-                labels: sectoresLabels,
-                datasets: [{
-                    label: 'Proyectos',
-                    data: sectoresData,
-                    backgroundColor: coloresPrimarios,
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-                }
-            }
-        });
-        console.log('Chart Sectores OK');
-    } catch(e) {
-        console.error('Error chart sectores:', e);
-    }
-
-    // =========================================================================
-    // GRÁFICO: REGIONES
-    // =========================================================================
-    try {
-        new Chart(document.getElementById('chartRegiones'), {
-            type: 'polarArea',
-            data: {
-                labels: regionesLabels,
-                datasets: [{
-                    data: regionesData,
-                    backgroundColor: coloresGradiente
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { padding: 12, font: { size: 11 } } } },
-                scales: { r: { ticks: { display: false }, grid: { color: 'rgba(0,0,0,0.05)' } } }
-            }
-        });
-        console.log('Chart Regiones OK');
-    } catch(e) {
-        console.error('Error chart regiones:', e);
-    }
-
-    // =========================================================================
-    // GRÁFICO: CENTROS PEVI
-    // =========================================================================
-    try {
-        new Chart(document.getElementById('chartCentros'), {
-            type: 'bar',
-            data: {
-                labels: centrosLabels,
-                datasets: [{
-                    label: 'Auditorias',
-                    data: centrosData,
-                    backgroundColor: 'rgba(2, 132, 199, 0.8)',
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } }
-                }
-            }
-        });
-        console.log('Chart Centros OK');
-    } catch(e) {
-        console.error('Error chart centros:', e);
-    }
-
-    // =========================================================================
-    // ANIMACIÓN DE CONTADORES (Mejorada)
-    // =========================================================================
-    const counters = document.querySelectorAll('.counter-animate');
-    counters.forEach(function(counter) {
-        // Limpiar el valor (quitar comas si las hay)
-        const rawValue = counter.getAttribute('data-count') || '0';
-        const target = parseFloat(rawValue.replace(/,/g, '')) || 0;
-        const suffix = counter.getAttribute('data-suffix') || '';
-
-        if (target === 0) {
-            counter.textContent = '0' + suffix;
-            return;
-        }
-
-        const duration = 2000; // 2 segundos
-        const steps = 60;
-        const stepTime = duration / steps;
-        let current = 0;
-        const increment = target / steps;
-
-        const timer = setInterval(function() {
-            current += increment;
-            if (current >= target) {
-                counter.textContent = Math.round(target).toLocaleString('es-CO') + suffix;
-                clearInterval(timer);
-            } else {
-                counter.textContent = Math.round(current).toLocaleString('es-CO') + suffix;
-            }
-        }, stepTime);
-    });
-
-    console.log('=== FIN DEBUG ===');
-});
-
-// =========================================================================
-// FUNCIONES DE EXPORTACIÓN
-// =========================================================================
-
-function exportarCSV() {
-    // Datos de KPIs
-    const datos = [
-        ['RESULTADOS PROGRAMA PEVI - Datos Agregados'],
-        ['Fecha de exportación', new Date().toLocaleDateString('es-CO')],
-        [''],
-        ['INDICADORES GENERALES'],
-        ['Métrica', 'Valor'],
-        ['Auditorías Finalizadas', '{{ total_proyectos }}'],
-        ['Empresas Beneficiadas', '{{ total_empresas }}'],
-        ['Centros PEVI Activos', '{{ total_centros }}'],
-        ['MWh Analizados', '{{ total_energia_mwh }}'],
-        ['Ton CO2 Calculadas', '{{ total_emisiones_ton }}'],
-        ['Sectores Industriales', '{{ sectores_unicos }}'],
-        [''],
-        ['DISTRIBUCIÓN ENERGÉTICA (MWh)'],
-        ['Fuente', 'MWh'],
-        ['Electricidad', '{{ energia_electricidad_mwh }}'],
-        ['Gas Natural', '{{ energia_gas_natural_mwh }}'],
-        ['Carbón Mineral', '{{ energia_carbon_mwh }}'],
-        ['Fuel Oil', '{{ energia_fuel_oil_mwh }}'],
-        ['Biomasa', '{{ energia_biomasa_mwh }}'],
-        ['GLP', '{{ energia_glp_mwh }}'],
-        [''],
-        ['FILTROS APLICADOS'],
-        ['Año', '{{ filtro_año|default:"Todos" }}'],
-        ['Región', '{{ filtro_region|default:"Todas" }}'],
-        ['Sector', '{{ filtro_sector|default:"Todos" }}'],
-    ];
-
-    // Convertir a CSV
-    let csv = datos.map(row => row.join(',')).join('\n');
-
-    // Crear y descargar archivo
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'PEVI_Resultados_' + new Date().toISOString().split('T')[0] + '.csv';
-    link.click();
-}
-
-function exportarPDF() {
-    // Crear ventana de impresión con estilos
-    const contenido = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Resultados PEVI - Reporte</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #0284c7; padding-bottom: 20px; }
-                .header h1 { color: #0284c7; margin: 0; }
-                .header p { color: #666; margin: 5px 0 0; }
-                .fecha { text-align: right; color: #999; font-size: 12px; margin-bottom: 20px; }
-                .seccion { margin-bottom: 30px; }
-                .seccion h2 { color: #0f172a; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
-                .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-                .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; }
-                .kpi-box .valor { font-size: 24px; font-weight: bold; color: #0284c7; }
-                .kpi-box .label { font-size: 11px; color: #64748b; text-transform: uppercase; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-                th { background: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #475569; }
-                .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-                .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; margin-right: 5px; }
-                .badge-primary { background: #e0f2fe; color: #0369a1; }
-                .filtros { background: #fef3c7; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; }
-                @media print { body { padding: 20px; } }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Programa PEVI Colombia</h1>
-                <p>Reporte de Resultados - Datos Agregados y Anonimizados</p>
-            </div>
-
-            <div class="fecha">Generado el ${new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-
-            {% if hay_filtros %}
-            <div class="filtros">
-                <strong>Filtros aplicados:</strong>
-                {% if filtro_año %}<span class="badge badge-primary">Año: {{ filtro_año }}</span>{% endif %}
-                {% if filtro_region %}<span class="badge badge-primary">Región: {{ filtro_region }}</span>{% endif %}
-                {% if filtro_sector %}<span class="badge badge-primary">Sector: {{ filtro_sector }}</span>{% endif %}
+    </section>
+
+    <!-- ============ CIFRAS PRINCIPALES ============ -->
+    <section class="rb-section" aria-labelledby="t-cifras">
+        <div class="rb-container">
+            {% if total_proyectos == 0 %}
+            <div class="rb-aviso" role="status">
+                <p>
+                    No hay auditorías registradas para <strong>{{ resumen_filtros }}</strong>.
+                    {% if hay_filtros %}<a href="{% url 'resultados_public' %}">Quite los filtros</a> para ver el total nacional.{% endif %}
+                </p>
             </div>
             {% endif %}
 
-            <div class="seccion">
-                <h2>Indicadores Principales</h2>
-                <div class="kpi-grid">
-                    <div class="kpi-box">
-                        <div class="valor">{{ total_proyectos }}</div>
-                        <div class="label">Auditorías</div>
-                    </div>
-                    <div class="kpi-box">
-                        <div class="valor">{{ total_empresas }}</div>
-                        <div class="label">Empresas</div>
-                    </div>
-                    <div class="kpi-box">
-                        <div class="valor">{{ total_centros }}</div>
-                        <div class="label">Centros PEVI</div>
-                    </div>
-                    <div class="kpi-box">
-                        <div class="valor">{{ total_energia_mwh|intcomma }}</div>
-                        <div class="label">MWh Analizados</div>
-                    </div>
-                    <div class="kpi-box">
-                        <div class="valor">{{ total_emisiones_ton|intcomma }}</div>
-                        <div class="label">Ton CO2</div>
-                    </div>
-                    <div class="kpi-box">
-                        <div class="valor">{{ sectores_unicos }}</div>
-                        <div class="label">Sectores</div>
-                    </div>
+            <div class="rb-section-head">
+                <h2 id="t-cifras">Cifras principales</h2>
+                <p>Totales de las auditorías registradas en el periodo y la selección indicados.</p>
+            </div>
+
+            <div class="rb-panel rb-cifras">
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ total_energia_mwh|intcomma }}<span class="rb-cifra-unidad">MWh/año</span></div>
+                    <div class="rb-cifra-label">Energía analizada</div>
+                    <div class="rb-cifra-nota">Consumo anual de todas las fuentes auditadas</div>
+                </div>
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ total_emisiones_ton|intcomma }}<span class="rb-cifra-unidad">t CO₂/año</span></div>
+                    <div class="rb-cifra-label">Emisiones reportadas</div>
+                    <div class="rb-cifra-nota">Huella de carbono de las plantas auditadas</div>
+                </div>
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ total_proyectos|intcomma }}</div>
+                    <div class="rb-cifra-label">Auditorías registradas</div>
+                    <div class="rb-cifra-nota">En formulación, ejecución, revisión o finalizadas</div>
+                </div>
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ total_empresas|intcomma }}</div>
+                    <div class="rb-cifra-label">Empresas atendidas</div>
+                    <div class="rb-cifra-nota">Plantas industriales con al menos una auditoría</div>
+                </div>
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ sectores_unicos|intcomma }}</div>
+                    <div class="rb-cifra-label">Sectores productivos</div>
+                    <div class="rb-cifra-nota">Sectores distintos entre las empresas atendidas</div>
+                </div>
+                <div class="rb-cifra">
+                    <div class="rb-cifra-valor">{{ total_centros|intcomma }}</div>
+                    <div class="rb-cifra-label">Centros PEVI activos</div>
+                    <div class="rb-cifra-nota">Universidades que ejecutan las auditorías</div>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div class="seccion">
-                <h2>Distribución por Fuente Energética</h2>
-                <table>
+    <!-- ============ MATRIZ ENERGÉTICA ============ -->
+    <section class="rb-section" aria-labelledby="t-matriz">
+        <div class="rb-container">
+            <div class="rb-section-head">
+                <h2 id="t-matriz">Matriz energética auditada</h2>
+                <p>Participación de cada fuente en el consumo anual analizado, en MWh equivalentes.</p>
+            </div>
+
+            <div class="rb-panel rb-matriz">
+                <div class="rb-matriz-total">
+                    <span>Consumo total analizado</span>
+                    <strong>{{ total_energia_mwh|intcomma }} MWh/año</strong>
+                </div>
+
+                {% if total_energia_mwh %}
+                <div class="rb-barra" role="img" aria-label="Participación por fuente: {% for f in matriz_energia %}{% if f.mwh %}{{ f.nombre }} {{ f.pct|floatformat:1 }}%{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}">
+                    {% for f in matriz_energia %}{% if f.mwh %}
+                    <div class="rb-barra-seg" style="width: {{ f.pct|floatformat:'2u' }}%; background: {{ f.color }};" title="{{ f.nombre }}: {{ f.pct|floatformat:1 }}%"></div>
+                    {% endif %}{% endfor %}
+                </div>
+                {% else %}
+                <div class="rb-barra" aria-hidden="true"></div>
+                {% endif %}
+
+                <table class="rb-tabla">
+                    <caption class="rb-visually-hidden">Consumo anual por fuente energética</caption>
                     <thead>
-                        <tr>
-                            <th>Fuente</th>
-                            <th style="text-align: right;">MWh</th>
-                        </tr>
+                        <tr><th scope="col">Fuente</th><th scope="col" class="num">MWh/año</th><th scope="col" class="num">Participación</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>Electricidad</td><td style="text-align: right;">{{ energia_electricidad_mwh|intcomma }}</td></tr>
-                        <tr><td>Gas Natural</td><td style="text-align: right;">{{ energia_gas_natural_mwh|intcomma }}</td></tr>
-                        <tr><td>Carbón Mineral</td><td style="text-align: right;">{{ energia_carbon_mwh|intcomma }}</td></tr>
-                        <tr><td>Fuel Oil</td><td style="text-align: right;">{{ energia_fuel_oil_mwh|intcomma }}</td></tr>
-                        <tr><td>Biomasa</td><td style="text-align: right;">{{ energia_biomasa_mwh|intcomma }}</td></tr>
-                        <tr><td>GLP</td><td style="text-align: right;">{{ energia_glp_mwh|intcomma }}</td></tr>
-                        <tr style="font-weight: bold; background: #f1f5f9;">
-                            <td>TOTAL</td>
-                            <td style="text-align: right;">{{ total_energia_mwh|intcomma }}</td>
+                        {% for f in matriz_energia %}
+                        <tr>
+                            <td><span class="rb-swatch" style="background: {{ f.color }};" aria-hidden="true"></span>{{ f.nombre }}</td>
+                            <td class="num">{{ f.mwh|intcomma }}</td>
+                            <td class="num">{{ f.pct|floatformat:1 }} %</td>
                         </tr>
+                        {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr><td>Total</td><td class="num">{{ total_energia_mwh|intcomma }}</td><td class="num">{% if total_energia_mwh %}100,0 %{% else %}—{% endif %}</td></tr>
+                    </tfoot>
                 </table>
             </div>
+        </div>
+    </section>
 
-            <div class="footer">
-                <p><strong>PEVI Colombia</strong> - Programa de Eficiencia Energética Industrial</p>
-                <p>Coordinado por UPME con el apoyo de la red de universidades participantes</p>
-                <p style="margin-top: 10px; font-size: 10px;">Los datos presentados son agregados y anonimizados para proteger la información comercial de las empresas participantes.</p>
+    <!-- ============ COBERTURA TERRITORIAL ============ -->
+    <section class="rb-section rb-section-cobertura" aria-labelledby="t-cobertura">
+        <div class="rb-container">
+            <div class="rb-section-head">
+                <h2 id="t-cobertura">Cobertura territorial</h2>
+                <p>Centros PEVI y número de auditorías registradas por cada uno.</p>
             </div>
-        </body>
-        </html>
-    `;
 
-    const ventana = window.open('', '_blank');
-    ventana.document.write(contenido);
-    ventana.document.close();
-    ventana.focus();
-    setTimeout(() => {
-        ventana.print();
-    }, 500);
-}
+            <div class="rb-panel rb-cobertura">
+                <div id="rb-mapa" role="region" aria-label="Mapa de los Centros PEVI. La misma información está en la tabla."></div>
+                <div class="rb-cobertura-tabla">
+                    <table class="rb-tabla">
+                        <caption class="rb-visually-hidden">Auditorías por Centro PEVI</caption>
+                        <thead>
+                            <tr><th scope="col">Centro PEVI</th><th scope="col">Región</th><th scope="col" class="num">Auditorías</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for c in centros_tabla %}
+                            <tr>
+                                <td><span class="rb-sigla">{{ c.sigla }}</span>{% if c.sigla != c.nombre %}<span class="rb-sub">{{ c.nombre }}</span>{% endif %}</td>
+                                <td>{{ c.region|default:"—" }}{% if c.ciudad %}<span class="rb-sub">{{ c.ciudad }}</span>{% endif %}</td>
+                                <td class="num">{{ c.proyectos|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3">No hay centros activos registrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SERIES ============ -->
+    <section class="rb-section" aria-labelledby="t-series">
+        <div class="rb-container">
+            <div class="rb-section-head">
+                <h2 id="t-series">Distribución de las auditorías</h2>
+                <p>Cómo se reparten las auditorías en el tiempo, el territorio y los sectores de la economía.</p>
+            </div>
+
+            <div class="rb-grid-2">
+                <figure class="rb-panel rb-figura">
+                    <h3>Auditorías por año de inicio</h3>
+                    <p>Número de auditorías según el año en que comenzaron.</p>
+                    <div class="rb-chart">
+                        {% if serie_anual %}<canvas id="g-anual" role="img" aria-label="Gráfico de barras: auditorías por año"></canvas>
+                        {% else %}<div class="rb-vacio">Sin auditorías para esta selección</div>{% endif %}
+                    </div>
+                    {% if serie_anual %}
+                    <details>
+                        <summary>Ver tabla de datos</summary>
+                        <table class="rb-tabla"><thead><tr><th scope="col">Año</th><th scope="col" class="num">Auditorías</th></tr></thead>
+                            <tbody>{% for r in serie_anual %}<tr><td>{{ r.etiqueta }}</td><td class="num">{{ r.valor|intcomma }}</td></tr>{% endfor %}</tbody>
+                        </table>
+                    </details>
+                    {% endif %}
+                </figure>
+
+                <figure class="rb-panel rb-figura">
+                    <h3>Auditorías por región</h3>
+                    <p>Según la región del Centro PEVI que realiza la auditoría.</p>
+                    <div class="rb-chart">
+                        {% if serie_regiones %}<canvas id="g-regiones" role="img" aria-label="Gráfico de barras: auditorías por región"></canvas>
+                        {% else %}<div class="rb-vacio">Sin auditorías para esta selección</div>{% endif %}
+                    </div>
+                    {% if serie_regiones %}
+                    <details>
+                        <summary>Ver tabla de datos</summary>
+                        <table class="rb-tabla"><thead><tr><th scope="col">Región</th><th scope="col" class="num">Auditorías</th></tr></thead>
+                            <tbody>{% for r in serie_regiones %}<tr><td>{{ r.etiqueta }}</td><td class="num">{{ r.valor|intcomma }}</td></tr>{% endfor %}</tbody>
+                        </table>
+                    </details>
+                    {% endif %}
+                </figure>
+
+                <figure class="rb-panel rb-figura">
+                    <h3>Auditorías por sector productivo</h3>
+                    <p>Los ocho sectores con más auditorías.</p>
+                    <div class="rb-chart">
+                        {% if serie_sectores %}<canvas id="g-sectores" role="img" aria-label="Gráfico de barras: auditorías por sector productivo"></canvas>
+                        {% else %}<div class="rb-vacio">Sin auditorías para esta selección</div>{% endif %}
+                    </div>
+                    {% if serie_sectores %}
+                    <details>
+                        <summary>Ver tabla de datos</summary>
+                        <table class="rb-tabla"><thead><tr><th scope="col">Sector</th><th scope="col" class="num">Auditorías</th></tr></thead>
+                            <tbody>{% for r in serie_sectores %}<tr><td>{{ r.etiqueta }}</td><td class="num">{{ r.valor|intcomma }}</td></tr>{% endfor %}</tbody>
+                        </table>
+                    </details>
+                    {% endif %}
+                </figure>
+
+                <figure class="rb-panel rb-figura">
+                    <h3>Auditorías por Centro PEVI</h3>
+                    <p>Centros con al menos una auditoría en esta selección.</p>
+                    <div class="rb-chart">
+                        {% if serie_centros %}<canvas id="g-centros" role="img" aria-label="Gráfico de barras: auditorías por Centro PEVI"></canvas>
+                        {% else %}<div class="rb-vacio">Sin auditorías para esta selección</div>{% endif %}
+                    </div>
+                    {% if serie_centros %}
+                    <details>
+                        <summary>Ver tabla de datos</summary>
+                        <table class="rb-tabla"><thead><tr><th scope="col">Centro</th><th scope="col" class="num">Auditorías</th></tr></thead>
+                            <tbody>{% for r in serie_centros %}<tr><td>{{ r.etiqueta }}</td><td class="num">{{ r.valor|intcomma }}</td></tr>{% endfor %}</tbody>
+                        </table>
+                    </details>
+                    {% endif %}
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ NOTA METODOLÓGICA ============ -->
+    <section class="rb-section" aria-labelledby="t-metodo">
+        <div class="rb-container">
+            <div class="rb-section-head">
+                <h2 id="t-metodo">Nota metodológica</h2>
+                <p>Cómo se calculan las cifras de este boletín.</p>
+            </div>
+            <dl class="rb-panel rb-metodo">
+                <div>
+                    <dt>Energía analizada</dt>
+                    <dd>Suma del consumo anual de electricidad, gas natural, carbón mineral, fuel oil, biomasa y GLP
+                        de las plantas auditadas. Los combustibles se convierten a MWh equivalentes con el poder
+                        calorífico registrado para cada uno.</dd>
+                </div>
+                <div>
+                    <dt>Emisiones reportadas</dt>
+                    <dd>Toneladas de CO₂ al año que reporta cada equipo auditor a partir del consumo de cada fuente
+                        y su factor de emisión.</dd>
+                </div>
+                <div>
+                    <dt>Alcance</dt>
+                    <dd>Incluye auditorías en todas sus etapas: formulación, ejecución, revisión y finalizadas.
+                        Las cifras se actualizan a medida que los Centros PEVI registran información.</dd>
+                </div>
+                <div>
+                    <dt>Confidencialidad</dt>
+                    <dd>Solo se publican datos agregados. No se muestran nombres de empresas ni cifras de plantas
+                        individuales.</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- ============ PARTICIPACIÓN ============ -->
+    <section class="rb-section" aria-labelledby="t-participa">
+        <div class="rb-container">
+            <div class="rb-panel rb-participa">
+                <div>
+                    <h2 id="t-participa">¿Su empresa quiere una auditoría energética?</h2>
+                    <p>Los Centros PEVI acompañan a la industria en el diagnóstico de su consumo y en la identificación
+                        de medidas de eficiencia energética.</p>
+                </div>
+                <a href="{% url 'centros_public' %}" class="rb-btn rb-btn-primary">Contactar un Centro PEVI</a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+{{ datos_graficos|json_script:"rb-datos" }}
+{% endlanguage %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    var datos = JSON.parse(document.getElementById('rb-datos').textContent);
+    var NAVY = '#004884';
+    var MUTED = '#4b5563';
+    var RULE = '#e9edf2';
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var fmt = new Intl.NumberFormat('es-CO');
+
+    // ---------------- Mapa ----------------
+    try {
+        var mapa = L.map('rb-mapa', { scrollWheelZoom: false, zoomControl: true }).setView([4.6, -74.1], 5);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18
+        }).addTo(mapa);
+
+        var puntos = [];
+        datos.mapa.forEach(function (c) {
+            var el = document.createElement('div');
+            el.className = 'rb-marker' + (c.proyectos ? '' : ' is-empty');
+            el.textContent = c.proyectos;
+            var icono = L.divIcon({ html: el.outerHTML, className: '', iconSize: [30, 30], iconAnchor: [15, 15] });
+
+            var popup = document.createElement('div');
+            var titulo = document.createElement('strong');
+            titulo.textContent = c.nombre;
+            popup.appendChild(titulo);
+            popup.appendChild(document.createElement('br'));
+            popup.appendChild(document.createTextNode(
+                [c.ciudad, c.region].filter(Boolean).join(', ') + ' · ' + fmt.format(c.proyectos) +
+                (c.proyectos === 1 ? ' auditoría' : ' auditorías')
+            ));
+
+            L.marker([c.lat, c.lng], { icon: icono, title: c.nombre, keyboard: true }).addTo(mapa).bindPopup(popup);
+            puntos.push([c.lat, c.lng]);
+        });
+        if (puntos.length > 1) { mapa.fitBounds(puntos, { padding: [40, 40], maxZoom: 7 }); }
+    } catch (e) {
+        document.getElementById('rb-mapa').textContent = 'El mapa no está disponible. Consulte la tabla de centros.';
+    }
+
+    // ---------------- Gráficos ----------------
+    // Se dibujan cuando la fuente ya cargó: así Chart.js mide bien las etiquetas
+    function dibujarGraficos() {
+        if (!window.Chart) { return; }
+        Chart.defaults.font.family = "'Work Sans', sans-serif";
+        Chart.defaults.font.size = 13;
+        Chart.defaults.color = MUTED;
+        Chart.defaults.animation = reduceMotion ? false : { duration: 400 };
+        Chart.defaults.plugins.legend.display = false;
+        Chart.defaults.plugins.tooltip.backgroundColor = '#1b2430';
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.callbacks.label = function (ctx) {
+            var v = ctx.parsed.x !== undefined && ctx.chart.options.indexAxis === 'y' ? ctx.parsed.x : ctx.parsed.y;
+            return ' ' + fmt.format(v) + (v === 1 ? ' auditoría' : ' auditorías');
+        };
+
+        function barras(id, serie, horizontal) {
+            var canvas = document.getElementById(id);
+            if (!canvas || !serie.length) { return; }
+            var ejeValor = { beginAtZero: true, ticks: { precision: 0 }, grid: { color: RULE }, border: { display: false } };
+            var ejeCategoria = { grid: { display: false }, border: { color: '#9aa3ae' },
+                ticks: { autoSkip: false, callback: function (val) {
+                    var t = this.getLabelForValue(val);
+                    return t.length > 26 ? t.slice(0, 25) + '…' : t;
+                } } };
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: serie.map(function (r) { return r.etiqueta; }),
+                    datasets: [{ data: serie.map(function (r) { return r.valor; }), backgroundColor: NAVY,
+                                 hoverBackgroundColor: '#3366cc', borderRadius: 2, maxBarThickness: horizontal ? 22 : 44 }]
+                },
+                options: {
+                    indexAxis: horizontal ? 'y' : 'x',
+                    layout: { padding: { left: 6, right: 8 } },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: horizontal ? { x: ejeValor, y: ejeCategoria } : { x: ejeCategoria, y: ejeValor }
+                }
+            });
+        }
+
+        barras('g-anual', datos.anual, false);
+        barras('g-regiones', datos.regiones, true);
+        barras('g-sectores', datos.sectores, true);
+        barras('g-centros', datos.centros, true);
+    }
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(dibujarGraficos);
+
+    // ---------------- Exportar ----------------
+    function celda(v) {
+        var s = String(v === null || v === undefined ? '' : v);
+        return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    document.getElementById('rb-descargar-csv').addEventListener('click', function () {
+        var filas = [
+            ['Resultados del Programa PEVI - datos agregados'],
+            ['Selección', datos.resumen_filtros],
+            ['Fecha de descarga', new Date().toLocaleDateString('es-CO')],
+            [],
+            ['Indicador', 'Valor']
+        ].concat(datos.indicadores, [[], ['Fuente energética', 'MWh/año', 'Participación (%)']],
+            datos.matriz.map(function (f) { return [f.nombre, f.mwh, f.pct.toFixed(1).replace('.', ',')]; }),
+            [[], ['Centro PEVI', 'Auditorías']], datos.centros.map(function (r) { return [r.etiqueta, r.valor]; }),
+            [[], ['Región', 'Auditorías']], datos.regiones.map(function (r) { return [r.etiqueta, r.valor]; }),
+            [[], ['Sector productivo', 'Auditorías']], datos.sectores.map(function (r) { return [r.etiqueta, r.valor]; }),
+            [[], ['Año de inicio', 'Auditorías']], datos.anual.map(function (r) { return [r.etiqueta, r.valor]; })
+        );
+        // Punto y coma: separador que Excel en español abre directamente en columnas
+        var csv = filas.map(function (f) { return f.map(celda).join(';'); }).join('\r\n');
+        var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'PEVI_resultados_' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+
+    document.getElementById('rb-imprimir').addEventListener('click', function () {
+        document.querySelectorAll('.rb-figura details').forEach(function (d) { d.open = true; });
+        window.print();
+    });
+})();
 </script>
-
 {% endblock %}

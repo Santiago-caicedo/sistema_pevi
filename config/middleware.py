@@ -67,7 +67,8 @@ class ContentSecurityPolicyMiddleware:
                 "wallpapers.com",               # Hero home
                 "img.freepik.com",              # Hero home
                 "lirp.cdn-website.com",         # Sección home
-                "*.basemaps.cartocdn.com",      # Tiles mapa resultados
+                "*.basemaps.cartocdn.com",      # Tiles mapa (legado; Carto ahora exige API key)
+                "tile.openstreetmap.org",       # Tiles mapa resultados
             ],
 
             # Conexiones AJAX/Fetch: servidor propio + CDN source maps

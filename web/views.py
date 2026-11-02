@@ -106,13 +106,13 @@ def centros(request):
 
 def resultados(request):
     """
-    Página pública de resultados con datos ANONIMIZADOS.
-    Muestra métricas agregadas, mapa interactivo y gráficos.
-    Soporta filtros por año, región y sector.
+    Boletín público de resultados del Programa PEVI (datos ANONIMIZADOS).
+    Cifras agregadas, matriz energética, cobertura territorial y series,
+    todas filtrables por año, región y sector.
     """
-    from auditorias.models import Empresa, Electricidad, GasNatural, CarbonMineral, FuelOil, Biomasa, GasPropano
+    from auditorias.models import Empresa
     from django.db.models.functions import ExtractYear
-    import json
+    from django.utils import timezone
 
     # =========================================================================
     # FILTROS DESDE GET PARAMS
@@ -121,208 +121,149 @@ def resultados(request):
     filtro_region = request.GET.get('region', '')
     filtro_sector = request.GET.get('sector', '')
 
-    # =========================================================================
-    # OPCIONES PARA LOS FILTROS (sin filtrar)
-    # =========================================================================
-    años_disponibles = list(
-        ProyectoAuditoria.objects.annotate(
-            año=ExtractYear('fecha_inicio')
-        ).values_list('año', flat=True).distinct().order_by('-año')
-    )
-    años_disponibles = [a for a in años_disponibles if a]  # Eliminar None
-
-    regiones_disponibles = list(
-        CentroPevi.objects.filter(activo=True).values_list('region', flat=True).distinct().order_by('region')
-    )
-    regiones_disponibles = [r for r in regiones_disponibles if r]
-
-    sectores_disponibles = list(
-        Empresa.objects.filter(auditorias__isnull=False).values_list(
-            'sector_productivo', flat=True
-        ).distinct().order_by('sector_productivo')
-    )
-    sectores_disponibles = [s for s in sectores_disponibles if s]
+    # Opciones de los filtros (sin filtrar)
+    años_disponibles = [
+        a for a in ProyectoAuditoria.objects.annotate(año=ExtractYear('fecha_inicio'))
+        .values_list('año', flat=True).distinct().order_by('-año') if a
+    ]
+    regiones_disponibles = [
+        r for r in CentroPevi.objects.filter(activo=True)
+        .values_list('region', flat=True).distinct().order_by('region') if r
+    ]
+    sectores_disponibles = [
+        s for s in Empresa.objects.filter(auditorias__isnull=False)
+        .values_list('sector_productivo', flat=True).distinct().order_by('sector_productivo') if s
+    ]
 
     # =========================================================================
-    # PROYECTOS BASE (aplicar filtros)
+    # PROYECTOS BASE (con filtros)
     # =========================================================================
     proyectos = ProyectoAuditoria.objects.all()
     centros = CentroPevi.objects.filter(activo=True)
 
-    # Aplicar filtro de año
-    if filtro_año:
-        try:
-            proyectos = proyectos.filter(fecha_inicio__year=int(filtro_año))
-        except ValueError:
-            pass
-
-    # Aplicar filtro de región
+    if filtro_año.isdigit():
+        proyectos = proyectos.filter(fecha_inicio__year=int(filtro_año))
     if filtro_region:
         proyectos = proyectos.filter(centro__region=filtro_region)
-
-    # Aplicar filtro de sector
     if filtro_sector:
         proyectos = proyectos.filter(empresa__sector_productivo=filtro_sector)
 
     # =========================================================================
-    # KPIs GLOBALES ANONIMIZADOS
+    # CIFRAS PRINCIPALES
     # =========================================================================
     total_proyectos = proyectos.count()
     total_centros = centros.count()
-
-    # Empresas únicas atendidas (contamos sin revelar nombres)
     total_empresas = proyectos.values('empresa').distinct().count()
+    sectores_unicos = (
+        proyectos.exclude(empresa__sector_productivo='')
+        .values('empresa__sector_productivo').distinct().count()
+    )
 
-    # Sectores únicos
-    sectores_unicos = Empresa.objects.filter(
-        auditorias__isnull=False
-    ).values_list('sector_productivo', flat=True).distinct().count()
-
-    # Energía y Emisiones totales
+    # Energía (kWh) y emisiones, total y por fuente
+    FUENTES = [
+        # (clave, nombre, relación, campo kWh, color institucional)
+        ('electricidad', 'Electricidad', 'electricidad_related', 'consumo_anual', '#004884'),
+        ('gas_natural', 'Gas natural', 'gasnatural_related', 'consumo_anual_kwh', '#3E7CB1'),
+        ('carbon', 'Carbón mineral', 'carbonmineral_related', 'consumo_anual_kwh', '#4A4F57'),
+        ('fuel_oil', 'Fuel oil', 'fueloil_related', 'consumo_anual_kwh', '#8C5A2B'),
+        ('biomasa', 'Biomasa', 'biomasa_related', 'consumo_anual_kwh', '#4E7F3A'),
+        ('glp', 'GLP (gas propano)', 'gaspropano_related', 'consumo_anual_kwh', '#B7791F'),
+    ]
+    energia_kwh = {clave: 0.0 for clave, *_ in FUENTES}
     total_energia_kwh = 0.0
     total_emisiones_ton = 0.0
 
-    # Energía por tipo de fuente
-    energia_electricidad = 0.0
-    energia_gas_natural = 0.0
-    energia_carbon = 0.0
-    energia_fuel_oil = 0.0
-    energia_biomasa = 0.0
-    energia_glp = 0.0
-
-    for p in proyectos:
+    for p in proyectos.prefetch_related(*[rel for _, _, rel, _, _ in FUENTES]):
         total_energia_kwh += p.get_total_kwh()
         total_emisiones_ton += p.get_total_emisiones()
+        for clave, _, rel, campo, _ in FUENTES:
+            registro = next(iter(getattr(p, rel).all()), None)
+            if registro:
+                energia_kwh[clave] += getattr(registro, campo) or 0
 
-        # Sumar por tipo de energía
-        elec = p.electricidad_related.first()
-        if elec:
-            energia_electricidad += elec.consumo_anual
-
-        gas = p.gasnatural_related.first()
-        if gas:
-            energia_gas_natural += gas.consumo_anual_kwh
-
-        carbon = p.carbonmineral_related.first()
-        if carbon:
-            energia_carbon += carbon.consumo_anual_kwh
-
-        fuel = p.fueloil_related.first()
-        if fuel:
-            energia_fuel_oil += fuel.consumo_anual_kwh
-
-        bio = p.biomasa_related.first()
-        if bio:
-            energia_biomasa += bio.consumo_anual_kwh
-
-        glp = p.gaspropano_related.first()
-        if glp:
-            energia_glp += glp.consumo_anual_kwh
-
-    # Convertir a MWh para visualización
-    total_energia_mwh = total_energia_kwh / 1000 if total_energia_kwh > 0 else 0
+    total_energia_mwh = total_energia_kwh / 1000
+    suma_fuentes = sum(energia_kwh.values())
+    matriz_energia = [
+        {
+            'nombre': nombre,
+            'mwh': round(energia_kwh[clave] / 1000),
+            'pct': (energia_kwh[clave] / suma_fuentes * 100) if suma_fuentes else 0,
+            'color': color,
+        }
+        for clave, nombre, _, _, color in FUENTES
+    ]
+    matriz_energia.sort(key=lambda f: f['mwh'], reverse=True)
 
     # =========================================================================
-    # DATOS PARA MAPA (Centros con coordenadas)
+    # COBERTURA TERRITORIAL (centros con proyectos filtrados)
     # =========================================================================
-    centros_mapa = []
-    for centro in centros:
-        if centro.latitud and centro.longitud:
-            proyectos_centro = proyectos.filter(centro=centro).count()
-            centros_mapa.append({
-                'nombre': centro.nombre_corto or centro.nombre,
-                'lat': centro.latitud,
-                'lng': centro.longitud,
-                'proyectos': proyectos_centro,
-                'color': centro.color_primario or '#1E40AF',
-                'region': centro.region,
-            })
-
-    # =========================================================================
-    # PROYECTOS POR AÑO (Evolución temporal)
-    # =========================================================================
-    proyectos_por_año = list(
-        ProyectoAuditoria.objects.annotate(
-            año=ExtractYear('fecha_inicio')
-        ).values('año').annotate(
-            total=Count('id')
-        ).order_by('año')
-    )[-6:]  # Últimos 6 años
-
-    años_labels = [str(p['año']) for p in proyectos_por_año if p['año']]
-    años_data = [p['total'] for p in proyectos_por_año if p['año']]
-
-    # Si no hay datos, agregar valores por defecto
-    if not años_labels:
-        años_labels = ['2024', '2025']
-        años_data = [0, 0]
-
-    # =========================================================================
-    # PROYECTOS POR SECTOR PRODUCTIVO (Anonimizado)
-    # =========================================================================
-    sectores_data = list(
-        Empresa.objects.filter(
-            auditorias__isnull=False
-        ).values('sector_productivo').annotate(
-            total=Count('auditorias', distinct=True)
-        ).order_by('-total')[:8]
+    conteo_por_centro = dict(
+        proyectos.values_list('centro').annotate(total=Count('id')).values_list('centro', 'total')
+    )
+    centros_tabla = sorted(
+        [
+            {
+                'nombre': c.nombre,
+                'sigla': c.nombre_corto or c.nombre,
+                'ciudad': c.ciudad,
+                'region': c.region,
+                'proyectos': conteo_por_centro.get(c.id, 0),
+                # Solo coordenadas válidas (un dato mal digitado no debe romper el mapa)
+                'lat': c.latitud if c.latitud is not None and -90 <= c.latitud <= 90 else None,
+                'lng': c.longitud if c.longitud is not None and -180 <= c.longitud <= 180 else None,
+            }
+            for c in centros
+        ],
+        key=lambda c: (-c['proyectos'], c['nombre']),
     )
 
-    sectores_labels = [s['sector_productivo'] or 'Sin especificar' for s in sectores_data]
-    sectores_valores = [s['total'] for s in sectores_data]
-
-    # Si no hay datos, agregar valores por defecto
-    if not sectores_labels:
-        sectores_labels = ['Sin datos']
-        sectores_valores = [0]
-
     # =========================================================================
-    # PROYECTOS POR REGIÓN
+    # SERIES (todas respetan los filtros)
     # =========================================================================
-    regiones_data = list(
-        proyectos.values('centro__region').annotate(
-            total=Count('id')
-        ).order_by('-total')
-    )
+    serie_anual = [
+        {'etiqueta': str(r['año']), 'valor': r['total']}
+        for r in proyectos.annotate(año=ExtractYear('fecha_inicio'))
+        .values('año').annotate(total=Count('id')).order_by('año')
+        if r['año']
+    ]
+    serie_sectores = [
+        {'etiqueta': r['empresa__sector_productivo'] or 'Sin especificar', 'valor': r['total']}
+        for r in proyectos.values('empresa__sector_productivo')
+        .annotate(total=Count('id')).order_by('-total')[:8]
+    ]
+    serie_regiones = [
+        {'etiqueta': r['centro__region'], 'valor': r['total']}
+        for r in proyectos.exclude(centro__region='').exclude(centro__region__isnull=True)
+        .values('centro__region').annotate(total=Count('id')).order_by('-total')
+    ]
+    serie_centros = [
+        {'etiqueta': c['sigla'], 'valor': c['proyectos']}
+        for c in centros_tabla if c['proyectos']
+    ]
 
-    regiones_labels = [r['centro__region'] or 'Sin región' for r in regiones_data if r['centro__region']]
-    regiones_valores = [r['total'] for r in regiones_data if r['centro__region']]
+    # Texto "Mostrando: ..." del resumen de filtros
+    resumen_filtros = ' · '.join([
+        filtro_año or 'Todos los años',
+        filtro_region or 'Todas las regiones',
+        filtro_sector or 'Todos los sectores',
+    ])
 
-    # Si no hay datos, agregar valores por defecto para que el gráfico se muestre
-    if not regiones_labels:
-        regiones_labels = ['Sin datos']
-        regiones_valores = [0]
-
-    # =========================================================================
-    # DISTRIBUCIÓN POR CENTRO (sin nombres de empresas)
-    # =========================================================================
-    centros_data = list(
-        proyectos.values('centro__nombre_corto', 'centro__nombre').annotate(
-            total=Count('id')
-        ).order_by('-total')[:10]
-    )
-
-    centros_labels = [c['centro__nombre_corto'] or c['centro__nombre'] or 'Centro' for c in centros_data]
-    centros_valores = [c['total'] for c in centros_data]
-
-    # Si no hay datos, agregar valores por defecto
-    if not centros_labels:
-        centros_labels = ['Sin datos']
-        centros_valores = [0]
-
-    # =========================================================================
-    # CONTEXTO FINAL
-    # =========================================================================
     context = {
-        # KPIs
+        'fecha_corte': timezone.localdate(),
         'total_proyectos': total_proyectos,
         'total_centros': total_centros,
         'total_empresas': total_empresas,
         'sectores_unicos': sectores_unicos,
-        'total_energia_mwh': int(total_energia_mwh),
-        'total_emisiones_ton': int(total_emisiones_ton),
+        'total_energia_mwh': round(total_energia_mwh),
+        'total_emisiones_ton': round(total_emisiones_ton),
+        'matriz_energia': matriz_energia,
+        'centros_tabla': centros_tabla,
+        'serie_anual': serie_anual,
+        'serie_sectores': serie_sectores,
+        'serie_regiones': serie_regiones,
+        'serie_centros': serie_centros,
 
-        # Filtros (opciones y valores actuales)
+        # Filtros
         'años_disponibles': años_disponibles,
         'regiones_disponibles': regiones_disponibles,
         'sectores_disponibles': sectores_disponibles,
@@ -330,44 +271,26 @@ def resultados(request):
         'filtro_region': filtro_region,
         'filtro_sector': filtro_sector,
         'hay_filtros': bool(filtro_año or filtro_region or filtro_sector),
+        'resumen_filtros': resumen_filtros,
 
-        # Datos para mapa (JSON)
-        'centros_mapa_json': json.dumps(centros_mapa),
-
-        # Energía por tipo (JSON para gráfico)
-        'energia_por_tipo_labels': json.dumps(['Electricidad', 'Gas Natural', 'Carbón', 'Fuel Oil', 'Biomasa', 'GLP']),
-        'energia_por_tipo_data': json.dumps([
-            int(energia_electricidad / 1000),
-            int(energia_gas_natural / 1000),
-            int(energia_carbon / 1000),
-            int(energia_fuel_oil / 1000),
-            int(energia_biomasa / 1000),
-            int(energia_glp / 1000),
-        ]),
-
-        # Evolución temporal
-        'años_labels': json.dumps(años_labels),
-        'años_data': json.dumps(años_data),
-
-        # Sectores
-        'sectores_labels': json.dumps(sectores_labels),
-        'sectores_data': json.dumps(sectores_valores),
-
-        # Regiones
-        'regiones_labels': json.dumps(regiones_labels),
-        'regiones_data': json.dumps(regiones_valores),
-
-        # Centros
-        'centros_labels': json.dumps(centros_labels),
-        'centros_data': json.dumps(centros_valores),
-
-        # Datos para exportación
-        'energia_electricidad_mwh': int(energia_electricidad / 1000),
-        'energia_gas_natural_mwh': int(energia_gas_natural / 1000),
-        'energia_carbon_mwh': int(energia_carbon / 1000),
-        'energia_fuel_oil_mwh': int(energia_fuel_oil / 1000),
-        'energia_biomasa_mwh': int(energia_biomasa / 1000),
-        'energia_glp_mwh': int(energia_glp / 1000),
+        # Datos para gráficos, mapa y exportación (vía json_script, sin |safe)
+        'datos_graficos': {
+            'mapa': [c for c in centros_tabla if c['lat'] is not None and c['lng'] is not None],
+            'anual': serie_anual,
+            'sectores': serie_sectores,
+            'regiones': serie_regiones,
+            'centros': serie_centros,
+            'matriz': matriz_energia,
+            'resumen_filtros': resumen_filtros,
+            'indicadores': [
+                ['Auditorías registradas', total_proyectos],
+                ['Empresas atendidas', total_empresas],
+                ['Centros PEVI activos', total_centros],
+                ['Sectores productivos', sectores_unicos],
+                ['Energía analizada (MWh/año)', round(total_energia_mwh)],
+                ['Emisiones reportadas (t CO2/año)', round(total_emisiones_ton)],
+            ],
+        },
     }
 
     return render(request, 'web/resultados.html', context)

@@ -254,7 +254,7 @@ python manage.py recalcular_kwh
 
 ### Mapa Interactivo (Resultados Públicos)
 - `web/views.py` - `resultados()` genera `centros_mapa_json` con lat/lng/nombre/color por centro
-- Tiles: `*.basemaps.cartocdn.com` (CSP configurado en img-src)
+- Tiles: `tile.openstreetmap.org` en escala de grises (CSP en img-src). Carto (`*.basemaps.cartocdn.com`) ya exige API key: no usar
 - Filtros: año, región, sector productivo
 
 ### Auto-asignación de Líder de Proyecto
@@ -397,7 +397,7 @@ El sistema implementa CSP para prevenir ataques XSS. Configurado en `config/midd
 | `script-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net`, `cdnjs.cloudflare.com` |
 | `style-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net`, `cdnjs.cloudflare.com`, `fonts.googleapis.com` |
 | `font-src` | `'self'`, `fonts.gstatic.com`, `cdn.jsdelivr.net` |
-| `img-src` | `'self'`, `data:`, `vadomdata.s3.amazonaws.com`, `p4.wallpaperbetter.com`, `wallpapers.com`, `img.freepik.com`, `lirp.cdn-website.com`, `*.basemaps.cartocdn.com` |
+| `img-src` | `'self'`, `data:`, `vadomdata.s3.amazonaws.com`, `p4.wallpaperbetter.com`, `wallpapers.com`, `img.freepik.com`, `lirp.cdn-website.com`, `*.basemaps.cartocdn.com`, `tile.openstreetmap.org` |
 | `connect-src` | `'self'`, `cdn.jsdelivr.net` |
 | `frame-ancestors` | `'none'` |
 | `form-action` | `'self'` |
@@ -413,7 +413,7 @@ El sistema implementa CSP para prevenir ataques XSS. Configurado en `config/midd
 | `vadomdata.s3.amazonaws.com` | S3 producción (estáticos/media) |
 | `p4.wallpaperbetter.com`, `wallpapers.com`, `img.freepik.com` | Imágenes hero landing |
 | `lirp.cdn-website.com` | Imágenes sección landing |
-| `*.basemaps.cartocdn.com` | Tiles del mapa (resultados públicos) |
+| `tile.openstreetmap.org` | Tiles del mapa (resultados públicos) |
 
 **Headers de seguridad adicionales:**
 - `X-Content-Type-Options: nosniff` - Previene MIME sniffing
