@@ -97,6 +97,27 @@ class ProyectosDuplicadosCommandTests(TestCase):
 
         self.assertEqual(ProyectoAuditoria.objects.count(), 1)
 
+    def test_filtro_empresa_no_toca_otras_empresas(self):
+        """--empresa inalkem limpia solo esa empresa (ej: DAGMA queda intacta)."""
+        inalkem = Empresa.objects.create(
+            razon_social='GRUPO INALKEM SAS', nit='901', centro=self.centro, sector_productivo='X',
+            direccion='C', ciudad='Cali', contacto_nombre='C', contacto_email='c@t.co', contacto_telefono='1',
+        )
+        otra_1 = self.crear_proyecto('Fase 4', minutos=0)
+        otra_2 = self.crear_proyecto('Fase 4', minutos=1)
+        self.empresa = inalkem
+        ina_1 = self.crear_proyecto('Evaluación', minutos=0)
+        self.crear_proyecto('Evaluación', minutos=1)
+        ina_2 = self.crear_proyecto('Evaluación - 2025', minutos=2)
+        self.crear_proyecto('Evaluación - 2025', minutos=3)
+
+        self.ejecutar('--aplicar', '--empresa', 'inalkem')
+
+        self.assertEqual(set(ProyectoAuditoria.objects.values_list('id', flat=True)),
+                         {otra_1.id, otra_2.id, ina_1.id, ina_2.id})
+        self.assertIn(self.creador, ina_1.equipo.all())
+        self.assertIn(self.creador, ina_2.equipo.all())
+
     def test_nombres_distintos_no_son_duplicados(self):
         self.crear_proyecto('Planta 1')
         self.crear_proyecto('Planta 2')

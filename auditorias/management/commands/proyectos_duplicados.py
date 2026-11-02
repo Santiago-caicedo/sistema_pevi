@@ -57,6 +57,11 @@ class Command(BaseCommand):
             action='store_true',
             help='Elimina los duplicados sin datos (por defecto solo muestra el reporte)',
         )
+        parser.add_argument(
+            '--empresa',
+            help='Solo revisa proyectos de empresas cuya razón social contenga este texto '
+                 '(ej: --empresa inalkem). Las demás empresas no se tocan.',
+        )
 
     def handle(self, *args, **options):
         aplicar = options['aplicar']
@@ -66,6 +71,9 @@ class Command(BaseCommand):
 
         grupos = {}
         proyectos = ProyectoAuditoria.objects.select_related('empresa', 'lider_proyecto', 'centro').order_by('created_at')
+        if options.get('empresa'):
+            proyectos = proyectos.filter(empresa__razon_social__icontains=options['empresa'])
+            self.stdout.write(f'Filtrando por empresa: "{options["empresa"]}"')
         for p in proyectos:
             grupos.setdefault((p.empresa_id, normalizar(p.nombre_proyecto)), []).append(p)
 
